@@ -16,13 +16,19 @@ pub struct MerkleTree<D: Digest> {
     phantom: PhantomData<D>,
 }
 
-impl<D: Digest> MerkleTree<D> {
-    pub fn new() -> Self {
+impl<D: Digest> Default for MerkleTree<D> {
+    fn default() -> MerkleTree<D> {
         Self {
             head: None,
             leaves_count: 0,
             phantom: PhantomData
         }
+    }
+}
+
+impl<D: Digest> MerkleTree<D> {
+    pub fn new() -> Self {
+        Default::default()
     }
 
     pub fn root(&self) -> Data {
@@ -84,7 +90,7 @@ impl<D: Digest> MerkleTree<D> {
             // Merge the two front nodes of the list into a single node
             let mut node = self.head.take().expect("Cannot take head!");
             let mut next_node = node.next_mut().take().expect("Cannot take head next!");
-            let joined_node = Self::join_subtrees(&mut next_node, &mut node);
+            let joined_node = Self::join_subtrees(&mut next_node, &node);
 
             self.head = Some(joined_node);
         }
@@ -124,7 +130,7 @@ impl<D: Digest> MerkleTree<D> {
         <Data>::try_from(data.as_slice()).unwrap()
     }
 
-    fn join_subtrees(a: &mut Box<DataNode>, b: &Box<DataNode>) -> Box<DataNode> {
+    fn join_subtrees(a: &mut Box<DataNode>, b: &DataNode) -> Box<DataNode> {
         let next = a.next_mut().take();
         let height = a.height() + 1;
         let data = Self::node_sum(a.data(), b.data());
