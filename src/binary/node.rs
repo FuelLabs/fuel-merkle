@@ -30,9 +30,3 @@ impl<T> Node<T> {
         &self.data
     }
 }
-
-impl<T> AsMut<T> for Node<T> {
-    fn as_mut(&mut self) -> &mut T {
-        todo!()
-    }
-}
