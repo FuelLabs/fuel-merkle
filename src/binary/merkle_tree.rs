@@ -2,6 +2,7 @@ use crate::binary::node::Node;
 use crate::digest::Digest;
 use std::convert::TryFrom;
 use std::marker::PhantomData;
+use bytes::Bytes;
 
 const NODE: [u8; 1] = [0x01];
 const LEAF: [u8; 1] = [0x00];
@@ -10,25 +11,79 @@ type Data = [u8; 32];
 type DataRef<'a> = &'a [u8];
 type DataNode = Node<Data>;
 
+pub struct ProofSet {
+    storage: Vec<Bytes>,
+}
+
+impl ProofSet {
+    pub fn new() -> Self {
+        Self {
+            storage: Vec::new(),
+        }
+    }
+
+    pub fn push(&mut self, data: &[u8]) {
+        self.storage.push(Bytes::copy_from_slice(data))
+    }
+
+    pub fn get(&self, index: usize) -> Option<&[u8]> {
+        let d = self.storage.get(index);
+        match d {
+            None => None,
+            Some(b) => {
+                Some(&b[..])
+            }
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.storage.len()
+    }
+}
+
+#[cfg(test)]
+mod proof_set_test {
+    use super::*;
+
+    #[test]
+    fn test_it() {
+        let mut set = ProofSet::new();
+
+        let data = "Hello World";
+        set.push(data.as_bytes());
+
+        let d = set.get(0).expect("Can't get at index");
+        println!("{:?}", d);
+    }
+}
+
+
 pub struct MerkleTree<D: Digest> {
     head: Option<Box<DataNode>>,
     leaves_count: u64,
-    phantom: PhantomData<D>,
-}
+    proof_index: u64,
+    proof_set: ProofSet,
 
-impl<D: Digest> Default for MerkleTree<D> {
-    fn default() -> MerkleTree<D> {
-        Self {
-            head: None,
-            leaves_count: 0,
-            phantom: PhantomData,
-        }
-    }
+    phantom: PhantomData<D>,
 }
 
 impl<D: Digest> MerkleTree<D> {
     pub fn new() -> Self {
-        Default::default()
+        Self {
+            head: None,
+            leaves_count: 0,
+            proof_index: 0,
+            proof_set: ProofSet::new(),
+
+            phantom: PhantomData
+        }
+    }
+
+    pub fn set_proof_index(&mut self, proof_index: u64) {
+        if self.head().is_some() {
+            panic!("Cannot change the proof index after adding a leaf!");
+        }
+        self.proof_index = proof_index;
     }
 
     pub fn root(&self) -> Data {
@@ -42,9 +97,12 @@ impl<D: Digest> MerkleTree<D> {
                     }
 
                     let mut node = current;
-                    let mut next_node = node.next_mut().take().expect("Cannot take next!");
-                    current = Self::join_subtrees(&mut next_node, &node)
-                }
+                    let mut next_node = node.next_mut().take().unwrap();
+                    current = Self::join_subtrees(
+                        &mut next_node,
+                        &node
+                    )
+                };
                 *current.data()
             }
         }
@@ -54,16 +112,51 @@ impl<D: Digest> MerkleTree<D> {
         self.leaves_count
     }
 
-    pub fn push(&mut self, data: DataRef) {
-        let node = Self::create_node(self.head.take(), 0, Self::leaf_sum(data));
+    pub fn push(&mut self, data: &[u8]) {
+        let node = Self::create_node(
+            self.head.take(),
+            0,
+            Self::leaf_sum(data)
+        );
+
+        if self.leaves_count == self.proof_index {
+            self.proof_set.push(data);
+        }
+
         self.head = Some(node);
         self.join_all_subtrees();
 
         self.leaves_count += 1;
     }
 
-    pub fn prove(/**/) {
-        todo!();
+    pub fn prove (mut self) -> (Data, ProofSet) {
+        if self.head().is_none() || self.proof_set.len() == 0 {
+            return (self.root(), self.proof_set);
+        }
+
+        let mut current = self.head.clone().unwrap();
+        while current.next().is_some() && current.next().as_ref().unwrap().height() < (self.proof_set.len() - 1) as u32 {
+            let mut node = current;
+            let mut next_node = node.next_mut().take().unwrap();
+            current = Self::join_subtrees(
+                &mut next_node,
+                &node
+            )
+        }
+
+        if current.next().is_some() && current.next().as_ref().unwrap().height() == (self.proof_set.len() - 1) as u32 {
+            self.proof_set.push(current.data());
+            current = current.next_mut().take().unwrap();
+        }
+
+        // current = current.next_mut().take().unwrap();
+
+        while current.next().is_some() {
+            self.proof_set.push(current.data());
+            current = current.next_mut().take().unwrap();
+        };
+
+        (self.root(), self.proof_set)
     }
 
     //
@@ -82,6 +175,16 @@ impl<D: Digest> MerkleTree<D> {
                 && head.height() == head_next.as_ref().expect("Cannot get head next!").height())
             {
                 break;
+            }
+
+            if head.height() == self.proof_set.len() as u32 - 1 {
+                let leaves = 1u64 << head.height();
+                let mid = (self.leaves_count / leaves) * leaves;
+                if self.proof_index < mid {
+                    self.proof_set.push(head.data());
+                } else {
+                    self.proof_set.push(head_next.as_ref().unwrap().data());
+                }
             }
 
             // Merge the two front nodes of the list into a single node
@@ -323,5 +426,57 @@ mod test {
         }
 
         assert_eq!(mt.leaves_count(), leaves.len() as u64);
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index() {
+        let mut mt = MT::new();
+        mt.set_proof_index(0);
+
+        let leaves = [
+            "Hello, World!".as_bytes(),
+            "Making banana pancakes".as_bytes(),
+            "What is love?".as_bytes(),
+            "Bob Ross".as_bytes(),
+            "The smell of napalm in the morning".as_bytes()
+        ];
+        for leaf in leaves.iter() {
+            mt.push(leaf);
+        }
+
+        let proof = mt.prove();
+        let root = proof.0;
+        let set = proof.1;
+
+        //          N4
+        //         /  \
+        //       N3    \
+        //      /  \    \
+        //     /    \    \
+        //   N1      N2   \
+        //  /  \    /  \   \
+        // L1  L2  L3  L4  L5
+
+        let leaf_1 = leaf_data(&leaves[0]);
+        let leaf_2 = leaf_data(&leaves[1]);
+        let leaf_3 = leaf_data(&leaves[2]);
+        let leaf_4 = leaf_data(&leaves[3]);
+        let leaf_5 = leaf_data(&leaves[4]);
+
+        let node_1 = node_data(&leaf_1, &leaf_2);
+        let node_2 = node_data(&leaf_3, &leaf_4);
+        let node_3 = node_data(&node_1, &node_2);
+        let node_4 = node_data(&node_3, &leaf_5);
+
+        let s_1 = set.get(0).unwrap();
+        let s_2 = set.get(1).unwrap();
+        let s_3 = set.get(2).unwrap();
+        let s_4 = set.get(3).unwrap();
+
+        assert_eq!(root, node_4);
+        assert_eq!(s_1, leaves[0]);
+        assert_eq!(s_2, &leaf_2);
+        assert_eq!(s_3, &node_2);
+        assert_eq!(s_4, &leaf_5);
     }
 }
