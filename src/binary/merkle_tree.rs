@@ -1,8 +1,8 @@
 use crate::binary::node::Node;
 use crate::digest::Digest;
+use bytes::Bytes;
 use std::convert::TryFrom;
 use std::marker::PhantomData;
-use bytes::Bytes;
 
 const NODE: [u8; 1] = [0x01];
 const LEAF: [u8; 1] = [0x00];
@@ -30,9 +30,7 @@ impl ProofSet {
         let d = self.storage.get(index);
         match d {
             None => None,
-            Some(b) => {
-                Some(&b[..])
-            }
+            Some(b) => Some(&b[..]),
         }
     }
 
@@ -57,7 +55,6 @@ mod proof_set_test {
     }
 }
 
-
 pub struct MerkleTree<D: Digest> {
     head: Option<Box<DataNode>>,
     leaves_count: u64,
@@ -75,7 +72,7 @@ impl<D: Digest> MerkleTree<D> {
             proof_index: 0,
             proof_set: ProofSet::new(),
 
-            phantom: PhantomData
+            phantom: PhantomData,
         }
     }
 
@@ -98,11 +95,8 @@ impl<D: Digest> MerkleTree<D> {
 
                     let mut node = current;
                     let mut next_node = node.next_mut().take().unwrap();
-                    current = Self::join_subtrees(
-                        &mut next_node,
-                        &node
-                    )
-                };
+                    current = Self::join_subtrees(&mut next_node, &node)
+                }
                 *current.data()
             }
         }
@@ -113,11 +107,7 @@ impl<D: Digest> MerkleTree<D> {
     }
 
     pub fn push(&mut self, data: &[u8]) {
-        let node = Self::create_node(
-            self.head.take(),
-            0,
-            Self::leaf_sum(data)
-        );
+        let node = Self::create_node(self.head.take(), 0, Self::leaf_sum(data));
 
         if self.leaves_count == self.proof_index {
             self.proof_set.push(data);
@@ -129,22 +119,23 @@ impl<D: Digest> MerkleTree<D> {
         self.leaves_count += 1;
     }
 
-    pub fn prove (mut self) -> (Data, ProofSet) {
+    pub fn prove(mut self) -> (Data, ProofSet) {
         if self.head().is_none() || self.proof_set.len() == 0 {
             return (self.root(), self.proof_set);
         }
 
         let mut current = self.head.clone().unwrap();
-        while current.next().is_some() && current.next().as_ref().unwrap().height() < (self.proof_set.len() - 1) as u32 {
+        while current.next().is_some()
+            && current.next().as_ref().unwrap().height() < (self.proof_set.len() - 1) as u32
+        {
             let mut node = current;
             let mut next_node = node.next_mut().take().unwrap();
-            current = Self::join_subtrees(
-                &mut next_node,
-                &node
-            )
+            current = Self::join_subtrees(&mut next_node, &node)
         }
 
-        if current.next().is_some() && current.next().as_ref().unwrap().height() == (self.proof_set.len() - 1) as u32 {
+        if current.next().is_some()
+            && current.next().as_ref().unwrap().height() == (self.proof_set.len() - 1) as u32
+        {
             self.proof_set.push(current.data());
             current = current.next_mut().take().unwrap();
         }
@@ -152,7 +143,7 @@ impl<D: Digest> MerkleTree<D> {
         while current.next().is_some() {
             self.proof_set.push(current.data());
             current = current.next_mut().take().unwrap();
-        };
+        }
 
         (self.root(), self.proof_set)
     }
@@ -436,7 +427,7 @@ mod test {
             "Making banana pancakes".as_bytes(),
             "What is love?".as_bytes(),
             "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes()
+            "The smell of napalm in the morning".as_bytes(),
         ];
         for leaf in leaves.iter() {
             mt.push(leaf);
@@ -476,5 +467,55 @@ mod test {
         assert_eq!(s_2, &leaf_2);
         assert_eq!(s_3, &node_2);
         assert_eq!(s_4, &leaf_5);
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_in_a_MMT() {
+        let mut mt = MT::new();
+        mt.set_proof_index(4);
+
+        let leaves = [
+            "Hello, World!".as_bytes(),
+            "Making banana pancakes".as_bytes(),
+            "What is love?".as_bytes(),
+            "Bob Ross".as_bytes(),
+            "The smell of napalm in the morning".as_bytes(),
+        ];
+        for leaf in leaves.iter() {
+            mt.push(leaf);
+        }
+
+        let proof = mt.prove();
+        let root = proof.0;
+        let set = proof.1;
+
+        //          N4
+        //         /  \
+        //       N3    \
+        //      /  \    \
+        //     /    \    \
+        //   N1      N2   \
+        //  /  \    /  \   \
+        // L1  L2  L3  L4  L5
+
+        let leaf_1 = leaf_data(&leaves[0]);
+        let leaf_2 = leaf_data(&leaves[1]);
+        let leaf_3 = leaf_data(&leaves[2]);
+        let leaf_4 = leaf_data(&leaves[3]);
+        let leaf_5 = leaf_data(&leaves[4]);
+
+        let node_1 = node_data(&leaf_1, &leaf_2);
+        let node_2 = node_data(&leaf_3, &leaf_4);
+        let node_3 = node_data(&node_1, &node_2);
+        let node_4 = node_data(&node_3, &leaf_5);
+
+        let s_1 = set.get(0).unwrap();
+        let s_2 = set.get(1).unwrap();
+        let s_3 = set.get(2).unwrap();
+        let s_4 = set.get(3).unwrap();
+
+        assert_eq!(root, node_4);
+        assert_eq!(s_1, leaves[0]);
+        assert_eq!(s_2, &node_3);
     }
 }
