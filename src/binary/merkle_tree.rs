@@ -149,8 +149,6 @@ impl<D: Digest> MerkleTree<D> {
             current = current.next_mut().take().unwrap();
         }
 
-        // current = current.next_mut().take().unwrap();
-
         while current.next().is_some() {
             self.proof_set.push(current.data());
             current = current.next_mut().take().unwrap();
