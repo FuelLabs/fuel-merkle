@@ -2,16 +2,12 @@
 pub struct Node<T> {
     next: Option<Box<Node<T>>>,
     height: u32,
-    data: T
+    data: T,
 }
 
 impl<T> Node<T> {
     pub fn new(next: Option<Box<Node<T>>>, height: u32, data: T) -> Self {
-        Self {
-            next,
-            height,
-            data
-        }
+        Self { next, height, data }
     }
 
     pub fn next(&self) -> &Option<Box<Node<T>>> {

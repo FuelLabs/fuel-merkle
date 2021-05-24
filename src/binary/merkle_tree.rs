@@ -21,7 +21,7 @@ impl<D: Digest> Default for MerkleTree<D> {
         Self {
             head: None,
             leaves_count: 0,
-            phantom: PhantomData
+            phantom: PhantomData,
         }
     }
 }
@@ -37,15 +37,14 @@ impl<D: Digest> MerkleTree<D> {
             Some(ref head) => {
                 let mut current = head.clone();
                 loop {
-                    if current.next().is_none() { break; }
+                    if current.next().is_none() {
+                        break;
+                    }
 
                     let mut node = current;
                     let mut next_node = node.next_mut().take().expect("Cannot take next!");
-                    current = Self::join_subtrees(
-                        &mut next_node,
-                        &node
-                    )
-                };
+                    current = Self::join_subtrees(&mut next_node, &node)
+                }
                 *current.data()
             }
         }
@@ -56,18 +55,14 @@ impl<D: Digest> MerkleTree<D> {
     }
 
     pub fn push(&mut self, data: DataRef) {
-        let node = Self::create_node(
-            self.head.take(),
-            0,
-            Self::leaf_sum(data)
-        );
+        let node = Self::create_node(self.head.take(), 0, Self::leaf_sum(data));
         self.head = Some(node);
         self.join_all_subtrees();
 
         self.leaves_count += 1;
     }
 
-    pub fn prove (/**/) {
+    pub fn prove(/**/) {
         todo!();
     }
 
@@ -83,7 +78,9 @@ impl<D: Digest> MerkleTree<D> {
         loop {
             let head = self.head.as_ref().expect("Cannot get head!");
             let head_next = head.next();
-            if !(head_next.is_some() && head.height() == head_next.as_ref().expect("Cannot get head next!").height()) {
+            if !(head_next.is_some()
+                && head.height() == head_next.as_ref().expect("Cannot get head next!").height())
+            {
                 break;
             }
 
@@ -99,7 +96,7 @@ impl<D: Digest> MerkleTree<D> {
     // Merkle Tree hash of an empty list
     // MTH({}) = Hash()
     fn empty_sum() -> Data {
-        let hash =  D::new();
+        let hash = D::new();
         let data = hash.finalize();
 
         <Data>::try_from(data.as_slice()).unwrap()
@@ -108,7 +105,7 @@ impl<D: Digest> MerkleTree<D> {
     // Merkle tree hash of an n-element list D[n]
     // MTH(D[n]) = Hash(0x01 || MTH(D[0:k]) || MTH(D[k:n])
     fn node_sum(lhs_data: DataRef, rhs_data: DataRef) -> Data {
-        let mut hash =  D::new();
+        let mut hash = D::new();
 
         hash.update(&NODE);
         hash.update(&lhs_data);
@@ -121,7 +118,7 @@ impl<D: Digest> MerkleTree<D> {
     // Merkle tree hash of a list with one entry
     // MTH({d(0)}) = Hash(0x00 || d(0))
     fn leaf_sum(data: DataRef) -> Data {
-        let mut hash =  D::new();
+        let mut hash = D::new();
 
         hash.update(&LEAF);
         hash.update(&data);
@@ -134,19 +131,11 @@ impl<D: Digest> MerkleTree<D> {
         let next = a.next_mut().take();
         let height = a.height() + 1;
         let data = Self::node_sum(a.data(), b.data());
-        Self::create_node(
-            next,
-            height,
-            data
-        )
+        Self::create_node(next, height, data)
     }
 
     fn create_node(next: Option<Box<DataNode>>, height: u32, data: Data) -> Box<DataNode> {
-        Box::new(DataNode::new(
-            next,
-            height,
-            data
-        ))
+        Box::new(DataNode::new(next, height, data))
     }
 }
 
@@ -205,7 +194,7 @@ mod test {
             "Hello, World!".as_bytes(),
             "Making banana pancakes".as_bytes(),
             "What is love?".as_bytes(),
-            "Bob Ross".as_bytes()
+            "Bob Ross".as_bytes(),
         ];
         for leaf in leaves.iter() {
             mt.push(leaf);
@@ -241,7 +230,7 @@ mod test {
             "Making banana pancakes".as_bytes(),
             "What is love?".as_bytes(),
             "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes()
+            "The smell of napalm in the morning".as_bytes(),
         ];
         for leaf in leaves.iter() {
             mt.push(leaf);
@@ -327,7 +316,7 @@ mod test {
             "Hello, World!".as_bytes(),
             "Making banana pancakes".as_bytes(),
             "What is love?".as_bytes(),
-            "Bob Ross".as_bytes()
+            "Bob Ross".as_bytes(),
         ];
         for leaf in leaves.iter() {
             mt.push(leaf);

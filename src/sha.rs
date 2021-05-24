@@ -1,5 +1,5 @@
 use crate::digest::Digest;
-use generic_array::{GenericArray, typenum};
+use generic_array::{typenum, GenericArray};
 use sha2::Digest as DigestImpl;
 use sha2::Sha256 as Sha256Impl;
 
@@ -12,7 +12,7 @@ impl Digest for Sha256 {
 
     fn new() -> Self {
         Self {
-            internal: Sha256Impl::new()
+            internal: Sha256Impl::new(),
         }
     }
 
