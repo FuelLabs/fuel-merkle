@@ -30,11 +30,17 @@ impl<T> Node<T> {
         &self.data
     }
 
-    pub fn next_height(&self) -> u32 {
-        self.next().as_ref().unwrap().height()
+    pub fn next_height(&self) -> Option<u32> {
+        match self.next().as_ref() {
+            None => None,
+            Some(next) => { Some(next.height()) }
+        }
     }
 
-    pub fn next_data(&self) -> &T {
-        self.next().as_ref().unwrap().data()
+    pub fn next_data(&self) -> Option<&T> {
+        match self.next().as_ref() {
+            None => None,
+            Some(next) => { Some(next.data()) }
+        }
     }
 }

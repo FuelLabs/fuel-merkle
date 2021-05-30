@@ -122,19 +122,19 @@ impl<D: Digest> MerkleTree<D> {
         }
 
         let mut current = self.head.clone().unwrap();
-        while current.next().is_some() && current.next_height() + 1 < proof_set_length {
+        while current.next().is_some() && current.next_height().unwrap() + 1 < proof_set_length {
             let mut node = current;
             let mut next_node = node.take_next().unwrap();
             current = Self::join_subtrees(&mut next_node, &node)
         }
 
-        if current.next().is_some() && current.next_height() + 1 == proof_set_length {
+        if current.next().is_some() && current.next_height().unwrap() + 1 == proof_set_length {
             self.proof_set.push(current.data());
             current = current.take_next().unwrap();
         }
 
         while current.next().is_some() {
-            self.proof_set.push(current.next_data());
+            self.proof_set.push(current.next_data().unwrap());
             current = current.take_next().unwrap();
         }
 
@@ -152,7 +152,7 @@ impl<D: Digest> MerkleTree<D> {
     fn join_all_subtrees(&mut self) {
         loop {
             let head = self.head.as_ref().unwrap();
-            if !(head.next().is_some() && head.height() == head.next_height()) {
+            if !(head.next().is_some() && head.height() == head.next_height().unwrap()) {
                 break;
             }
 
@@ -163,7 +163,7 @@ impl<D: Digest> MerkleTree<D> {
                 if self.proof_index < mid {
                     self.proof_set.push(head.data());
                 } else {
-                    self.proof_set.push(head.next_data());
+                    self.proof_set.push(head.next_data().unwrap());
                 }
             }
 
