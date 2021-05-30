@@ -88,11 +88,7 @@ impl<D: Digest> MerkleTree<D> {
             None => Self::empty_sum(),
             Some(ref head) => {
                 let mut current = head.clone();
-                loop {
-                    if current.next().is_none() {
-                        break;
-                    }
-
+                while current.next().is_some() {
                     let mut node = current;
                     let mut next_node = node.take_next().unwrap();
                     current = Self::join_subtrees(&mut next_node, &node)
