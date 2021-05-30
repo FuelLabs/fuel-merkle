@@ -33,14 +33,14 @@ impl<T> Node<T> {
     pub fn next_height(&self) -> Option<u32> {
         match self.next().as_ref() {
             None => None,
-            Some(next) => { Some(next.height()) }
+            Some(next) => Some(next.height()),
         }
     }
 
     pub fn next_data(&self) -> Option<&T> {
         match self.next().as_ref() {
             None => None,
-            Some(next) => { Some(next.data()) }
+            Some(next) => Some(next.data()),
         }
     }
 }

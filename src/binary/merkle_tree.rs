@@ -1,6 +1,7 @@
 use crate::binary::node::Node;
 use crate::digest::Digest;
-use bytes::Bytes;
+use crate::proof_set::ProofSet;
+
 use std::convert::TryFrom;
 use std::marker::PhantomData;
 
@@ -10,50 +11,6 @@ const LEAF: [u8; 1] = [0x00];
 type Data = [u8; 32];
 type DataRef<'a> = &'a [u8];
 type DataNode = Node<Data>;
-
-pub struct ProofSet {
-    storage: Vec<Bytes>,
-}
-
-impl ProofSet {
-    pub fn new() -> Self {
-        Self {
-            storage: Vec::new(),
-        }
-    }
-
-    pub fn push(&mut self, data: &[u8]) {
-        self.storage.push(Bytes::copy_from_slice(data))
-    }
-
-    pub fn get(&self, index: usize) -> Option<&[u8]> {
-        let d = self.storage.get(index);
-        match d {
-            None => None,
-            Some(b) => Some(&b[..]),
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.storage.len()
-    }
-}
-
-#[cfg(test)]
-mod proof_set_test {
-    use super::*;
-
-    #[test]
-    fn test_it() {
-        let mut set = ProofSet::new();
-
-        let data = "Hello World";
-        set.push(data.as_bytes());
-
-        let d = set.get(0).expect("Can't get at index");
-        println!("{:?}", d);
-    }
-}
 
 pub struct MerkleTree<D: Digest> {
     head: Option<Box<DataNode>>,
@@ -121,7 +78,7 @@ impl<D: Digest> MerkleTree<D> {
             return (self.root(), self.proof_set);
         }
 
-        let mut current = self.head.clone().unwrap();
+        let mut current = self.head().clone().unwrap();
         while current.next().is_some() && current.next_height().unwrap() + 1 < proof_set_length {
             let mut node = current;
             let mut next_node = node.take_next().unwrap();
