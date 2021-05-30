@@ -120,13 +120,15 @@ impl<D: Digest> MerkleTree<D> {
     }
 
     pub fn prove(mut self) -> (Data, ProofSet) {
-        if self.head().is_none() || self.proof_set.len() == 0 {
+        let proof_set_length = self.proof_set.len() as u32;
+
+        if self.head().is_none() || proof_set_length == 0 {
             return (self.root(), self.proof_set);
         }
 
         let mut current = self.head.clone().unwrap();
         while current.next().is_some()
-            && current.next().as_ref().unwrap().height() < (self.proof_set.len() - 1) as u32
+            && current.next().as_ref().unwrap().height() + 1 < proof_set_length
         {
             let mut node = current;
             let mut next_node = node.next_mut().take().unwrap();
@@ -134,14 +136,14 @@ impl<D: Digest> MerkleTree<D> {
         }
 
         if current.next().is_some()
-            && current.next().as_ref().unwrap().height() == (self.proof_set.len() - 1) as u32
+            && current.next().as_ref().unwrap().height() + 1 == proof_set_length
         {
             self.proof_set.push(current.data());
             current = current.next_mut().take().unwrap();
         }
 
         while current.next().is_some() {
-            self.proof_set.push(current.data());
+            self.proof_set.push(current.next().as_ref().unwrap().data());
             current = current.next_mut().take().unwrap();
         }
 
@@ -166,7 +168,8 @@ impl<D: Digest> MerkleTree<D> {
                 break;
             }
 
-            if head.height() == self.proof_set.len() as u32 - 1 {
+            let proof_set_length = self.proof_set.len() as u32;
+            if head.heigh() + 1 == proof_set_length {
                 let leaves = 1u64 << head.height();
                 let mid = (self.leaves_count / leaves) * leaves;
                 if self.proof_index < mid {
@@ -219,7 +222,7 @@ impl<D: Digest> MerkleTree<D> {
         <Data>::try_from(data.as_slice()).unwrap()
     }
 
-    fn join_subtrees(a: &mut Box<DataNode>, b: &DataNode) -> Box<DataNode> {
+    fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.next_mut().take();
         let height = a.height() + 1;
         let data = Self::node_sum(a.data(), b.data());
@@ -470,9 +473,9 @@ mod test {
     }
 
     #[test]
-    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_in_a_MMT() {
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_on_the_left() {
         let mut mt = MT::new();
-        mt.set_proof_index(4);
+        mt.set_proof_index(2);
 
         let leaves = [
             "Hello, World!".as_bytes(),
@@ -515,7 +518,57 @@ mod test {
         let s_4 = set.get(3).unwrap();
 
         assert_eq!(root, node_4);
-        assert_eq!(s_1, leaves[0]);
+        assert_eq!(s_1, leaves[2]);
+        assert_eq!(s_2, &leaf_4);
+        assert_eq!(s_3, &node_1);
+        assert_eq!(s_4, &leaf_5);
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_on_the_right() {
+        let mut mt = MT::new();
+        mt.set_proof_index(4);
+
+        let leaves = [
+            "Hello, World!".as_bytes(),
+            "Making banana pancakes".as_bytes(),
+            "What is love?".as_bytes(),
+            "Bob Ross".as_bytes(),
+            "The smell of napalm in the morning".as_bytes(),
+        ];
+        for leaf in leaves.iter() {
+            mt.push(leaf);
+        }
+
+        let proof = mt.prove();
+        let root = proof.0;
+        let set = proof.1;
+
+        //          N4
+        //         /  \
+        //       N3    \
+        //      /  \    \
+        //     /    \    \
+        //   N1      N2   \
+        //  /  \    /  \   \
+        // L1  L2  L3  L4  L5
+
+        let leaf_1 = leaf_data(&leaves[0]);
+        let leaf_2 = leaf_data(&leaves[1]);
+        let leaf_3 = leaf_data(&leaves[2]);
+        let leaf_4 = leaf_data(&leaves[3]);
+        let leaf_5 = leaf_data(&leaves[4]);
+
+        let node_1 = node_data(&leaf_1, &leaf_2);
+        let node_2 = node_data(&leaf_3, &leaf_4);
+        let node_3 = node_data(&node_1, &node_2);
+        let node_4 = node_data(&node_3, &leaf_5);
+
+        let s_1 = set.get(0).unwrap();
+        let s_2 = set.get(1).unwrap();
+
+        assert_eq!(root, node_4);
+        assert_eq!(s_1, leaves[4]);
         assert_eq!(s_2, &node_3);
     }
 }
