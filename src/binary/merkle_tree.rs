@@ -94,7 +94,7 @@ impl<D: Digest> MerkleTree<D> {
                     }
 
                     let mut node = current;
-                    let mut next_node = node.next_mut().take().unwrap();
+                    let mut next_node = node.take_next().unwrap();
                     current = Self::join_subtrees(&mut next_node, &node)
                 }
                 *current.data()
@@ -127,24 +127,20 @@ impl<D: Digest> MerkleTree<D> {
         }
 
         let mut current = self.head.clone().unwrap();
-        while current.next().is_some()
-            && current.next().as_ref().unwrap().height() + 1 < proof_set_length
-        {
+        while current.next().is_some() && current.next_height() + 1 < proof_set_length {
             let mut node = current;
-            let mut next_node = node.next_mut().take().unwrap();
+            let mut next_node = node.take_next().unwrap();
             current = Self::join_subtrees(&mut next_node, &node)
         }
 
-        if current.next().is_some()
-            && current.next().as_ref().unwrap().height() + 1 == proof_set_length
-        {
+        if current.next().is_some() && current.next_height() + 1 == proof_set_length {
             self.proof_set.push(current.data());
-            current = current.next_mut().take().unwrap();
+            current = current.take_next().unwrap();
         }
 
         while current.next().is_some() {
-            self.proof_set.push(current.next().as_ref().unwrap().data());
-            current = current.next_mut().take().unwrap();
+            self.proof_set.push(current.next_data());
+            current = current.take_next().unwrap();
         }
 
         (self.root(), self.proof_set)
@@ -160,28 +156,25 @@ impl<D: Digest> MerkleTree<D> {
 
     fn join_all_subtrees(&mut self) {
         loop {
-            let head = self.head.as_ref().expect("Cannot get head!");
-            let head_next = head.next();
-            if !(head_next.is_some()
-                && head.height() == head_next.as_ref().expect("Cannot get head next!").height())
-            {
+            let head = self.head.as_ref().unwrap();
+            if !(head.next().is_some() && head.height() == head.next_height()) {
                 break;
             }
 
             let proof_set_length = self.proof_set.len() as u32;
-            if head.heigh() + 1 == proof_set_length {
-                let leaves = 1u64 << head.height();
-                let mid = (self.leaves_count / leaves) * leaves;
+            if head.height() + 1 == proof_set_length {
+                let head_leaves_count = 1u64 << head.height();
+                let mid = (self.leaves_count() / head_leaves_count) * head_leaves_count;
                 if self.proof_index < mid {
                     self.proof_set.push(head.data());
                 } else {
-                    self.proof_set.push(head_next.as_ref().unwrap().data());
+                    self.proof_set.push(head.next_data());
                 }
             }
 
             // Merge the two front nodes of the list into a single node
-            let mut node = self.head.take().expect("Cannot take head!");
-            let mut next_node = node.next_mut().take().expect("Cannot take head next!");
+            let mut node = self.head.take().unwrap();
+            let mut next_node = node.take_next().unwrap();
             let joined_node = Self::join_subtrees(&mut next_node, &node);
 
             self.head = Some(joined_node);
@@ -223,7 +216,7 @@ impl<D: Digest> MerkleTree<D> {
     }
 
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
-        let next = a.next_mut().take();
+        let next = a.take_next();
         let height = a.height() + 1;
         let data = Self::node_sum(a.data(), b.data());
         Self::create_node(next, height, data)
