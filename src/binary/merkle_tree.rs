@@ -103,12 +103,11 @@ impl<D: Digest> MerkleTree<D> {
     }
 
     pub fn push(&mut self, data: &[u8]) {
-        let node = Self::create_node(self.head.take(), 0, Self::leaf_sum(data));
-
         if self.leaves_count == self.proof_index {
             self.proof_set.push(data);
         }
 
+        let node = Self::create_node(self.head.take(), 0, Self::leaf_sum(data));
         self.head = Some(node);
         self.join_all_subtrees();
 
@@ -160,7 +159,7 @@ impl<D: Digest> MerkleTree<D> {
             let proof_set_length = self.proof_set.len() as u32;
             if head.height() + 1 == proof_set_length {
                 let head_leaves_count = 1u64 << head.height();
-                let mid = (self.leaves_count() / head_leaves_count) * head_leaves_count;
+                let mid = (self.leaves_count / head_leaves_count) * head_leaves_count;
                 if self.proof_index < mid {
                     self.proof_set.push(head.data());
                 } else {
