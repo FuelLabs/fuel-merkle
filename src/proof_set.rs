@@ -17,10 +17,7 @@ impl ProofSet {
 
     pub fn get(&self, index: usize) -> Option<&[u8]> {
         let d = self.storage.get(index);
-        match d {
-            None => None,
-            Some(b) => Some(&b[..]),
-        }
+        d.map(|element| &element[..])
     }
 
     pub fn len(&self) -> usize {
