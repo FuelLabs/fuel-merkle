@@ -135,7 +135,7 @@ impl<D: Digest> MerkleTree<D> {
 
     // Merkle Tree hash of an empty list
     // MTH({}) = Hash()
-    fn empty_sum() -> Data {
+    pub fn empty_sum() -> Data {
         let hash = D::new();
         let data = hash.finalize();
 
@@ -144,7 +144,7 @@ impl<D: Digest> MerkleTree<D> {
 
     // Merkle tree hash of an n-element list D[n]
     // MTH(D[n]) = Hash(0x01 || MTH(D[0:k]) || MTH(D[k:n])
-    fn node_sum(lhs_data: DataRef, rhs_data: DataRef) -> Data {
+    pub fn node_sum(lhs_data: DataRef, rhs_data: DataRef) -> Data {
         let mut hash = D::new();
 
         hash.update(&NODE);
@@ -157,7 +157,7 @@ impl<D: Digest> MerkleTree<D> {
 
     // Merkle tree hash of a list with one entry
     // MTH({d(0)}) = Hash(0x00 || d(0))
-    fn leaf_sum(data: DataRef) -> Data {
+    pub fn leaf_sum(data: DataRef) -> Data {
         let mut hash = D::new();
 
         hash.update(&LEAF);
@@ -515,5 +515,26 @@ mod test {
         assert_eq!(root, node_4);
         assert_eq!(s_1, leaves[4]);
         assert_eq!(s_2, &node_3);
+    }
+
+    #[test]
+    fn prove_returns_the_root_of_the_empty_merkle_tree_when_no_leaves_are_added() {
+        let mt = MT::new();
+
+        let proof = mt.prove();
+        let root = proof.0;
+
+        let expected_root = empty_data();
+        assert_eq!(root, expected_root);
+    }
+
+    #[test]
+    fn prove_returns_an_empty_proof_set_when_no_leaves_are_added() {
+        let mt = MT::new();
+
+        let proof = mt.prove();
+        let set = proof.1;
+
+        assert_eq!(set.len(), 0);
     }
 }
