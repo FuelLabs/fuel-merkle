@@ -1,8 +1,13 @@
+use crate::binary::merkle_tree::MerkleTree;
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
-use crate::binary::merkle_tree::MerkleTree;
 
-pub fn verify<D: Digest>(root: &[u8; 32], proof_set: ProofSet, proof_index: u64, num_leaves: u64) -> bool {
+pub fn verify<D: Digest>(
+    root: &[u8; 32],
+    proof_set: ProofSet,
+    proof_index: u64,
+    num_leaves: u64,
+) -> bool {
     if proof_index >= num_leaves {
         return false;
     }
@@ -43,7 +48,7 @@ pub fn verify<D: Digest>(root: &[u8; 32], proof_set: ProofSet, proof_index: u64,
 
     if stable_end != num_leaves - 1 {
         if proof_set.len() <= height {
-            return false
+            return false;
         }
         let proof_data = proof_set.get(height).unwrap();
         sum = MerkleTree::<D>::node_sum(&sum, proof_data);
@@ -52,7 +57,7 @@ pub fn verify<D: Digest>(root: &[u8; 32], proof_set: ProofSet, proof_index: u64,
 
     while height < proof_set.len() {
         let proof_data = proof_set.get(height).unwrap();
-        sum = MerkleTree::<D>::node_sum( proof_data, &sum);
+        sum = MerkleTree::<D>::node_sum(proof_data, &sum);
         height += 1;
     }
 
