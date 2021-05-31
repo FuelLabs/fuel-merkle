@@ -79,13 +79,13 @@ impl<D: Digest> MerkleTree<D> {
         }
 
         let mut current = self.head().clone().unwrap();
-        while current.next().is_some() && current.next_height().unwrap() + 1 < proof_set_length {
+        while current.next().is_some() && current.next_height().unwrap() < proof_set_length - 1 {
             let mut node = current;
             let mut next_node = node.take_next().unwrap();
             current = Self::join_subtrees(&mut next_node, &node)
         }
 
-        if current.next().is_some() && current.next_height().unwrap() + 1 == proof_set_length {
+        if current.next().is_some() && current.next_height().unwrap() == proof_set_length - 1 {
             self.proof_set.push(current.data());
             current = current.take_next().unwrap();
         }
