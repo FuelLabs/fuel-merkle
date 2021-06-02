@@ -243,9 +243,9 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
         let mut mt = MT::new();
 
-        let leaves = &DATA[0..4]; // 4 leaves
-        for leaf in leaves.iter() {
-            mt.push(leaf);
+        let data = &DATA[0..4]; // 4 leaves
+        for datum in data.iter() {
+            mt.push(datum);
         }
         let root = mt.root();
 
@@ -256,10 +256,10 @@ mod test {
         //  /  \    /  \
         // L1  L2  L3  L4
 
-        let leaf_1 = leaf_data(&leaves[0]);
-        let leaf_2 = leaf_data(&leaves[1]);
-        let leaf_3 = leaf_data(&leaves[2]);
-        let leaf_4 = leaf_data(&leaves[3]);
+        let leaf_1 = leaf_data(&data[0]);
+        let leaf_2 = leaf_data(&data[1]);
+        let leaf_3 = leaf_data(&data[2]);
+        let leaf_4 = leaf_data(&data[3]);
 
         let node_1 = node_data(&leaf_1, &leaf_2);
         let node_2 = node_data(&leaf_3, &leaf_4);
@@ -273,9 +273,9 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
         let mut mt = MT::new();
 
-        let leaves = &DATA[0..5]; // 5 leaves
-        for leaf in leaves.iter() {
-            mt.push(leaf);
+        let data = &DATA[0..5]; // 5 leaves
+        for datum in data.iter() {
+            mt.push(datum);
         }
         let root = mt.root();
 
@@ -288,11 +288,11 @@ mod test {
         //  /  \    /  \   \
         // L1  L2  L3  L4  L5
 
-        let leaf_1 = leaf_data(&leaves[0]);
-        let leaf_2 = leaf_data(&leaves[1]);
-        let leaf_3 = leaf_data(&leaves[2]);
-        let leaf_4 = leaf_data(&leaves[3]);
-        let leaf_5 = leaf_data(&leaves[4]);
+        let leaf_1 = leaf_data(&data[0]);
+        let leaf_2 = leaf_data(&data[1]);
+        let leaf_3 = leaf_data(&data[2]);
+        let leaf_4 = leaf_data(&data[3]);
+        let leaf_5 = leaf_data(&data[4]);
 
         let node_1 = node_data(&leaf_1, &leaf_2);
         let node_2 = node_data(&leaf_3, &leaf_4);
@@ -307,9 +307,9 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
         let mut mt = MT::new();
 
-        let leaves = &DATA[0..7]; // 7 leaves
-        for leaf in leaves.iter() {
-            mt.push(leaf);
+        let data = &DATA[0..7]; // 7 leaves
+        for datum in data.iter() {
+            mt.push(datum);
         }
         let root = mt.root();
 
@@ -323,13 +323,13 @@ mod test {
         //  /  \    /  \    /  \   \
         // L1  L2  L3  L4  L5  L6  L7
 
-        let leaf_1 = leaf_data(&leaves[0]);
-        let leaf_2 = leaf_data(&leaves[1]);
-        let leaf_3 = leaf_data(&leaves[2]);
-        let leaf_4 = leaf_data(&leaves[3]);
-        let leaf_5 = leaf_data(&leaves[4]);
-        let leaf_6 = leaf_data(&leaves[5]);
-        let leaf_7 = leaf_data(&leaves[6]);
+        let leaf_1 = leaf_data(&data[0]);
+        let leaf_2 = leaf_data(&data[1]);
+        let leaf_3 = leaf_data(&data[2]);
+        let leaf_4 = leaf_data(&data[3]);
+        let leaf_5 = leaf_data(&data[4]);
+        let leaf_6 = leaf_data(&data[5]);
+        let leaf_7 = leaf_data(&data[6]);
 
         let node_1 = node_data(&leaf_1, &leaf_2);
         let node_2 = node_data(&leaf_3, &leaf_4);
@@ -346,12 +346,12 @@ mod test {
     fn leaves_count_returns_the_number_of_leaves_pushed_to_the_tree() {
         let mut mt = MT::new();
 
-        let leaves = &DATA[0..4];
-        for leaf in leaves.iter() {
-            mt.push(leaf);
+        let data = &DATA[0..4];
+        for datum in data.iter() {
+            mt.push(datum);
         }
 
-        assert_eq!(mt.leaves_count(), leaves.len() as u64);
+        assert_eq!(mt.leaves_count(), data.len() as u64);
     }
 
     #[test]
@@ -359,9 +359,9 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(0);
 
-        let leaves = &DATA[0..4]; // 4 leaves
-        for leaf in leaves.iter() {
-            mt.push(leaf);
+        let data = &DATA[0..4]; // 4 leaves
+        for datum in data.iter() {
+            mt.push(datum);
         }
 
         let proof = mt.prove();
@@ -375,10 +375,10 @@ mod test {
         //  /  \    /  \
         // L1  L2  L3  L4
 
-        let leaf_1 = leaf_data(&leaves[0]);
-        let leaf_2 = leaf_data(&leaves[1]);
-        let leaf_3 = leaf_data(&leaves[2]);
-        let leaf_4 = leaf_data(&leaves[3]);
+        let leaf_1 = leaf_data(&data[0]);
+        let leaf_2 = leaf_data(&data[1]);
+        let leaf_3 = leaf_data(&data[2]);
+        let leaf_4 = leaf_data(&data[3]);
 
         let node_1 = node_data(&leaf_1, &leaf_2);
         let node_2 = node_data(&leaf_3, &leaf_4);
@@ -388,7 +388,7 @@ mod test {
         let s_2 = set.get(1).unwrap();
 
         assert_eq!(root, node_3);
-        assert_eq!(s_1, leaves[0]);
+        assert_eq!(s_1, data[0]);
         assert_eq!(s_2, &leaf_2);
     }
 
@@ -397,9 +397,9 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(2);
 
-        let leaves = &DATA[0..5]; // 5 leaves
-        for leaf in leaves.iter() {
-            mt.push(leaf);
+        let data = &DATA[0..5]; // 5 leaves
+        for datum in data.iter() {
+            mt.push(datum);
         }
 
         let proof = mt.prove();
@@ -415,11 +415,11 @@ mod test {
         //  /  \    /  \   \
         // L1  L2  L3  L4  L5
 
-        let leaf_1 = leaf_data(&leaves[0]);
-        let leaf_2 = leaf_data(&leaves[1]);
-        let leaf_3 = leaf_data(&leaves[2]);
-        let leaf_4 = leaf_data(&leaves[3]);
-        let leaf_5 = leaf_data(&leaves[4]);
+        let leaf_1 = leaf_data(&data[0]);
+        let leaf_2 = leaf_data(&data[1]);
+        let leaf_3 = leaf_data(&data[2]);
+        let leaf_4 = leaf_data(&data[3]);
+        let leaf_5 = leaf_data(&data[4]);
 
         let node_1 = node_data(&leaf_1, &leaf_2);
         let node_2 = node_data(&leaf_3, &leaf_4);
@@ -432,7 +432,7 @@ mod test {
         let s_4 = set.get(3).unwrap();
 
         assert_eq!(root, node_4);
-        assert_eq!(s_1, leaves[2]);
+        assert_eq!(s_1, data[2]);
         assert_eq!(s_2, &leaf_4);
         assert_eq!(s_3, &node_1);
         assert_eq!(s_4, &leaf_5);
@@ -443,9 +443,9 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(4);
 
-        let leaves = &DATA[0..5]; // 5 leaves
-        for leaf in leaves.iter() {
-            mt.push(leaf);
+        let data = &DATA[0..5]; // 5 leaves
+        for datum in data.iter() {
+            mt.push(datum);
         }
 
         let proof = mt.prove();
@@ -461,11 +461,11 @@ mod test {
         //  /  \    /  \   \
         // L1  L2  L3  L4  L5
 
-        let leaf_1 = leaf_data(&leaves[0]);
-        let leaf_2 = leaf_data(&leaves[1]);
-        let leaf_3 = leaf_data(&leaves[2]);
-        let leaf_4 = leaf_data(&leaves[3]);
-        let leaf_5 = leaf_data(&leaves[4]);
+        let leaf_1 = leaf_data(&data[0]);
+        let leaf_2 = leaf_data(&data[1]);
+        let leaf_3 = leaf_data(&data[2]);
+        let leaf_4 = leaf_data(&data[3]);
+        let leaf_5 = leaf_data(&data[4]);
 
         let node_1 = node_data(&leaf_1, &leaf_2);
         let node_2 = node_data(&leaf_3, &leaf_4);
@@ -476,7 +476,7 @@ mod test {
         let s_2 = set.get(1).unwrap();
 
         assert_eq!(root, node_4);
-        assert_eq!(s_1, leaves[4]);
+        assert_eq!(s_1, data[4]);
         assert_eq!(s_2, &node_3);
     }
 
