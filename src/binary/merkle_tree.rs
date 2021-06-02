@@ -359,7 +359,7 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(0);
 
-        let leaves = &DATA[0..5]; // 5 leaves
+        let leaves = &DATA[0..4]; // 4 leaves
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
@@ -368,40 +368,32 @@ mod test {
         let root = proof.0;
         let set = proof.1;
 
-        //          N4
-        //         /  \
-        //       N3    \
-        //      /  \    \
-        //     /    \    \
-        //   N1      N2   \
-        //  /  \    /  \   \
-        // L1  L2  L3  L4  L5
+        //       N3
+        //      /  \
+        //     /    \
+        //   N1      N2
+        //  /  \    /  \
+        // L1  L2  L3  L4
 
         let leaf_1 = leaf_data(&leaves[0]);
         let leaf_2 = leaf_data(&leaves[1]);
         let leaf_3 = leaf_data(&leaves[2]);
         let leaf_4 = leaf_data(&leaves[3]);
-        let leaf_5 = leaf_data(&leaves[4]);
 
         let node_1 = node_data(&leaf_1, &leaf_2);
         let node_2 = node_data(&leaf_3, &leaf_4);
         let node_3 = node_data(&node_1, &node_2);
-        let node_4 = node_data(&node_3, &leaf_5);
 
         let s_1 = set.get(0).unwrap();
         let s_2 = set.get(1).unwrap();
-        let s_3 = set.get(2).unwrap();
-        let s_4 = set.get(3).unwrap();
 
-        assert_eq!(root, node_4);
+        assert_eq!(root, node_3);
         assert_eq!(s_1, leaves[0]);
         assert_eq!(s_2, &leaf_2);
-        assert_eq!(s_3, &node_2);
-        assert_eq!(s_4, &leaf_5);
     }
 
     #[test]
-    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_on_the_left() {
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_left_of_the_root() {
         let mut mt = MT::new();
         mt.set_proof_index(2);
 
@@ -447,7 +439,7 @@ mod test {
     }
 
     #[test]
-    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_on_the_right() {
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_right_of_the_root() {
         let mut mt = MT::new();
         mt.set_proof_index(4);
 
