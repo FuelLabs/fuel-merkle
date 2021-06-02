@@ -215,7 +215,7 @@ mod test {
         "You talking to me?".as_bytes(),
         "What we've got here is failure to communicate.".as_bytes(),
         "I love the smell of napalm in the morning.".as_bytes(),
-        "Love means never having to say you're sorry.".as_bytes()
+        "Love means never having to say you're sorry.".as_bytes(),
     ];
 
     #[test]
