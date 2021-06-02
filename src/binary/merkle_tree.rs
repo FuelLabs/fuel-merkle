@@ -205,6 +205,19 @@ mod test {
         <Data>::try_from(hash.finalize()).unwrap()
     }
 
+    const DATA: [&[u8]; 10] = [
+        "Frankly, my dear, I don't give a damn.".as_bytes(),
+        "I'm going to make him an offer he can't refuse".as_bytes(),
+        "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
+        "Here's looking at you, kid.".as_bytes(),
+        "Go ahead, make my day.".as_bytes(),
+        "May the Force be with you.".as_bytes(),
+        "You talking to me?".as_bytes(),
+        "What we've got here is failure to communicate.".as_bytes(),
+        "I love the smell of napalm in the morning.".as_bytes(),
+        "Love means never having to say you're sorry.".as_bytes()
+    ];
+
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
         let mt = MT::new();
@@ -218,7 +231,7 @@ mod test {
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
         let mut mt = MT::new();
 
-        let data = [1u8; 16];
+        let data = &DATA[0];
         mt.push(&data);
         let root = mt.root();
 
@@ -230,12 +243,7 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
         let mut mt = MT::new();
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-        ];
+        let leaves = &DATA[0..4]; // 4 leaves
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
@@ -265,13 +273,7 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
         let mut mt = MT::new();
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes(),
-        ];
+        let leaves = &DATA[0..5]; // 5 leaves
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
@@ -305,15 +307,7 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
         let mut mt = MT::new();
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes(),
-            "Frankly, my dear, I don't give a damn.".as_bytes(),
-            "Say hello to my little friend".as_bytes(),
-        ];
+        let leaves = &DATA[0..7]; // 7 leaves
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
@@ -352,12 +346,7 @@ mod test {
     fn leaves_count_returns_the_number_of_leaves_pushed_to_the_tree() {
         let mut mt = MT::new();
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-        ];
+        let leaves = &DATA[0..4];
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
@@ -370,13 +359,7 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(0);
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes(),
-        ];
+        let leaves = &DATA[0..5]; // 5 leaves
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
@@ -422,13 +405,7 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(2);
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes(),
-        ];
+        let leaves = &DATA[0..5]; // 5 leaves
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
@@ -474,13 +451,7 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(4);
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes(),
-        ];
+        let leaves = &DATA[0..5]; // 5 leaves
         for leaf in leaves.iter() {
             mt.push(leaf);
         }

@@ -72,18 +72,25 @@ mod test {
 
     type MT = MerkleTree<Hash>;
 
+    const DATA: [&[u8]; 10] = [
+        "Frankly, my dear, I don't give a damn.".as_bytes(),
+        "I'm going to make him an offer he can't refuse".as_bytes(),
+        "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
+        "Here's looking at you, kid.".as_bytes(),
+        "Go ahead, make my day.".as_bytes(),
+        "May the Force be with you.".as_bytes(),
+        "You talking to me?".as_bytes(),
+        "What we've got here is failure to communicate.".as_bytes(),
+        "I love the smell of napalm in the morning.".as_bytes(),
+        "Love means never having to say you're sorry.".as_bytes()
+    ];
+
     #[test]
     fn verify_returns_true_when_the_given_proof_set_matches_the_given_merkle_root() {
         let mut mt = MT::new();
         mt.set_proof_index(2);
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes(),
-        ];
+        let leaves = &DATA[0..5]; // 5 leaves
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
@@ -98,43 +105,30 @@ mod test {
 
     #[test]
     fn verify_returns_false_when_the_given_proof_set_does_not_match_the_given_merkle_root() {
-        let root = (|| {
-            let mut mt = MT::new();
-            mt.set_proof_index(2);
+        // Check the Merkle root of one tree against the computed Merkle root of another tree's
+        // proof set: because the two roots come from different trees, the comparison should fail.
 
-            let leaves = [
-                "Hello, World!".as_bytes(),
-                "Making banana pancakes".as_bytes(),
-                "What is love?".as_bytes(),
-                "Bob Ross".as_bytes(),
-                "The smell of napalm in the morning".as_bytes(),
-            ];
-            for leaf in leaves.iter() {
-                mt.push(leaf);
-            }
+        // Generate the first Merkle tree and get its root
+        let mut mt = MT::new();
+        mt.set_proof_index(2);
 
-            let proof = mt.prove();
-            proof.0
-        })();
+        let leaves = &DATA[0..4];
+        for leaf in leaves.iter() {
+            mt.push(leaf)
+        }
+        let proof = mt.prove();
+        let root = proof.0;
 
-        let set = (|| {
-            let mut mt = MT::new();
-            mt.set_proof_index(2);
+        // Generate the second Merkle tree and get its proof set
+        let mut mt = MT::new();
+        mt.set_proof_index(2);
 
-            let leaves = [
-                "Hello, World!".as_bytes(),
-                "Making banana pancakes".as_bytes(),
-                "What is love?".as_bytes(),
-                "Bob Ross".as_bytes(),
-                "This tree is different!".as_bytes(),
-            ];
-            for leaf in leaves.iter() {
-                mt.push(leaf);
-            }
-
-            let proof = mt.prove();
-            proof.1
-        })();
+        let leaves = &DATA[5..10];
+        for leaf in leaves.iter() {
+            mt.push(leaf);
+        }
+        let proof = mt.prove();
+        let set = proof.1;
 
         let verification = verify::<Hash>(&root, set, 2, 5);
         assert_eq!(verification, false);
@@ -158,13 +152,7 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(0);
 
-        let leaves = [
-            "Hello, World!".as_bytes(),
-            "Making banana pancakes".as_bytes(),
-            "What is love?".as_bytes(),
-            "Bob Ross".as_bytes(),
-            "The smell of napalm in the morning".as_bytes(),
-        ];
+        let leaves = &DATA[0..4];
         for leaf in leaves.iter() {
             mt.push(leaf);
         }
