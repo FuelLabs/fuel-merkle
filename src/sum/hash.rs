@@ -1,4 +1,5 @@
 use crate::digest::Digest;
+
 use std::convert::TryFrom;
 
 const NODE: [u8; 1] = [0x01];
