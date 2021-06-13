@@ -1,6 +1,6 @@
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
-use crate::sum::hash::Hash;
+use crate::sum::hash::{empty_sum, leaf_sum, node_sum};
 use crate::sum::node::Node;
 
 use crate::sum::data_pair::make_data_pair;
@@ -39,7 +39,7 @@ impl<D: Digest> MerkleTree<D> {
 
     pub fn root(&self) -> Data {
         match self.head() {
-            None => Hash::<D>::empty_sum(),
+            None => empty_sum::<D>(),
             Some(ref head) => {
                 let mut current = head.clone();
                 while current.next().is_some() {
@@ -62,7 +62,7 @@ impl<D: Digest> MerkleTree<D> {
             self.proof_set.push(sum_data);
         }
 
-        let node = Self::create_node(self.head.take(), 0, Hash::<D>::leaf_sum(data), fee);
+        let node = Self::create_node(self.head.take(), 0, leaf_sum::<D>(data), fee);
         self.head = Some(node);
         self.join_all_subtrees();
 
@@ -146,7 +146,7 @@ impl<D: Digest> MerkleTree<D> {
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
         let height = a.height() + 1;
-        let data = Hash::<D>::node_sum(a.fee(), a.data(), b.fee(), b.data());
+        let data = node_sum::<D>(a.fee(), a.data(), b.fee(), b.data());
         let fee = a.fee() + b.fee();
         Self::create_node(next, height, data, fee)
     }
