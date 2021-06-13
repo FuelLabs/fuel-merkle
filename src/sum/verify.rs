@@ -1,10 +1,7 @@
 use crate::sum::hash::Hash;
-
+use crate::sum::data_pair::{split_data_pair, make_data_pair};
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
-
-use std::io::Cursor;
-use byteorder::{BigEndian, ReadBytesExt, LittleEndian};
 
 pub fn verify<D: Digest>(
     root: &[u8; 32],
@@ -89,20 +86,6 @@ pub fn verify<D: Digest>(
 
     let (_fee, calculated_root) = split_data_pair(&sum);
     return calculated_root == *root;
-}
-
-fn make_data_pair(data: &[u8], fee: u64) -> [u8; 40] {
-    let mut sum_data = [0u8; 40];
-    for (place, d) in sum_data[0..8].iter_mut().zip(&fee.to_be_bytes()) { *place = *d }
-    for (place, d) in sum_data[8.. ].iter_mut().zip(data) { *place = *d }
-    sum_data
-}
-
-fn split_data_pair(data_pair: &[u8]) -> (u64, &[u8]) {
-    let fee_data = &data_pair[0..8];
-    let mut reader = Cursor::new(fee_data);
-    let fee = reader.read_u64::<BigEndian>().unwrap();
-    (fee, &data_pair[8..])
 }
 
 #[cfg(test)]
