@@ -58,7 +58,7 @@ impl<D: Digest> MerkleTree<D> {
 
     pub fn push(&mut self, data: &[u8], fee: u64) {
         if self.leaves_count == self.proof_index {
-            let sum_data = &join_data_pair(fee,data);
+            let sum_data = &join_data_pair(fee, data);
             self.proof_set.push(sum_data);
         }
 

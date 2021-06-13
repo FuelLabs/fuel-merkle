@@ -44,12 +44,12 @@ pub fn verify<D: Digest>(
         if proof_index - subtree_start_index < 1 << (height - 1) {
             sum = join_data_pair(
                 sum_fee + proof_fee,
-                &node_sum::<D>(sum_fee, sum_data, proof_fee, proof_data)
+                &node_sum::<D>(sum_fee, sum_data, proof_fee, proof_data),
             );
         } else {
             sum = join_data_pair(
                 sum_fee + proof_fee,
-                &node_sum::<D>(proof_fee, proof_data, sum_fee, sum_data)
+                &node_sum::<D>(proof_fee, proof_data, sum_fee, sum_data),
             );
         }
 
@@ -65,7 +65,7 @@ pub fn verify<D: Digest>(
         let (proof_fee, proof_data) = split_data_pair(proof_data_pair);
         sum = join_data_pair(
             sum_fee + proof_fee,
-            &node_sum::<D>(sum_fee, sum_data, proof_fee, proof_data)
+            &node_sum::<D>(sum_fee, sum_data, proof_fee, proof_data),
         );
         height += 1;
     }
@@ -76,7 +76,7 @@ pub fn verify<D: Digest>(
         let (proof_fee, proof_data) = split_data_pair(proof_data_pair);
         sum = join_data_pair(
             sum_fee + proof_fee,
-            &node_sum::<D>(proof_fee, proof_data, sum_fee, sum_data)
+            &node_sum::<D>(proof_fee, proof_data, sum_fee, sum_data),
         );
         height += 1;
     }
