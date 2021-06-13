@@ -1,10 +1,10 @@
-use crate::sum::node::Node;
-use crate::sum::hash::Hash;
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
+use crate::sum::hash::Hash;
+use crate::sum::node::Node;
 
-use std::marker::PhantomData;
 use crate::sum::data_pair::make_data_pair;
+use std::marker::PhantomData;
 
 type Data = [u8; 32];
 type DataNode = Node<Data>;
@@ -151,7 +151,12 @@ impl<D: Digest> MerkleTree<D> {
         Self::create_node(next, height, data, fee)
     }
 
-    fn create_node(next: Option<Box<DataNode>>, height: u32, data: Data, fee: u64) -> Box<DataNode> {
+    fn create_node(
+        next: Option<Box<DataNode>>,
+        height: u32,
+        data: Data,
+        fee: u64,
+    ) -> Box<DataNode> {
         Box::new(DataNode::new(next, height, data, fee))
     }
 }
@@ -162,7 +167,7 @@ mod test {
     use crate::sha::Sha256 as Hash;
     use crate::sum::data_pair::split_data_pair;
     use std::convert::TryFrom;
-    
+
     type MT = MerkleTree<Hash>;
 
     const NODE: [u8; 1] = [0x01];

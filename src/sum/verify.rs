@@ -1,7 +1,7 @@
-use crate::sum::hash::Hash;
-use crate::sum::data_pair::{split_data_pair, make_data_pair};
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
+use crate::sum::data_pair::{make_data_pair, split_data_pair};
+use crate::sum::hash::Hash;
 
 pub fn verify<D: Digest>(
     root: &[u8; 32],
@@ -20,10 +20,7 @@ pub fn verify<D: Digest>(
     let mut height = 0usize;
     let proof_data_pair = proof_set.get(height).unwrap();
     let (fee, proof_data) = split_data_pair(proof_data_pair);
-    let mut sum = make_data_pair(
-        &Hash::<D>::leaf_sum(proof_data),
-        fee
-    );
+    let mut sum = make_data_pair(&Hash::<D>::leaf_sum(proof_data), fee);
     height += 1;
 
     let mut stable_end = proof_index;
@@ -47,12 +44,12 @@ pub fn verify<D: Digest>(
         if proof_index - subtree_start_index < 1 << (height - 1) {
             sum = make_data_pair(
                 &Hash::<D>::node_sum(sum_fee, sum_data, proof_fee, proof_data),
-                sum_fee + proof_fee
+                sum_fee + proof_fee,
             );
         } else {
             sum = make_data_pair(
                 &Hash::<D>::node_sum(proof_fee, proof_data, sum_fee, sum_data),
-                sum_fee + proof_fee
+                sum_fee + proof_fee,
             );
         }
 
@@ -67,8 +64,8 @@ pub fn verify<D: Digest>(
         let proof_data_pair = proof_set.get(height).unwrap();
         let (proof_fee, proof_data) = split_data_pair(proof_data_pair);
         sum = make_data_pair(
-            &Hash::<D>::node_sum(sum_fee, sum_data, proof_fee,  proof_data),
-            sum_fee + proof_fee
+            &Hash::<D>::node_sum(sum_fee, sum_data, proof_fee, proof_data),
+            sum_fee + proof_fee,
         );
         height += 1;
     }
@@ -78,8 +75,8 @@ pub fn verify<D: Digest>(
         let proof_data_pair = proof_set.get(height).unwrap();
         let (proof_fee, proof_data) = split_data_pair(proof_data_pair);
         sum = make_data_pair(
-            &Hash::<D>::node_sum(proof_fee, proof_data, sum_fee,  sum_data),
-            sum_fee + proof_fee
+            &Hash::<D>::node_sum(proof_fee, proof_data, sum_fee, sum_data),
+            sum_fee + proof_fee,
         );
         height += 1;
     }
@@ -91,8 +88,8 @@ pub fn verify<D: Digest>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::sum::merkle_tree::MerkleTree;
     use crate::sha::Sha256 as Hash;
+    use crate::sum::merkle_tree::MerkleTree;
 
     type MT = MerkleTree<Hash>;
 
@@ -110,7 +107,7 @@ mod test {
     ];
 
     #[test]
-    fn  verify_returns_true_when_the_given_proof_set_matches_the_given_merkle_root() {
+    fn verify_returns_true_when_the_given_proof_set_matches_the_given_merkle_root() {
         let mut mt = MT::new();
         mt.set_proof_index(0);
 

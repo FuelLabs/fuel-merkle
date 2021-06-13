@@ -3,12 +3,17 @@ pub struct Node<T> {
     next: Option<Box<Node<T>>>,
     height: u32,
     data: T,
-    fee: u64
+    fee: u64,
 }
 
 impl<T> Node<T> {
     pub fn new(next: Option<Box<Node<T>>>, height: u32, data: T, fee: u64) -> Self {
-        Self { next, height, data, fee }
+        Self {
+            next,
+            height,
+            data,
+            fee,
+        }
     }
 
     pub fn next(&self) -> &Option<Box<Node<T>>> {
@@ -39,7 +44,9 @@ impl<T> Node<T> {
         self.next().as_ref().map(|next| next.data())
     }
 
-    pub fn fee(&self) -> u64 { self.fee }
+    pub fn fee(&self) -> u64 {
+        self.fee
+    }
 
     pub fn next_fee(&self) -> Option<u64> {
         self.next().as_ref().map(|next| next.fee())
