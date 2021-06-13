@@ -133,7 +133,7 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(2);
 
-        let data = &DATA[0..4];
+        let data = &DATA[0..5]; // 5 leaves
         for datum in data.iter() {
             mt.push(datum, 0)
         }
@@ -144,7 +144,7 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(2);
 
-        let data = &DATA[5..10];
+        let data = &DATA[5..10]; // 5 leaves
         for datum in data.iter() {
             mt.push(datum, 0);
         }
@@ -173,7 +173,7 @@ mod test {
         let mut mt = MT::new();
         mt.set_proof_index(0);
 
-        let data = &DATA[0..4];
+        let data = &DATA[0..4]; // 4 leaves
         for datum in data.iter() {
             mt.push(datum, 0);
         }
