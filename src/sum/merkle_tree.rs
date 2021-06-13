@@ -3,11 +3,10 @@ use crate::sum::hash::Hash;
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
 
-use std::convert::TryFrom;
 use std::marker::PhantomData;
+use crate::sum::data_pair::make_data_pair;
 
 type Data = [u8; 32];
-type DataRef<'a> = &'a [u8];
 type DataNode = Node<Data>;
 
 pub struct MerkleTree<D: Digest> {
@@ -59,7 +58,7 @@ impl<D: Digest> MerkleTree<D> {
 
     pub fn push(&mut self, data: &[u8], fee: u64) {
         if self.leaves_count == self.proof_index {
-            let sum_data = &Self::sum_data(data, fee);
+            let sum_data = &make_data_pair(data, fee);
             self.proof_set.push(sum_data);
         }
 
@@ -87,7 +86,7 @@ impl<D: Digest> MerkleTree<D> {
         if current.next().is_some() && current.next_height().unwrap() == proof_set_length - 1 {
             let data = current.data();
             let fee = current.fee();
-            let sum_data = &Self::sum_data(data, fee);
+            let sum_data = &make_data_pair(data, fee);
             self.proof_set.push(sum_data);
             current = current.take_next().unwrap();
         }
@@ -95,7 +94,7 @@ impl<D: Digest> MerkleTree<D> {
         while current.next().is_some() {
             let data = current.next_data().unwrap();
             let fee = current.next_fee().unwrap();
-            let sum_data = &Self::sum_data(data, fee);
+            let sum_data = &make_data_pair(data, fee);
             self.proof_set.push(sum_data);
             current = current.take_next().unwrap();
         }
@@ -125,15 +124,13 @@ impl<D: Digest> MerkleTree<D> {
                 if self.proof_index < mid {
                     let data = head.data();
                     let fee = head.fee();
-                    let sum_data = &Self::sum_data(data, fee);
+                    let sum_data = &make_data_pair(data, fee);
                     self.proof_set.push(sum_data);
-                    // self.proof_set.push(head.data());
                 } else {
                     let data = head.next_data().unwrap();
                     let fee = head.next_fee().unwrap();
-                    let sum_data = &Self::sum_data(data, fee);
+                    let sum_data = &make_data_pair(data, fee);
                     self.proof_set.push(sum_data);
-                    // self.proof_set.push(head.next_data().unwrap());
                 }
             }
 
@@ -157,22 +154,15 @@ impl<D: Digest> MerkleTree<D> {
     fn create_node(next: Option<Box<DataNode>>, height: u32, data: Data, fee: u64) -> Box<DataNode> {
         Box::new(DataNode::new(next, height, data, fee))
     }
-
-    fn sum_data(data: &[u8], fee: u64) -> Vec<u8> {
-        let mut sum_data = Vec::<u8>::new();
-        for d in fee.to_be_bytes().iter() { sum_data.push(*d) }
-        for d in data.iter() { sum_data.push(*d) }
-        sum_data
-    }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
     use crate::sha::Sha256 as Hash;
-    use std::io::Cursor;
-    use byteorder::{BigEndian, ReadBytesExt};
-
+    use crate::sum::data_pair::split_data_pair;
+    use std::convert::TryFrom;
+    
     type MT = MerkleTree<Hash>;
 
     const NODE: [u8; 1] = [0x01];
@@ -183,13 +173,13 @@ mod test {
         <Data>::try_from(hash.finalize()).unwrap()
     }
 
-    fn leaf_data(data: DataRef) -> Data {
+    fn leaf_data(data: &[u8]) -> Data {
         let mut hash = Hash::new();
         hash.update(&LEAF);
         hash.update(&data);
         <Data>::try_from(hash.finalize()).unwrap()
     }
-    fn node_data(lhs_fee: u64, lhs_data: DataRef, rhs_fee: u64, rhs_data: DataRef) -> Data {
+    fn node_data(lhs_fee: u64, lhs_data: &[u8], rhs_fee: u64, rhs_data: &[u8]) -> Data {
         let mut hash = Hash::new();
         hash.update(&NODE);
         hash.update(&lhs_fee.to_be_bytes());
@@ -199,17 +189,9 @@ mod test {
         <Data>::try_from(hash.finalize()).unwrap()
     }
 
-
-    fn split(data_pair: &[u8]) -> (u64, &[u8]) {
-        let fee_data = &data_pair[0..8];
-        let mut reader = Cursor::new(fee_data);
-        let fee = reader.read_u64::<BigEndian>().unwrap();
-        (fee, &data_pair[8..])
-    }
-
     const FEE: u64 = 100;
     const DATA: [&[u8]; 10] = [
-        "11111111101111111110111111111011".as_bytes(),
+        "Frankly, my dear, I don't give a damn.".as_bytes(),
         "I'm going to make him an offer he can't refuse".as_bytes(),
         "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
         "Here's looking at you, kid.".as_bytes(),
@@ -388,11 +370,11 @@ mod test {
         let node_3 = node_data(FEE * 2, &node_1, FEE * 2, &node_2);
 
         let s_1 = set.get(0).unwrap();
-        let (fee_1, data_1) = split(s_1);
+        let (fee_1, data_1) = split_data_pair(s_1);
         let s_2 = set.get(1).unwrap();
-        let (fee_2, data_2) = split(s_2);
+        let (fee_2, data_2) = split_data_pair(s_2);
         let s_3 = set.get(2).unwrap();
-        let (fee_3, data_3) = split(s_3);
+        let (fee_3, data_3) = split_data_pair(s_3);
 
         assert_eq!(root, node_3);
 
@@ -441,20 +423,20 @@ mod test {
         let node_4 = node_data(FEE * 4, &node_3, FEE * 1, &leaf_5);
 
         let s_1 = set.get(0).unwrap();
-        let (fee_1, data_1) = split(s_1);
+        let (fee_1, data_1) = split_data_pair(s_1);
 
         let s_2 = set.get(1).unwrap();
-        let (fee_2, data_2) = split(s_2);
+        let (fee_2, data_2) = split_data_pair(s_2);
 
         let s_3 = set.get(2).unwrap();
-        let (fee_3, data_3) = split(s_3);
+        let (fee_3, data_3) = split_data_pair(s_3);
 
         let s_4 = set.get(3).unwrap();
-        let (fee_4, data_4) = split(s_4);
+        let (fee_4, data_4) = split_data_pair(s_4);
 
         assert_eq!(root, node_4);
 
-        // assert_eq!(data_1, data[2]);
+        assert_eq!(data_1, data[2]);
         assert_eq!(fee_1, FEE);
 
         assert_eq!(data_2, &leaf_4);
@@ -502,14 +484,14 @@ mod test {
         let node_4 = node_data(FEE * 4, &node_3, FEE * 1, &leaf_5);
 
         let s_1 = set.get(0).unwrap();
-        let (fee_1, data_1) = split(s_1);
+        let (fee_1, data_1) = split_data_pair(s_1);
 
         let s_2 = set.get(1).unwrap();
-        let (fee_2, data_2) = split(s_2);
+        let (fee_2, data_2) = split_data_pair(s_2);
 
         assert_eq!(root, node_4);
 
-        // assert_eq!(data_1, data[4]);
+        assert_eq!(data_1, data[4]);
         assert_eq!(fee_1, FEE);
 
         assert_eq!(data_2, &node_3);
