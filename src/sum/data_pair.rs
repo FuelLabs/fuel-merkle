@@ -1,7 +1,7 @@
 use byteorder::{BigEndian, ReadBytesExt};
 use std::io::Cursor;
 
-pub fn join_data_pair(data: &[u8], fee: u64) -> Vec<u8> {
+pub fn join_data_pair(fee: u64, data: &[u8]) -> Vec<u8> {
     let mut sum_data = Vec::<u8>::new();
     for d in fee.to_be_bytes().iter() {
         sum_data.push(*d)
