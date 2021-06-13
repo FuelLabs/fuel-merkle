@@ -58,7 +58,7 @@ impl<D: Digest> MerkleTree<D> {
 
     pub fn push(&mut self, data: &[u8], fee: u64) {
         if self.leaves_count == self.proof_index {
-            let sum_data = &join_data_pair(data, fee);
+            let sum_data = &join_data_pair(fee,data);
             self.proof_set.push(sum_data);
         }
 
@@ -84,17 +84,17 @@ impl<D: Digest> MerkleTree<D> {
         }
 
         if current.next().is_some() && current.next_height().unwrap() == proof_set_length - 1 {
-            let data = current.data();
             let fee = current.fee();
-            let sum_data = &join_data_pair(data, fee);
+            let data = current.data();
+            let sum_data = &join_data_pair(fee, data);
             self.proof_set.push(sum_data);
             current = current.take_next().unwrap();
         }
 
         while current.next().is_some() {
-            let data = current.next_data().unwrap();
             let fee = current.next_fee().unwrap();
-            let sum_data = &join_data_pair(data, fee);
+            let data = current.next_data().unwrap();
+            let sum_data = &join_data_pair(fee, data);
             self.proof_set.push(sum_data);
             current = current.take_next().unwrap();
         }
@@ -122,14 +122,14 @@ impl<D: Digest> MerkleTree<D> {
                 let head_leaves_count = 1u64 << head.height();
                 let mid = (self.leaves_count / head_leaves_count) * head_leaves_count;
                 if self.proof_index < mid {
-                    let data = head.data();
                     let fee = head.fee();
-                    let sum_data = &join_data_pair(data, fee);
+                    let data = head.data();
+                    let sum_data = &join_data_pair(fee, data);
                     self.proof_set.push(sum_data);
                 } else {
-                    let data = head.next_data().unwrap();
                     let fee = head.next_fee().unwrap();
-                    let sum_data = &join_data_pair(data, fee);
+                    let data = head.next_data().unwrap();
+                    let sum_data = &join_data_pair(fee, data);
                     self.proof_set.push(sum_data);
                 }
             }
