@@ -3,11 +3,9 @@ use crate::binary::node::Node;
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
 
-use std::convert::TryFrom;
 use std::marker::PhantomData;
 
 type Data = [u8; 32];
-type DataRef<'a> = &'a [u8];
 type DataNode = Node<Data>;
 
 pub struct MerkleTree<D: Digest> {
@@ -147,6 +145,7 @@ impl<D: Digest> MerkleTree<D> {
 mod test {
     use super::*;
     use crate::sha::Sha256 as Hash;
+    use std::convert::TryFrom;
 
     type MT = MerkleTree<Hash>;
 
@@ -158,13 +157,13 @@ mod test {
         <Data>::try_from(hash.finalize()).unwrap()
     }
 
-    fn leaf_data(data: DataRef) -> Data {
+    fn leaf_data(data: &[u8]) -> Data {
         let mut hash = Hash::new();
         hash.update(&LEAF);
         hash.update(&data);
         <Data>::try_from(hash.finalize()).unwrap()
     }
-    fn node_data(lhs_data: DataRef, rhs_data: DataRef) -> Data {
+    fn node_data(lhs_data: &[u8], rhs_data: &[u8]) -> Data {
         let mut hash = Hash::new();
         hash.update(&NODE);
         hash.update(&lhs_data);
