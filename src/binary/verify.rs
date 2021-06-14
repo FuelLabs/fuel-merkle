@@ -1,4 +1,4 @@
-use crate::binary::merkle_tree::MerkleTree;
+use crate::binary::hash::{leaf_sum, node_sum};
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
 
@@ -18,7 +18,7 @@ pub fn verify<D: Digest>(
 
     let mut height = 0usize;
     let proof_data = proof_set.get(height).unwrap();
-    let mut sum = MerkleTree::<D>::leaf_sum(proof_data);
+    let mut sum = leaf_sum::<D>(proof_data);
     height += 1;
 
     let mut stable_end = proof_index;
@@ -38,9 +38,9 @@ pub fn verify<D: Digest>(
 
         let proof_data = proof_set.get(height).unwrap();
         if proof_index - subtree_start_index < 1 << (height - 1) {
-            sum = MerkleTree::<D>::node_sum(&sum, proof_data);
+            sum = node_sum::<D>(&sum, proof_data);
         } else {
-            sum = MerkleTree::<D>::node_sum(proof_data, &sum);
+            sum = node_sum::<D>(proof_data, &sum);
         }
 
         height += 1;
@@ -51,13 +51,13 @@ pub fn verify<D: Digest>(
             return false;
         }
         let proof_data = proof_set.get(height).unwrap();
-        sum = MerkleTree::<D>::node_sum(&sum, proof_data);
+        sum = node_sum::<D>(&sum, proof_data);
         height += 1;
     }
 
     while height < proof_set.len() {
         let proof_data = proof_set.get(height).unwrap();
-        sum = MerkleTree::<D>::node_sum(proof_data, &sum);
+        sum = node_sum::<D>(proof_data, &sum);
         height += 1;
     }
 

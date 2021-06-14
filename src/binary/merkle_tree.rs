@@ -1,12 +1,10 @@
+use crate::binary::hash::{empty_sum, leaf_sum, node_sum};
 use crate::binary::node::Node;
 use crate::digest::Digest;
 use crate::proof_set::ProofSet;
 
 use std::convert::TryFrom;
 use std::marker::PhantomData;
-
-const NODE: [u8; 1] = [0x01];
-const LEAF: [u8; 1] = [0x00];
 
 type Data = [u8; 32];
 type DataRef<'a> = &'a [u8];
@@ -42,7 +40,7 @@ impl<D: Digest> MerkleTree<D> {
 
     pub fn root(&self) -> Data {
         match self.head() {
-            None => Self::empty_sum(),
+            None => empty_sum::<D>(),
             Some(ref head) => {
                 let mut current = head.clone();
                 while current.next().is_some() {
@@ -64,7 +62,7 @@ impl<D: Digest> MerkleTree<D> {
             self.proof_set.push(data);
         }
 
-        let node = Self::create_node(self.head.take(), 0, Self::leaf_sum(data));
+        let node = Self::create_node(self.head.take(), 0, leaf_sum::<D>(data));
         self.head = Some(node);
         self.join_all_subtrees();
 
@@ -133,44 +131,10 @@ impl<D: Digest> MerkleTree<D> {
         }
     }
 
-    // Merkle Tree hash of an empty list
-    // MTH({}) = Hash()
-    pub fn empty_sum() -> Data {
-        let hash = D::new();
-        let data = hash.finalize();
-
-        <Data>::try_from(data.as_slice()).unwrap()
-    }
-
-    // Merkle tree hash of an n-element list D[n]
-    // MTH(D[n]) = Hash(0x01 || MTH(D[0:k]) || MTH(D[k:n])
-    pub fn node_sum(lhs_data: DataRef, rhs_data: DataRef) -> Data {
-        let mut hash = D::new();
-
-        hash.update(&NODE);
-        hash.update(&lhs_data);
-        hash.update(&rhs_data);
-        let data = hash.finalize();
-
-        <Data>::try_from(data.as_slice()).unwrap()
-    }
-
-    // Merkle tree hash of a list with one entry
-    // MTH({d(0)}) = Hash(0x00 || d(0))
-    pub fn leaf_sum(data: DataRef) -> Data {
-        let mut hash = D::new();
-
-        hash.update(&LEAF);
-        hash.update(&data);
-        let data = hash.finalize();
-
-        <Data>::try_from(data.as_slice()).unwrap()
-    }
-
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
         let height = a.height() + 1;
-        let data = Self::node_sum(a.data(), b.data());
+        let data = node_sum::<D>(a.data(), b.data());
         Self::create_node(next, height, data)
     }
 
@@ -185,6 +149,9 @@ mod test {
     use crate::sha::Sha256 as Hash;
 
     type MT = MerkleTree<Hash>;
+
+    const NODE: [u8; 1] = [0x01];
+    const LEAF: [u8; 1] = [0x00];
 
     fn empty_data() -> Data {
         let hash = Hash::new();
