@@ -2,8 +2,10 @@ use crate::digest::Digest;
 
 use std::convert::TryFrom;
 
-const NODE: [u8; 1] = [0x01];
-const LEAF: [u8; 1] = [0x00];
+use lazy_static::lazy_static;
+
+const NODE: u8 = 0x01;
+const LEAF: u8 = 0x00;
 
 type Data = [u8; 32];
 
@@ -21,7 +23,7 @@ pub fn empty_sum<D: Digest>() -> Data {
 pub fn node_sum<D: Digest>(lhs_data: &[u8], rhs_data: &[u8]) -> Data {
     let mut hash = D::new();
 
-    hash.update(&NODE);
+    hash.update(&[NODE]);
     hash.update(&lhs_data);
     hash.update(&rhs_data);
     let data = hash.finalize();
@@ -34,7 +36,7 @@ pub fn node_sum<D: Digest>(lhs_data: &[u8], rhs_data: &[u8]) -> Data {
 pub fn leaf_sum<D: Digest>(data: &[u8]) -> Data {
     let mut hash = D::new();
 
-    hash.update(&LEAF);
+    hash.update(&[LEAF]);
     hash.update(&data);
     let data = hash.finalize();
 
