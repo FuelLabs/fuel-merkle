@@ -49,12 +49,13 @@ impl MerkleTree {
     }
 
     pub fn push(&mut self, data: &[u8], fee: u64) {
+        let node = Self::create_node(self.head.take(), 0, leaf_sum(data), fee);
+
         if self.leaves_count == self.proof_index {
-            let sum_data = &join_data_pair(fee, data);
+            let sum_data = &join_data_pair(fee, &leaf_sum(data));
             self.proof_set.push(sum_data);
         }
 
-        let node = Self::create_node(self.head.take(), 0, leaf_sum(data), fee);
         self.head = Some(node);
         self.join_all_subtrees();
 
@@ -377,7 +378,7 @@ mod test {
         assert_eq!(root, node_3);
 
         assert_eq!(fee_1, FEE);
-        assert_eq!(data_1, data[0]);
+        assert_eq!(data_1, &leaf_1[..]);
 
         assert_eq!(fee_2, FEE);
         assert_eq!(data_2, &leaf_2[..]);
@@ -434,7 +435,7 @@ mod test {
 
         assert_eq!(root, node_4);
 
-        assert_eq!(data_1, data[2]);
+        assert_eq!(data_1, &leaf_3[..]);
         assert_eq!(fee_1, FEE);
 
         assert_eq!(data_2, &leaf_4[..]);
@@ -489,7 +490,7 @@ mod test {
 
         assert_eq!(root, node_4);
 
-        assert_eq!(data_1, data[4]);
+        assert_eq!(data_1, &leaf_5[..]);
         assert_eq!(fee_1, FEE);
 
         assert_eq!(data_2, &node_3[..]);

@@ -1,6 +1,7 @@
 use crate::proof_set::ProofSet;
 use crate::sum::data_pair::{join_data_pair, split_data_pair};
-use crate::sum::hash::{leaf_sum, node_sum, Data};
+use crate::sum::hash::{node_sum, Data};
+use std::convert::TryInto;
 
 pub fn verify(root: &Data, proof_set: ProofSet, proof_index: u64, num_leaves: u64) -> bool {
     if proof_index >= num_leaves {
@@ -12,9 +13,8 @@ pub fn verify(root: &Data, proof_set: ProofSet, proof_index: u64, num_leaves: u6
     }
 
     let mut height = 0usize;
-    let proof_data_pair = proof_set.get(height).unwrap();
-    let (fee, proof_data) = split_data_pair(proof_data_pair);
-    let mut sum = join_data_pair(fee, &leaf_sum(proof_data));
+    let proof_data = proof_set.get(height).unwrap();
+    let mut sum: [u8; 40] = proof_data.try_into().unwrap();
     height += 1;
 
     let mut stable_end = proof_index;
