@@ -8,8 +8,10 @@ edition = "2018"
 
 [dependencies]
 bytes = "~1.0.1"
+digest = "*"
 generic-array = "~0.14.4"
 sha2 = "~0.9.5"
+lazy_static = "*"
 
 [dev-dependencies]
 hex = "~0.4.3"
