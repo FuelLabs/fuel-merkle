@@ -1,14 +1,8 @@
-use crate::digest::Digest;
 use crate::proof_set::ProofSet;
 use crate::sum::data_pair::{join_data_pair, split_data_pair};
-use crate::sum::hash::{leaf_sum, node_sum};
+use crate::sum::hash::{leaf_sum, node_sum, Data};
 
-pub fn verify<D: Digest>(
-    root: &[u8; 32],
-    proof_set: ProofSet,
-    proof_index: u64,
-    num_leaves: u64,
-) -> bool {
+pub fn verify(root: &Data, proof_set: ProofSet, proof_index: u64, num_leaves: u64) -> bool {
     if proof_index >= num_leaves {
         return false;
     }
@@ -20,7 +14,7 @@ pub fn verify<D: Digest>(
     let mut height = 0usize;
     let proof_data_pair = proof_set.get(height).unwrap();
     let (fee, proof_data) = split_data_pair(proof_data_pair);
-    let mut sum = join_data_pair(fee, &leaf_sum::<D>(proof_data));
+    let mut sum = join_data_pair(fee, &leaf_sum(proof_data));
     height += 1;
 
     let mut stable_end = proof_index;
@@ -44,12 +38,12 @@ pub fn verify<D: Digest>(
         if proof_index - subtree_start_index < 1 << (height - 1) {
             sum = join_data_pair(
                 sum_fee + proof_fee,
-                &node_sum::<D>(sum_fee, sum_data, proof_fee, proof_data),
+                &node_sum(sum_fee, sum_data, proof_fee, proof_data),
             );
         } else {
             sum = join_data_pair(
                 sum_fee + proof_fee,
-                &node_sum::<D>(proof_fee, proof_data, sum_fee, sum_data),
+                &node_sum(proof_fee, proof_data, sum_fee, sum_data),
             );
         }
 
@@ -65,7 +59,7 @@ pub fn verify<D: Digest>(
         let (proof_fee, proof_data) = split_data_pair(proof_data_pair);
         sum = join_data_pair(
             sum_fee + proof_fee,
-            &node_sum::<D>(sum_fee, sum_data, proof_fee, proof_data),
+            &node_sum(sum_fee, sum_data, proof_fee, proof_data),
         );
         height += 1;
     }
@@ -76,22 +70,19 @@ pub fn verify<D: Digest>(
         let (proof_fee, proof_data) = split_data_pair(proof_data_pair);
         sum = join_data_pair(
             sum_fee + proof_fee,
-            &node_sum::<D>(proof_fee, proof_data, sum_fee, sum_data),
+            &node_sum(proof_fee, proof_data, sum_fee, sum_data),
         );
         height += 1;
     }
 
     let (_fee, calculated_root) = split_data_pair(&sum);
-    return calculated_root == *root;
+    return *calculated_root == root[..];
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::sha::Sha256 as Hash;
     use crate::sum::merkle_tree::MerkleTree;
-
-    type MT = MerkleTree<Hash>;
 
     const DATA: [&[u8]; 10] = [
         "Frankly, my dear, I don't give a damn.".as_bytes(),
@@ -108,7 +99,7 @@ mod test {
 
     #[test]
     fn verify_returns_true_when_the_given_proof_set_matches_the_given_merkle_root() {
-        let mut mt = MT::new();
+        let mut mt = MerkleTree::new();
         mt.set_proof_index(0);
 
         let data = &DATA[0..5]; // 5 leaves
@@ -120,7 +111,7 @@ mod test {
         let root = proof.0;
         let set = proof.1;
 
-        let verification = verify::<Hash>(&root, set, 0, 5);
+        let verification = verify(&root, set, 0, 5);
         assert_eq!(verification, true);
     }
 
@@ -130,7 +121,7 @@ mod test {
         // proof set: because the two roots come from different trees, the comparison should fail.
 
         // Generate the first Merkle tree and get its root
-        let mut mt = MT::new();
+        let mut mt = MerkleTree::new();
         mt.set_proof_index(2);
 
         let data = &DATA[0..5]; // 5 leaves
@@ -141,7 +132,7 @@ mod test {
         let root = proof.0;
 
         // Generate the second Merkle tree and get its proof set
-        let mut mt = MT::new();
+        let mut mt = MerkleTree::new();
         mt.set_proof_index(2);
 
         let data = &DATA[5..10]; // 5 leaves
@@ -151,26 +142,26 @@ mod test {
         let proof = mt.prove();
         let set = proof.1;
 
-        let verification = verify::<Hash>(&root, set, 2, 5);
+        let verification = verify(&root, set, 2, 5);
         assert_eq!(verification, false);
     }
 
     #[test]
     fn verify_returns_false_when_the_proof_set_is_empty() {
-        let mut mt = MT::new();
+        let mut mt = MerkleTree::new();
         mt.set_proof_index(0);
 
         let proof = mt.prove();
         let root = proof.0;
         let set = proof.1;
 
-        let verification = verify::<Hash>(&root, set, 0, 0);
+        let verification = verify(&root, set, 0, 0);
         assert_eq!(verification, false);
     }
 
     #[test]
     fn verify_returns_false_when_the_proof_index_is_invalid() {
-        let mut mt = MT::new();
+        let mut mt = MerkleTree::new();
         mt.set_proof_index(0);
 
         let data = &DATA[0..4]; // 4 leaves
@@ -182,7 +173,7 @@ mod test {
         let root = proof.0;
         let set = proof.1;
 
-        let verification = verify::<Hash>(&root, set, 15, 5);
+        let verification = verify(&root, set, 15, 5);
         assert_eq!(verification, false);
     }
 }

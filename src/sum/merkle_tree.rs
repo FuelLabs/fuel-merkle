@@ -1,32 +1,24 @@
-use crate::digest::Digest;
 use crate::proof_set::ProofSet;
 use crate::sum::data_pair::join_data_pair;
-use crate::sum::hash::{empty_sum, leaf_sum, node_sum};
+use crate::sum::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::sum::node::Node;
 
-use std::marker::PhantomData;
-
-type Data = [u8; 32];
 type DataNode = Node<Data>;
 
-pub struct MerkleTree<D: Digest> {
+pub struct MerkleTree {
     head: Option<Box<DataNode>>,
     leaves_count: u64,
     proof_index: u64,
     proof_set: ProofSet,
-
-    phantom: PhantomData<D>,
 }
 
-impl<D: Digest> MerkleTree<D> {
+impl MerkleTree {
     pub fn new() -> Self {
         Self {
             head: None,
             leaves_count: 0,
             proof_index: 0,
             proof_set: ProofSet::new(),
-
-            phantom: PhantomData,
         }
     }
 
@@ -39,7 +31,7 @@ impl<D: Digest> MerkleTree<D> {
 
     pub fn root(&self) -> Data {
         match self.head() {
-            None => empty_sum::<D>(),
+            None => empty_sum(),
             Some(ref head) => {
                 let mut current = head.clone();
                 while current.next().is_some() {
@@ -47,12 +39,12 @@ impl<D: Digest> MerkleTree<D> {
                     let mut next_node = node.take_next().unwrap();
                     current = Self::join_subtrees(&mut next_node, &node)
                 }
-                *current.data()
+                current.data().clone()
             }
         }
     }
 
-    pub fn leaves_count(&self) -> u64 {
+    pub const fn leaves_count(&self) -> u64 {
         self.leaves_count
     }
 
@@ -62,7 +54,7 @@ impl<D: Digest> MerkleTree<D> {
             self.proof_set.push(sum_data);
         }
 
-        let node = Self::create_node(self.head.take(), 0, leaf_sum::<D>(data), fee);
+        let node = Self::create_node(self.head.take(), 0, leaf_sum(data), fee);
         self.head = Some(node);
         self.join_all_subtrees();
 
@@ -146,7 +138,7 @@ impl<D: Digest> MerkleTree<D> {
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
         let height = a.height() + 1;
-        let data = node_sum::<D>(a.fee(), a.data(), b.fee(), b.data());
+        let data = node_sum(a.fee(), a.data(), b.fee(), b.data());
         let fee = a.fee() + b.fee();
         Self::create_node(next, height, data, fee)
     }
@@ -164,14 +156,14 @@ impl<D: Digest> MerkleTree<D> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::sha::Sha256 as Hash;
     use crate::sum::data_pair::split_data_pair;
+    use sha2::{Digest, Sha256 as Hash};
     use std::convert::TryFrom;
 
-    type MT = MerkleTree<Hash>;
+    type MT = MerkleTree;
 
-    const NODE: [u8; 1] = [0x01];
-    const LEAF: [u8; 1] = [0x00];
+    const NODE: u8 = 0x01;
+    const LEAF: u8 = 0x00;
 
     fn empty_data() -> Data {
         let hash = Hash::new();
@@ -180,18 +172,19 @@ mod test {
 
     fn leaf_data(data: &[u8]) -> Data {
         let mut hash = Hash::new();
-        hash.update(&LEAF);
+        hash.update(&[LEAF]);
         hash.update(&data);
-        <Data>::try_from(hash.finalize()).unwrap()
+        hash.finalize()
     }
+
     fn node_data(lhs_fee: u64, lhs_data: &[u8], rhs_fee: u64, rhs_data: &[u8]) -> Data {
         let mut hash = Hash::new();
-        hash.update(&NODE);
+        hash.update(&[NODE]);
         hash.update(&lhs_fee.to_be_bytes());
         hash.update(&lhs_data);
         hash.update(&rhs_fee.to_be_bytes());
         hash.update(&rhs_data);
-        <Data>::try_from(hash.finalize()).unwrap()
+        hash.finalize()
     }
 
     const FEE: u64 = 100;
@@ -387,10 +380,10 @@ mod test {
         assert_eq!(data_1, data[0]);
 
         assert_eq!(fee_2, FEE);
-        assert_eq!(data_2, &leaf_2);
+        assert_eq!(data_2, &leaf_2[..]);
 
         assert_eq!(fee_3, FEE * 2);
-        assert_eq!(data_3, &node_2);
+        assert_eq!(data_3, &node_2[..]);
     }
 
     #[test]
@@ -444,13 +437,13 @@ mod test {
         assert_eq!(data_1, data[2]);
         assert_eq!(fee_1, FEE);
 
-        assert_eq!(data_2, &leaf_4);
+        assert_eq!(data_2, &leaf_4[..]);
         assert_eq!(fee_2, FEE);
 
-        assert_eq!(data_3, &node_1);
+        assert_eq!(data_3, &node_1[..]);
         assert_eq!(fee_3, FEE * 2);
 
-        assert_eq!(data_4, &leaf_5);
+        assert_eq!(data_4, &leaf_5[..]);
         assert_eq!(fee_4, FEE);
     }
 
@@ -499,7 +492,7 @@ mod test {
         assert_eq!(data_1, data[4]);
         assert_eq!(fee_1, FEE);
 
-        assert_eq!(data_2, &node_3);
+        assert_eq!(data_2, &node_3[..]);
         assert_eq!(fee_2, FEE * 4);
     }
 
