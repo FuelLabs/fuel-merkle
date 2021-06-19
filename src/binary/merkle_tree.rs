@@ -2,9 +2,6 @@ use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::binary::node::Node;
 use crate::proof_set::ProofSet;
 
-use digest::Digest;
-use generic_array::GenericArray;
-
 type DataNode = Node<Data>;
 
 pub struct MerkleTree {
@@ -139,8 +136,8 @@ impl MerkleTree {
 #[cfg(test)]
 mod test {
     use super::*;
+    use digest::Digest;
     use sha2::Sha256;
-    use std::convert::TryFrom;
 
     const NODE: u8 = 0x01;
     const LEAF: u8 = 0x00;
