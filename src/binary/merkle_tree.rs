@@ -139,7 +139,6 @@ impl MerkleTree {
 #[cfg(test)]
 mod test {
     use super::*;
-    // use crate::sha::Sha256 as Hash;
     use sha2::Sha256;
     use std::convert::TryFrom;
 
