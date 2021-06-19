@@ -1,17 +1,21 @@
 use digest::Digest;
 use generic_array::GenericArray;
 use sha2::Sha256 as Hash;
+use lazy_static::lazy_static;
 
 pub type Data = GenericArray<u8, <Hash as Digest>::OutputSize>;
 
 const NODE: u8 = 0x01;
 const LEAF: u8 = 0x00;
 
+lazy_static! {
+    static ref EMPTY_SUM: Data = Hash::new().finalize();
+}
+
 // Merkle Tree hash of an empty list
 // MTH({}) = Hash()
 pub fn empty_sum() -> Data {
-    let hash = Hash::new();
-    hash.finalize()
+    EMPTY_SUM.clone()
 }
 
 // Merkle tree hash of an n-element list D[n]
