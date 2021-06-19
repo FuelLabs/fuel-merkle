@@ -11,6 +11,5 @@ pub fn split_data_pair(data_pair: &[u8]) -> (u64, &[u8]) {
     let (l, r) = data_pair.split_at(8);
     let fee = <[u8; 8]>::try_from(l).unwrap();
     let fee = u64::from_be_bytes(fee);
-
     (fee, r)
 }
