@@ -1,7 +1,7 @@
 use digest::Digest;
 use generic_array::GenericArray;
-use sha2::Sha256 as Hash;
 use lazy_static::lazy_static;
+use sha2::Sha256 as Hash;
 
 pub type Data = GenericArray<u8, <Hash as Digest>::OutputSize>;
 
