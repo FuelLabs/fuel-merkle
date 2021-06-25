@@ -15,13 +15,15 @@ pub struct StorageMerkleTree<'storage_life, StorageType: Storage> {
 
 impl<'storage_life, StorageType: Storage> StorageMerkleTree<'storage_life, StorageType> {
     pub fn new(storage: &'storage_life StorageType) -> Self {
-        Self {
+        let mut tree = Self {
             storage,
             head: None,
             leaves_count: 0,
             proof_index: 0,
             proof_set: ProofSet::new(),
-        }
+        };
+        tree.initialize();
+        tree
     }
 
     // pub fn set_proof_index(&mut self, proof_index: u64) {
@@ -50,6 +52,55 @@ impl<'storage_life, StorageType: Storage> StorageMerkleTree<'storage_life, Stora
         self.leaves_count
     }
 
+    // pub fn push(&mut self, data: &[u8]) {
+    //     if self.leaves_count == self.proof_index {
+    //         self.proof_set.push(data);
+    //     }
+    //
+    //     let node = Self::create_node(self.head.take(), 0, leaf_sum(data));
+    //     self.head = Some(node);
+    //     self.join_all_subtrees();
+    //
+    //     self.leaves_count += 1;
+    // }
+
+    pub fn prove(&mut self, proof_index: u64) -> (Data, ProofSet) {
+        self.proof_index = proof_index;
+        let proof_set = self.proof_set.clone();
+        let proof_set_length = proof_set.len() as u32;
+
+        if self.head().is_none() || proof_set_length == 0 {
+            return (self.root(), proof_set);
+        }
+
+        let mut current = self.head().clone().unwrap();
+        while current.next().is_some() && current.next_height().unwrap() < proof_set_length - 1 {
+            let mut node = current;
+            let mut next_node = node.take_next().unwrap();
+            current = Self::join_subtrees(&mut next_node, &node)
+        }
+
+        if current.next().is_some() && current.next_height().unwrap() == proof_set_length - 1 {
+            proof_set.push(current.data());
+            current = current.take_next().unwrap();
+        }
+
+        while current.next().is_some() {
+            proof_set.push(current.next_data().unwrap());
+            current = current.take_next().unwrap();
+        }
+
+        (self.root(), proof_set)
+    }
+
+    //
+    // PRIVATE
+    //
+
+    fn initialize(&mut self) {
+        // Load leaves from persistent storage
+    }
+
     pub fn push(&mut self, data: &[u8]) {
         if self.leaves_count == self.proof_index {
             self.proof_set.push(data);
@@ -61,37 +112,6 @@ impl<'storage_life, StorageType: Storage> StorageMerkleTree<'storage_life, Stora
 
         self.leaves_count += 1;
     }
-
-    pub fn prove(mut self) -> (Data, ProofSet) {
-        let proof_set_length = self.proof_set.len() as u32;
-
-        if self.head().is_none() || proof_set_length == 0 {
-            return (self.root(), self.proof_set);
-        }
-
-        let mut current = self.head().clone().unwrap();
-        while current.next().is_some() && current.next_height().unwrap() < proof_set_length - 1 {
-            let mut node = current;
-            let mut next_node = node.take_next().unwrap();
-            current = Self::join_subtrees(&mut next_node, &node)
-        }
-
-        if current.next().is_some() && current.next_height().unwrap() == proof_set_length - 1 {
-            self.proof_set.push(current.data());
-            current = current.take_next().unwrap();
-        }
-
-        while current.next().is_some() {
-            self.proof_set.push(current.next_data().unwrap());
-            current = current.take_next().unwrap();
-        }
-
-        (self.root(), self.proof_set)
-    }
-
-    //
-    // PRIVATE
-    //
 
     fn head(&self) -> &Option<Box<DataNode>> {
         &self.head
