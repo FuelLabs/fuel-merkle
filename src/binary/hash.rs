@@ -14,8 +14,8 @@ lazy_static! {
 
 // Merkle Tree hash of an empty list
 // MTH({}) = Hash()
-pub fn empty_sum() -> Data {
-    EMPTY_SUM.clone()
+pub fn empty_sum() -> &'static Data {
+    &*EMPTY_SUM
 }
 
 // Merkle tree hash of an n-element list D[n]
