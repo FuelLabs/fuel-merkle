@@ -1,17 +1,21 @@
+use digest::Digest;
 use generic_array::GenericArray;
-use sha2::{Digest, Sha256 as Hash};
-// use digest::Digest; TODO: Use this instead of sha2::Digest once other PR is merged
+use lazy_static::lazy_static;
+use sha2::Sha256 as Hash;
+
+pub type Data = GenericArray<u8, <Hash as Digest>::OutputSize>;
 
 const NODE: u8 = 0x01;
 const LEAF: u8 = 0x00;
 
-pub type Data = GenericArray<u8, <Hash as Digest>::OutputSize>;
+lazy_static! {
+    static ref EMPTY_SUM: Data = Hash::new().finalize();
+}
 
 // Merkle Tree hash of an empty list
 // MTH({}) = Hash()
-pub fn empty_sum() -> Data {
-    let hash = Hash::new();
-    hash.finalize()
+pub fn empty_sum() -> &'static Data {
+    &*EMPTY_SUM
 }
 
 // Merkle tree hash of an n-element list D[n]
