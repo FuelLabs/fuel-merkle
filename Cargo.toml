@@ -16,3 +16,5 @@ lazy_static = "*"
 
 [dev-dependencies]
 hex = "~0.4.3"
+byteorder ="*"
+bs58="*"
