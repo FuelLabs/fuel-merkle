@@ -1,8 +1,9 @@
 use digest::Digest;
 use generic_array::GenericArray;
 use lazy_static::lazy_static;
-use sha2::Sha256 as Hash;
+use sha2::Sha256;
 
+pub type Hash = Sha256;
 pub type Data = GenericArray<u8, <Hash as Digest>::OutputSize>;
 
 const NODE: u8 = 0x01;

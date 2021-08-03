@@ -129,7 +129,7 @@ impl MerkleTree {
     }
 
     fn create_node(next: Option<Box<DataNode>>, height: u32, data: Data) -> Box<DataNode> {
-        Box::new(DataNode::new(next, height, data))
+        Box::new(DataNode::new(next, height, 0, data))
     }
 }
 

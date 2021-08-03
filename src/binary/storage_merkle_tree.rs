@@ -7,8 +7,12 @@ type DataNode = Node<Data>;
 
 pub struct MerkleTree<StorageType: Storage> {
     storage: StorageType,
+
     head: Option<Box<DataNode>>,
+
+    count: u64,
     leaves_count: u64,
+
     proof_index: u64,
     proof_set: ProofSet,
 }
@@ -18,20 +22,17 @@ impl<StorageType: Storage> MerkleTree<StorageType> {
         let mut tree = Self {
             storage: StorageType::new(),
             head: None,
+
+            count: 0,
             leaves_count: 0,
+
             proof_index: 0,
             proof_set: ProofSet::new(),
         };
+
         tree.initialize(leaf_data);
         tree
     }
-
-    // pub fn set_proof_index(&mut self, proof_index: u64) {
-    //     if self.head().is_some() {
-    //         panic!("Cannot change the proof index after adding a leaf!");
-    //     }
-    //     self.proof_index = proof_index;
-    // }
 
     pub fn root(&self) -> Data {
         match self.head() {
@@ -51,18 +52,6 @@ impl<StorageType: Storage> MerkleTree<StorageType> {
     pub fn leaves_count(&self) -> u64 {
         self.leaves_count
     }
-
-    // pub fn push(&mut self, data: &[u8]) {
-    //     if self.leaves_count == self.proof_index {
-    //         self.proof_set.push(data);
-    //     }
-    //
-    //     let node = Self::create_node(self.head.take(), 0, leaf_sum(data));
-    //     self.head = Some(node);
-    //     self.join_all_subtrees();
-    //
-    //     self.leaves_count += 1;
-    // }
 
     pub fn prove(&mut self, proof_index: u64) -> (Data, ProofSet) {
         self.proof_index = proof_index;
@@ -103,19 +92,23 @@ impl<StorageType: Storage> MerkleTree<StorageType> {
         }
     }
 
-    pub fn push(&mut self, data: &[u8]) {
+    fn push(&mut self, data: &[u8]) {
         // if self.leaves_count == self.proof_index {
         //     self.proof_set.push(data);
         // }
 
         let leaf_sum = leaf_sum(data);
 
-        let node = Self::create_node(self.head.take(), 0, leaf_sum.clone());
-        self.storage.create_leaf(&leaf_sum);
+        // Persist the new leaf:
+        // Get leaf position from current leaves count:
+        // The position is determined as the in-order
+        // position in the binary tree.
+        let position = self.leaves_count * 2;
+        self.persist_node(position, &leaf_sum);
 
+        let node = Self::create_node(self.head.take(), 0, position, leaf_sum.clone());
         self.head = Some(node);
         self.join_all_subtrees();
-
         self.leaves_count += 1;
     }
 
@@ -130,27 +123,15 @@ impl<StorageType: Storage> MerkleTree<StorageType> {
                 break;
             }
 
-            // let proof_set_length = self.proof_set.len() as u32;
-            // if head.height() + 1 == proof_set_length {
-            //     let head_leaves_count = 1u64 << head.height();
-            //     let mid = (self.leaves_count / head_leaves_count) * head_leaves_count;
-            //     if self.proof_index < mid {
-            //         self.proof_set.push(head.data());
-            //     } else {
-            //         self.proof_set.push(head.next_data().unwrap());
-            //     }
-            // }
-
             // Merge the two front nodes of the list into a single node
             let mut node = self.head.take().unwrap();
             let mut next_node = node.take_next().unwrap();
-
             let joined_node = Self::join_subtrees(&mut next_node.clone(), &node.clone());
-            self.storage.create_node(
-                joined_node.data(),
-                Some(next_node.data()),
-                Some(node.data()),
-            );
+
+            // Persist the joined node
+            let position = joined_node.position();
+            let data = joined_node.data();
+            self.persist_node(position, data);
 
             self.head = Some(joined_node);
         }
@@ -159,14 +140,27 @@ impl<StorageType: Storage> MerkleTree<StorageType> {
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
         let height = a.height() + 1;
+
+        // Get leaf position from current leaves count:
+        // The position is determined as the in-order
+        // position in the binary tree.
+        let position = a.position() + (1 << b.height());
         let data = node_sum(a.data(), b.data());
-        Self::create_node(next, height, data.clone())
+        Self::create_node(next, height, position, data.clone())
     }
 
-    fn create_node(next: Option<Box<DataNode>>, height: u32, data: Data) -> Box<DataNode> {
-        let node = DataNode::new(next, height, data);
-        println!("Creating node {}", node.clone());
+    fn create_node(
+        next: Option<Box<DataNode>>,
+        height: u32,
+        position: u64,
+        data: Data,
+    ) -> Box<DataNode> {
+        let node = DataNode::new(next, height, position, data);
         Box::new(node)
+    }
+
+    fn persist_node(&mut self, position: u64, data: &Data) {
+        self.storage.create_node(position, data);
     }
 }
 
