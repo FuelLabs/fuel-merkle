@@ -1,12 +1,15 @@
-use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
+use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data, Hash};
 use crate::binary::node::Node;
 use crate::binary::storage::Storage;
 use crate::proof_set::ProofSet;
+use digest::generic_array::GenericArray;
+use digest::Digest;
+use crate::binary::position::Position;
 
 type DataNode = Node<Data>;
 
-pub struct MerkleTree<StorageType: Storage> {
-    storage: StorageType,
+pub struct MerkleTree<'storage, StorageType: Storage> {
+    storage: &'storage mut StorageType,
 
     head: Option<Box<DataNode>>,
 
@@ -17,10 +20,10 @@ pub struct MerkleTree<StorageType: Storage> {
     proof_set: ProofSet,
 }
 
-impl<StorageType: Storage> MerkleTree<StorageType> {
-    pub fn new(leaf_data: Vec<&[u8]>) -> Self {
+impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType> {
+    pub fn new(storage: &'storage mut StorageType) -> Self {
         let mut tree = Self {
-            storage: StorageType::new(),
+            storage,
             head: None,
 
             count: 0,
@@ -30,7 +33,7 @@ impl<StorageType: Storage> MerkleTree<StorageType> {
             proof_set: ProofSet::new(),
         };
 
-        tree.initialize(leaf_data);
+        tree.initialize();
         tree
     }
 
@@ -86,9 +89,9 @@ impl<StorageType: Storage> MerkleTree<StorageType> {
     // PRIVATE
     //
 
-    fn initialize(&mut self, leaf_data: Vec<&[u8]>) {
-        for datum in leaf_data {
-            self.push(datum);
+    fn initialize(&mut self) {
+        for node in self.storage.get_all_nodes() {
+            self.add(node.key(), node.data());
         }
     }
 
@@ -106,9 +109,23 @@ impl<StorageType: Storage> MerkleTree<StorageType> {
         let position = self.leaves_count * 2;
         self.persist_node(position, &leaf_sum);
 
-        let node = Self::create_node(self.head.take(), 0, position, leaf_sum.clone());
+        /*let node = Self::create_node(self.head.take(), 0, position, leaf_sum.clone());
         self.head = Some(node);
         self.join_all_subtrees();
+        self.leaves_count += 1;*/
+
+        self.add(position, &leaf_sum)
+    }
+
+    fn add(&mut self, position: u64, data: &[u8]) {
+        let node_data =  GenericArray::from_slice(data).clone();
+        let height = Position::from_index(position).height();
+
+        let node = Self::create_node(self.head.take(), height, position, node_data);
+        self.head = Some(node);
+
+        self.join_all_subtrees();
+
         self.leaves_count += 1;
     }
 
@@ -208,8 +225,8 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
-        let leaf_data_source = Vec::<&[u8]>::new();
-        let mt = MerkleTree::<StorageMap>::new(leaf_data_source);
+        let mut storage_map = StorageMap::new();
+        let mt = MerkleTree::<StorageMap>::new(&mut storage_map);
 
         let root = mt.root();
 
@@ -219,28 +236,31 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
-        let mut leaf_data_source = Vec::<&[u8]>::new();
+        let mut storage_map = StorageMap::new();
+
+        /*
         let data = &DATA[0..1]; // 1 leaf
         for datum in data.iter() {
-            leaf_data_source.push(datum);
-        }
+            leaf_data_source.push(leadatum);
+        }*/
 
-        let mt = MerkleTree::<StorageMap>::new(leaf_data_source);
+        let mt = MerkleTree::<StorageMap>::new(&mut storage_map);
         let root = mt.root();
 
+        let data = &DATA[0..1]; // 1 leaf
         let expected = leaf_data(&data[0]);
         assert_eq!(root, expected);
     }
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_2_leaves_are_pushed() {
-        let mut leaf_data_source = Vec::<&[u8]>::new();
-        let data = &DATA[0..2]; // 2 leaves
-        for datum in data.iter() {
-            leaf_data_source.push(datum);
-        }
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::<StorageMap>::new(&mut storage_map);
 
-        let mt = MerkleTree::<StorageMap>::new(leaf_data_source);
+        let data = &DATA[0..2]; // 2 leaves
+        mt.push(&data[0]);
+        mt.push(&data[1]);
+
         let root = mt.root();
 
         //   N1
@@ -253,21 +273,19 @@ mod test {
 
         let expected = node_1;
         assert_eq!(root, expected);
-        // assert_eq!(
-        //     bs58::encode(root).into_string(),
-        //     bs58::encode(node_1).into_string()
-        // );
     }
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
-        let mut leaf_data_source = Vec::<&[u8]>::new();
-        let data = &DATA[0..4]; // 2 leaves
-        for datum in data.iter() {
-            leaf_data_source.push(datum);
-        }
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::<StorageMap>::new(&mut storage_map);
 
-        let mt = MerkleTree::<StorageMap>::new(leaf_data_source);
+        let data = &DATA[0..4]; // 4 leaves
+        mt.push(&data[0]);
+        mt.push(&data[1]);
+        mt.push(&data[2]);
+        mt.push(&data[3]);
+
         let root = mt.root();
 
         //       N3
