@@ -1,9 +1,8 @@
-use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data, Hash};
+use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::binary::node::Node;
 use crate::binary::storage::Storage;
 use crate::proof_set::ProofSet;
 use digest::generic_array::GenericArray;
-use digest::Digest;
 use crate::binary::position::Position;
 
 type DataNode = Node<Data>;
@@ -47,7 +46,7 @@ impl<'storage> MerkleTree<'storage> {
         self.leaves_count
     }
 
-    pub fn prove(&mut self, proof_index: u64) -> (Data, ProofSet) {
+    pub fn prove(&mut self, _proof_index: u64) -> (Data, ProofSet) {
         // self.proof_index = proof_index;
         let mut proof_set = self.proof_set.clone();
         let proof_set_length = proof_set.len() as u32;
@@ -94,7 +93,7 @@ impl<'storage> MerkleTree<'storage> {
         // Get leaf position from current leaves count:
         // The position is determined as the in-order
         // position in the binary tree.
-        let position = Position::from_index(self.leaves_count * 2);
+        let position = Position::from_index(self.leaves_count() * 2);
         self.add(position, &leaf_sum);
         self.persist_node(position, &leaf_sum);
     }
@@ -122,7 +121,7 @@ impl<'storage> MerkleTree<'storage> {
 
             // Merge the two front nodes of the list into a single node
             let mut node = self.head.take().unwrap();
-            let mut next_node = node.take_next().unwrap();
+            let next_node = node.take_next().unwrap();
             let joined_node = Self::join_subtrees(&mut next_node.clone(), &node.clone());
 
             // Persist the joined node

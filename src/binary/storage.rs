@@ -1,10 +1,4 @@
-use bytes::Bytes;
-use std::fmt;
-use std::fmt::Formatter;
-
 use crate::binary::position::Position;
-
-use generic_array;
 
 #[derive(Clone)]
 pub struct Node {

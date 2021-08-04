@@ -1,10 +1,8 @@
 use crate::binary::storage::{Node, Storage};
-
-use bytes::Bytes;
-use std::collections::HashMap;
-use std::io::Read;
-use std::convert::TryInto;
 use crate::binary::position::Position;
+
+use std::collections::HashMap;
+use std::convert::TryInto;
 
 pub struct StorageMap {
     map: HashMap<u64, Node>,
