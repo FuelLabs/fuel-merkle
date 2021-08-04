@@ -43,8 +43,6 @@ impl fmt::Display for Node<Data> {
 }*/
 
 pub trait Storage {
-    fn new() -> Self;
-
     // CRD interface
     fn create_node(&mut self, key: Position, data: &[u8]);
 

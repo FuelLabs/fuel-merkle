@@ -8,28 +8,19 @@ use crate::binary::position::Position;
 
 type DataNode = Node<Data>;
 
-pub struct MerkleTree<'storage, StorageType: Storage> {
-    storage: &'storage mut StorageType,
-
+pub struct MerkleTree<'storage> {
+    storage: &'storage mut dyn Storage,
     head: Option<Box<DataNode>>,
-
-    count: u64,
     leaves_count: u64,
-
-    proof_index: u64,
     proof_set: ProofSet,
 }
 
-impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType> {
-    pub fn new(storage: &'storage mut StorageType) -> Self {
+impl<'storage> MerkleTree<'storage> {
+    pub fn new(storage: &'storage mut dyn Storage) -> Self {
         let mut tree = Self {
             storage,
             head: None,
-
-            count: 0,
             leaves_count: 0,
-
-            proof_index: 0,
             proof_set: ProofSet::new(),
         };
 
@@ -57,7 +48,7 @@ impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType>
     }
 
     pub fn prove(&mut self, proof_index: u64) -> (Data, ProofSet) {
-        self.proof_index = proof_index;
+        // self.proof_index = proof_index;
         let mut proof_set = self.proof_set.clone();
         let proof_set_length = proof_set.len() as u32;
 
@@ -211,7 +202,7 @@ mod test {
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
         let mut storage_map = StorageMap::new();
-        let mt = MerkleTree::<StorageMap>::new(&mut storage_map);
+        let mt = MerkleTree::new(&mut storage_map);
 
         let root = mt.root();
 
@@ -222,7 +213,7 @@ mod test {
     #[test]
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
         let mut storage_map = StorageMap::new();
-        let mut mt = MerkleTree::<StorageMap>::new(&mut storage_map);
+        let mut mt = MerkleTree::new(&mut storage_map);
 
         let data = &DATA[0..1]; // 1 leaf
         mt.push(&data[0]);
@@ -236,11 +227,12 @@ mod test {
     #[test]
     fn root_returns_the_hash_of_the_head_when_2_leaves_are_pushed() {
         let mut storage_map = StorageMap::new();
-        let mut mt = MerkleTree::<StorageMap>::new(&mut storage_map);
+        let mut mt = MerkleTree::new(&mut storage_map);
 
         let data = &DATA[0..2]; // 2 leaves
-        mt.push(&data[0]);
-        mt.push(&data[1]);
+        for datum in data.iter() {
+            mt.push(datum);
+        }
 
         let root = mt.root();
 
@@ -259,13 +251,12 @@ mod test {
     #[test]
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
         let mut storage_map = StorageMap::new();
-        let mut mt = MerkleTree::<StorageMap>::new(&mut storage_map);
+        let mut mt = MerkleTree::new(&mut storage_map);
 
         let data = &DATA[0..4]; // 4 leaves
-        mt.push(&data[0]);
-        mt.push(&data[1]);
-        mt.push(&data[2]);
-        mt.push(&data[3]);
+        for datum in data.iter() {
+            mt.push(datum);
+        }
 
         let root = mt.root();
 

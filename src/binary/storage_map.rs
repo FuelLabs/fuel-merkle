@@ -11,18 +11,18 @@ pub struct StorageMap {
 }
 
 impl StorageMap {
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::<u64, Node>::new(),
+        }
+    }
+
     fn insert_node(&mut self, key: Position, node: Node) {
         self.map.insert(key.value(), node);
     }
 }
 
 impl Storage for StorageMap {
-    fn new() -> Self {
-        Self {
-            map: HashMap::<u64, Node>::new(),
-        }
-    }
-
     fn create_node(&mut self, key: Position, data: &[u8]) {
         let node = Node::new(key, data.try_into().unwrap());
         // println!("{}", &node);
