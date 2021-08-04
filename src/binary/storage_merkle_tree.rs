@@ -279,90 +279,94 @@ mod test {
         assert_eq!(root, expected);
     }
 
-    // #[test]
-    // fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
-    //     let mut mt = MerkleTree::new();
-    //
-    //     let data = &DATA[0..5]; // 5 leaves
-    //     for datum in data.iter() {
-    //         mt.push(datum);
-    //     }
-    //     let root = mt.root();
-    //
-    //     //          N4
-    //     //         /  \
-    //     //       N3    \
-    //     //      /  \    \
-    //     //     /    \    \
-    //     //   N1      N2   \
-    //     //  /  \    /  \   \
-    //     // L1  L2  L3  L4  L5
-    //
-    //     let leaf_1 = leaf_data(&data[0]);
-    //     let leaf_2 = leaf_data(&data[1]);
-    //     let leaf_3 = leaf_data(&data[2]);
-    //     let leaf_4 = leaf_data(&data[3]);
-    //     let leaf_5 = leaf_data(&data[4]);
-    //
-    //     let node_1 = node_data(&leaf_1, &leaf_2);
-    //     let node_2 = node_data(&leaf_3, &leaf_4);
-    //     let node_3 = node_data(&node_1, &node_2);
-    //     let node_4 = node_data(&node_3, &leaf_5);
-    //
-    //     let expected = node_4;
-    //     assert_eq!(root, expected);
-    // }
+    #[test]
+    fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
 
-    // #[test]
-    // fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
-    //     let mut mt = MerkleTree::new();
-    //
-    //     let data = &DATA[0..7]; // 7 leaves
-    //     for datum in data.iter() {
-    //         mt.push(datum);
-    //     }
-    //     let root = mt.root();
-    //
-    //     //              N6
-    //     //          /        \
-    //     //         /          \
-    //     //       N4            N5
-    //     //      /  \           /\
-    //     //     /    \         /  \
-    //     //   N1      N2      N3   \
-    //     //  /  \    /  \    /  \   \
-    //     // L1  L2  L3  L4  L5  L6  L7
-    //
-    //     let leaf_1 = leaf_data(&data[0]);
-    //     let leaf_2 = leaf_data(&data[1]);
-    //     let leaf_3 = leaf_data(&data[2]);
-    //     let leaf_4 = leaf_data(&data[3]);
-    //     let leaf_5 = leaf_data(&data[4]);
-    //     let leaf_6 = leaf_data(&data[5]);
-    //     let leaf_7 = leaf_data(&data[6]);
-    //
-    //     let node_1 = node_data(&leaf_1, &leaf_2);
-    //     let node_2 = node_data(&leaf_3, &leaf_4);
-    //     let node_3 = node_data(&leaf_5, &leaf_6);
-    //     let node_4 = node_data(&node_1, &node_2);
-    //     let node_5 = node_data(&node_3, &leaf_7);
-    //     let node_6 = node_data(&node_4, &node_5);
-    //
-    //     let expected = node_6;
-    //     assert_eq!(root, expected);
-    // }
+        let data = &DATA[0..5]; // 5 leaves
+        for datum in data.iter() {
+            mt.push(datum);
+        }
 
-    // #[test]
-    // fn leaves_count_returns_the_number_of_leaves_pushed_to_the_tree() {
-    //     let mut mt = MerkleTree::new();
-    //
-    //     let data = &DATA[0..4];
-    //     for datum in data.iter() {
-    //         mt.push(datum);
-    //     }
-    //
-    //     assert_eq!(mt.leaves_count(), data.len() as u64);
-    // }
+        let root = mt.root();
+
+        //          N4
+        //         /  \
+        //       N3    \
+        //      /  \    \
+        //     /    \    \
+        //   N1      N2   \
+        //  /  \    /  \   \
+        // L1  L2  L3  L4  L5
+
+        let leaf_1 = leaf_data(&data[0]);
+        let leaf_2 = leaf_data(&data[1]);
+        let leaf_3 = leaf_data(&data[2]);
+        let leaf_4 = leaf_data(&data[3]);
+        let leaf_5 = leaf_data(&data[4]);
+
+        let node_1 = node_data(&leaf_1, &leaf_2);
+        let node_2 = node_data(&leaf_3, &leaf_4);
+        let node_3 = node_data(&node_1, &node_2);
+        let node_4 = node_data(&node_3, &leaf_5);
+
+        let expected = node_4;
+        assert_eq!(root, expected);
+    }
+
+    #[test]
+    fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..7]; // 7 leaves
+        for datum in data.iter() {
+            mt.push(datum);
+        }
+        let root = mt.root();
+
+        //              N6
+        //          /        \
+        //         /          \
+        //       N4            N5
+        //      /  \           /\
+        //     /    \         /  \
+        //   N1      N2      N3   \
+        //  /  \    /  \    /  \   \
+        // L1  L2  L3  L4  L5  L6  L7
+
+        let leaf_1 = leaf_data(&data[0]);
+        let leaf_2 = leaf_data(&data[1]);
+        let leaf_3 = leaf_data(&data[2]);
+        let leaf_4 = leaf_data(&data[3]);
+        let leaf_5 = leaf_data(&data[4]);
+        let leaf_6 = leaf_data(&data[5]);
+        let leaf_7 = leaf_data(&data[6]);
+
+        let node_1 = node_data(&leaf_1, &leaf_2);
+        let node_2 = node_data(&leaf_3, &leaf_4);
+        let node_3 = node_data(&leaf_5, &leaf_6);
+        let node_4 = node_data(&node_1, &node_2);
+        let node_5 = node_data(&node_3, &leaf_7);
+        let node_6 = node_data(&node_4, &node_5);
+
+        let expected = node_6;
+        assert_eq!(root, expected);
+    }
+
+    #[test]
+    fn leaves_count_returns_the_number_of_leaves_pushed_to_the_tree() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..4];
+        for datum in data.iter() {
+            mt.push(datum);
+        }
+
+        assert_eq!(mt.leaves_count(), data.len() as u64);
+    }
 
     // #[test]
     // fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index() {

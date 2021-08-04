@@ -19,7 +19,7 @@ impl Position {
     }
 
     /// The parent position.
-    /// The parent position has a height less 1 of this position.
+    /// The parent position has a height less 1 relative to this position.
     pub fn parent(&self) -> Self {
         let shift = 1 << self.height();
         let index = self.value() as i64 + shift * self.direction();
@@ -27,7 +27,7 @@ impl Position {
     }
 
     /// The uncle position.
-    /// The uncle position is the sibling of the parent has a height less 1 of this position.
+    /// The uncle position is the sibling of the parent and has a height less 1 relative to this position.
     pub fn uncle(&self) -> Self {
         self.parent().sibling()
     }
