@@ -97,10 +97,6 @@ impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType>
     }
 
     fn push(&mut self, data: &[u8]) {
-        // if self.leaves_count == self.proof_index {
-        //     self.proof_set.push(data);
-        // }
-
         let leaf_sum = leaf_sum(data);
 
         // Persist the new leaf:
@@ -108,14 +104,8 @@ impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType>
         // The position is determined as the in-order
         // position in the binary tree.
         let position = Position::from_index(self.leaves_count * 2);
+        self.add(position, &leaf_sum);
         self.persist_node(position, &leaf_sum);
-
-        /*let node = Self::create_node(self.head.take(), 0, position, leaf_sum.clone());
-        self.head = Some(node);
-        self.join_all_subtrees();
-        self.leaves_count += 1;*/
-
-        self.add(position, &leaf_sum)
     }
 
     fn add(&mut self, position: Position, data: &Data) {
@@ -232,17 +222,13 @@ mod test {
     #[test]
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
         let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::<StorageMap>::new(&mut storage_map);
 
-        /*
         let data = &DATA[0..1]; // 1 leaf
-        for datum in data.iter() {
-            leaf_data_source.push(leadatum);
-        }*/
+        mt.push(&data[0]);
 
-        let mt = MerkleTree::<StorageMap>::new(&mut storage_map);
         let root = mt.root();
 
-        let data = &DATA[0..1]; // 1 leaf
         let expected = leaf_data(&data[0]);
         assert_eq!(root, expected);
     }

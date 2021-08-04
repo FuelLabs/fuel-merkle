@@ -37,7 +37,7 @@ impl<T> Node<T> {
     }
 
     pub fn height(&self) -> u32 {
-        self.height
+        self.position.height()
     }
 
     pub fn position(&self) -> Position {
