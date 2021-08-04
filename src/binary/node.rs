@@ -120,7 +120,12 @@ mod test {
         }
         let node_1 = Node::<Data>::new(None, 0, Position::from_index(0), data.clone());
         let node_1_str = format!("{}", node_1);
-        let node_2 = Node::<Data>::new(Some(Box::new(node_1)), 0, Position::from_index(0), data.clone());
+        let node_2 = Node::<Data>::new(
+            Some(Box::new(node_1)),
+            0,
+            Position::from_index(0),
+            data.clone(),
+        );
         let node_2_str = format!("{}", node_2);
         let expected = format!(
             "Node(JEKNVnkbo3jma5nREBBJCDoXFVeKkD56V3xKrvRmWxFG, 0, {})",

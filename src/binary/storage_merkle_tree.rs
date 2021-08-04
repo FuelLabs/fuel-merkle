@@ -1,9 +1,9 @@
 use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::binary::node::Node;
+use crate::binary::position::Position;
 use crate::binary::storage::Storage;
 use crate::proof_set::ProofSet;
 use digest::generic_array::GenericArray;
-use crate::binary::position::Position;
 
 type DataNode = Node<Data>;
 

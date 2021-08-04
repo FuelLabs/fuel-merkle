@@ -8,10 +8,7 @@ pub struct Node {
 
 impl Node {
     pub fn new(key: Position, data: [u8; 32]) -> Self {
-        Self {
-            key,
-            data,
-        }
+        Self { key, data }
     }
 
     pub fn key(&self) -> Position {
