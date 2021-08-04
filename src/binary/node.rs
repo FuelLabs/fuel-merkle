@@ -4,16 +4,18 @@ use sha2::Sha256;
 use std::fmt;
 use std::fmt::Formatter;
 
+use crate::binary::position::Position;
+
 #[derive(Clone)]
 pub struct Node<T> {
     next: Option<Box<Node<T>>>,
     height: u32,
-    position: u64,
+    position: Position,
     data: T,
 }
 
 impl<T> Node<T> {
-    pub fn new(next: Option<Box<Node<T>>>, height: u32, position: u64, data: T) -> Self {
+    pub fn new(next: Option<Box<Node<T>>>, height: u32, position: Position, data: T) -> Self {
         Self {
             next,
             height,
@@ -38,7 +40,7 @@ impl<T> Node<T> {
         self.height
     }
 
-    pub fn position(&self) -> u64 {
+    pub fn position(&self) -> Position {
         self.position
     }
 
@@ -102,7 +104,7 @@ mod test {
         for x in &mut data {
             *x = 0xff;
         }
-        let node = Node::<Data>::new(None, 0, 0, data);
+        let node = Node::<Data>::new(None, 0, Position::from_index(0), data);
         let node_str = format!("{}", node);
         assert_eq!(
             "Node(JEKNVnkbo3jma5nREBBJCDoXFVeKkD56V3xKrvRmWxFG, 0, (None))",
@@ -116,9 +118,9 @@ mod test {
         for x in &mut data {
             *x = 0xff;
         }
-        let node_1 = Node::<Data>::new(None, 0, 0, data.clone());
+        let node_1 = Node::<Data>::new(None, 0, Position::from_index(0), data.clone());
         let node_1_str = format!("{}", node_1);
-        let node_2 = Node::<Data>::new(Some(Box::new(node_1)), 0, 0, data.clone());
+        let node_2 = Node::<Data>::new(Some(Box::new(node_1)), 0, Position::from_index(0), data.clone());
         let node_2_str = format!("{}", node_2);
         let expected = format!(
             "Node(JEKNVnkbo3jma5nREBBJCDoXFVeKkD56V3xKrvRmWxFG, 0, {})",

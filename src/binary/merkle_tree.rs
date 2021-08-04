@@ -1,6 +1,7 @@
 use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::binary::node::Node;
 use crate::proof_set::ProofSet;
+use crate::binary::position::Position;
 
 type DataNode = Node<Data>;
 
@@ -129,7 +130,7 @@ impl MerkleTree {
     }
 
     fn create_node(next: Option<Box<DataNode>>, height: u32, data: Data) -> Box<DataNode> {
-        Box::new(DataNode::new(next, height, 0, data))
+        Box::new(DataNode::new(next, height, Position::from_index(0), data))
     }
 }
 

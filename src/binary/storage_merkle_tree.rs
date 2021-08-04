@@ -91,7 +91,8 @@ impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType>
 
     fn initialize(&mut self) {
         for node in self.storage.get_all_nodes() {
-            self.add(node.key(), node.data());
+            let data = GenericArray::from_slice(node.data());
+            self.add(node.key(), data);
         }
     }
 
@@ -106,7 +107,7 @@ impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType>
         // Get leaf position from current leaves count:
         // The position is determined as the in-order
         // position in the binary tree.
-        let position = self.leaves_count * 2;
+        let position = Position::from_index(self.leaves_count * 2);
         self.persist_node(position, &leaf_sum);
 
         /*let node = Self::create_node(self.head.take(), 0, position, leaf_sum.clone());
@@ -117,11 +118,9 @@ impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType>
         self.add(position, &leaf_sum)
     }
 
-    fn add(&mut self, position: u64, data: &[u8]) {
-        let node_data =  GenericArray::from_slice(data).clone();
-        let height = Position::from_index(position).height();
-
-        let node = Self::create_node(self.head.take(), height, position, node_data);
+    fn add(&mut self, position: Position, data: &Data) {
+        let height = position.height();
+        let node = Self::create_node(self.head.take(), height, position, data.clone());
         self.head = Some(node);
 
         self.join_all_subtrees();
@@ -157,11 +156,7 @@ impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType>
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
         let height = a.height() + 1;
-
-        // Get leaf position from current leaves count:
-        // The position is determined as the in-order
-        // position in the binary tree.
-        let position = a.position() + (1 << b.height());
+        let position = b.position().parent();
         let data = node_sum(a.data(), b.data());
         Self::create_node(next, height, position, data.clone())
     }
@@ -169,14 +164,14 @@ impl<'storage, StorageType: 'storage +Storage> MerkleTree<'storage, StorageType>
     fn create_node(
         next: Option<Box<DataNode>>,
         height: u32,
-        position: u64,
+        position: Position,
         data: Data,
     ) -> Box<DataNode> {
         let node = DataNode::new(next, height, position, data);
         Box::new(node)
     }
 
-    fn persist_node(&mut self, position: u64, data: &Data) {
+    fn persist_node(&mut self, position: Position, data: &Data) {
         self.storage.create_node(position, data);
     }
 }

@@ -13,15 +13,15 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(key: u64, data: [u8; 32]) -> Self {
+    pub fn new(key: Position, data: [u8; 32]) -> Self {
         Self {
-            key: Position::from_index(key),
+            key,
             data,
         }
     }
 
-    pub fn key(&self) -> u64 {
-        self.key.value()
+    pub fn key(&self) -> Position {
+        self.key
     }
 
     pub fn data(&self) -> &[u8] {
@@ -46,7 +46,7 @@ pub trait Storage {
     fn new() -> Self;
 
     // CRD interface
-    fn create_node(&mut self, key: u64, data: &[u8]);
+    fn create_node(&mut self, key: Position, data: &[u8]);
 
     fn get_all_nodes(&self) -> Vec<Node>;
 
