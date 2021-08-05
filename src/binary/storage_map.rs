@@ -23,7 +23,6 @@ impl StorageMap {
 impl Storage for StorageMap {
     fn create_node(&mut self, key: Position, data: &[u8]) {
         let node = Node::new(key, data.try_into().unwrap());
-        // println!("{}", &node);
         self.insert_node(key, node.clone());
     }
 

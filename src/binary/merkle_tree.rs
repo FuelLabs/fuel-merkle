@@ -53,7 +53,7 @@ impl MerkleTree {
             self.proof_set.push(data);
         }
 
-        let node = Self::create_node(self.head.take(), 0, leaf_sum(data));
+        let node = Self::create_node(self.head.take(), leaf_sum(data));
         self.head = Some(node);
         self.join_all_subtrees();
 
@@ -124,13 +124,12 @@ impl MerkleTree {
 
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
-        let height = a.height() + 1;
         let data = node_sum(a.data(), b.data());
-        Self::create_node(next, height, data)
+        Self::create_node(next, data)
     }
 
-    fn create_node(next: Option<Box<DataNode>>, height: u32, data: Data) -> Box<DataNode> {
-        Box::new(DataNode::new(next, height, Position::from_index(0), data))
+    fn create_node(next: Option<Box<DataNode>>, data: Data) -> Box<DataNode> {
+        Box::new(DataNode::new(next, Position::from_index(0), data))
     }
 }
 

@@ -99,8 +99,7 @@ impl<'storage> MerkleTree<'storage> {
     }
 
     fn add(&mut self, position: Position, data: &Data) {
-        let height = position.height();
-        let node = Self::create_node(self.head.take(), height, position, data.clone());
+        let node = Self::create_node(self.head.take(), position, data.clone());
         self.head = Some(node);
 
         self.join_all_subtrees();
@@ -135,19 +134,17 @@ impl<'storage> MerkleTree<'storage> {
 
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
-        let height = a.height() + 1;
         let position = b.position().parent();
         let data = node_sum(a.data(), b.data());
-        Self::create_node(next, height, position, data.clone())
+        Self::create_node(next, position, data.clone())
     }
 
     fn create_node(
         next: Option<Box<DataNode>>,
-        height: u32,
         position: Position,
         data: Data,
     ) -> Box<DataNode> {
-        let node = DataNode::new(next, height, position, data);
+        let node = DataNode::new(next, position, data);
         Box::new(node)
     }
 
