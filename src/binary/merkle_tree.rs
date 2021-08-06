@@ -53,7 +53,8 @@ impl MerkleTree {
             self.proof_set.push(data);
         }
 
-        let node = Self::create_node(self.head.take(), leaf_sum(data));
+        let position = Position::from_leaf_index(self.leaves_count);
+        let node = Self::create_node(self.head.take(), position, leaf_sum(data));
         self.head = Some(node);
         self.join_all_subtrees();
 
@@ -125,11 +126,12 @@ impl MerkleTree {
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
         let data = node_sum(a.data(), b.data());
-        Self::create_node(next, data)
+        let position = b.position().parent();
+        Self::create_node(next, position, data)
     }
 
-    fn create_node(next: Option<Box<DataNode>>, data: Data) -> Box<DataNode> {
-        Box::new(DataNode::new(next, Position::from_index(0), data))
+    fn create_node(next: Option<Box<DataNode>>, position: Position, data: Data) -> Box<DataNode> {
+        Box::new(DataNode::new(next, position, data))
     }
 }
 
@@ -362,36 +364,36 @@ mod test {
         let root = proof.0;
         let set = proof.1;
 
-        //          N4
+        //          N3
         //         /  \
-        //       N3    \
+        //       N2    \
         //      /  \    \
         //     /    \    \
-        //   N1      N2   \
+        //   N0      N1   \
         //  /  \    /  \   \
-        // L1  L2  L3  L4  L5
+        // L0  L1  L2  L3  L4
 
-        let leaf_1 = leaf_data(&data[0]);
-        let leaf_2 = leaf_data(&data[1]);
-        let leaf_3 = leaf_data(&data[2]);
-        let leaf_4 = leaf_data(&data[3]);
-        let leaf_5 = leaf_data(&data[4]);
+        let leaf_0 = leaf_data(&data[0]);
+        let leaf_1 = leaf_data(&data[1]);
+        let leaf_2 = leaf_data(&data[2]);
+        let leaf_3 = leaf_data(&data[3]);
+        let leaf_4 = leaf_data(&data[4]);
 
-        let node_1 = node_data(&leaf_1, &leaf_2);
-        let node_2 = node_data(&leaf_3, &leaf_4);
-        let node_3 = node_data(&node_1, &node_2);
-        let node_4 = node_data(&node_3, &leaf_5);
+        let node_0 = node_data(&leaf_0, &leaf_1);
+        let node_1 = node_data(&leaf_2, &leaf_3);
+        let node_2 = node_data(&node_0, &node_1);
+        let node_3 = node_data(&node_2, &leaf_4);
 
-        let s_1 = set.get(0).unwrap();
-        let s_2 = set.get(1).unwrap();
-        let s_3 = set.get(2).unwrap();
-        let s_4 = set.get(3).unwrap();
+        let s_0 = set.get(0).unwrap();
+        let s_1 = set.get(1).unwrap();
+        let s_2 = set.get(2).unwrap();
+        let s_3 = set.get(3).unwrap();
 
-        assert_eq!(root, node_4);
-        assert_eq!(s_1, data[2]);
-        assert_eq!(s_2, &leaf_4[..]);
-        assert_eq!(s_3, &node_1[..]);
-        assert_eq!(s_4, &leaf_5[..]);
+        assert_eq!(root, node_3);
+        assert_eq!(s_0, data[2]);
+        assert_eq!(s_1, &leaf_3[..]);
+        assert_eq!(s_2, &node_0[..]);
+        assert_eq!(s_3, &leaf_4[..]);
     }
 
     #[test]

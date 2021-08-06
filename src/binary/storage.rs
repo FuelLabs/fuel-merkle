@@ -20,19 +20,6 @@ impl Node {
     }
 }
 
-/*type Data = Bytes;
-impl Node<Data> {
-    pub fn to_string(&self) -> String {
-        bs58::encode(&self.data).into_string()
-    }
-}
-
-impl fmt::Display for Node<Data> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Node({}, {})", self.key.value() as i64, self.to_string(),)
-    }
-}*/
-
 pub trait Storage {
     // CRD interface
     fn create_node(&mut self, key: Position, data: &[u8]);

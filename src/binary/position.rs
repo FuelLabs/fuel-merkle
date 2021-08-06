@@ -6,6 +6,10 @@ impl Position {
         Position(index)
     }
 
+    pub fn from_leaf_index(index: u64) -> Self {
+        Position(index * 2)
+    }
+
     pub fn value(self) -> u64 {
         self.0
     }
