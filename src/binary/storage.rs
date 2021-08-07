@@ -26,7 +26,7 @@ pub trait Storage {
 
     fn get_all_nodes(&self) -> Vec<Node>;
 
-    fn read_node(&self, ptr: u64) -> Option<&Node>;
+    fn read_node(&self, key: Position) -> Option<&Node>;
 
     fn delete_node(&mut self, ptr: u64);
 }

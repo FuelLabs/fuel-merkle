@@ -30,8 +30,8 @@ impl Storage for StorageMap {
         self.map.values().cloned().collect()
     }
 
-    fn read_node(&self, ptr: u64) -> Option<&Node> {
-        self.map.get(&ptr)
+    fn read_node(&self, key: Position) -> Option<&Node> {
+        self.map.get(&key.value())
     }
 
     fn delete_node(&mut self, ptr: u64) {
