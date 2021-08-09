@@ -55,19 +55,19 @@ impl<'storage> MerkleTree<'storage> {
         let node = self.storage.read_node(position).unwrap();
         proof_set.push(node.data());
 
-        position = position.sibling();
         let mut current = self.head();
-        while current.is_some() {
-            let height = current.as_ref().unwrap().height();
-            println!("height: {}", height);
-            let len = proof_set.len();
-            println!("len: {}", len);
-            while height > len as u32 - 1 {
-                let node = self.storage.read_node(position);
-                proof_set.push(node.unwrap().data());
-                position = position.uncle();
+        if position != current.as_ref().unwrap().position() {
+            // Iterate up the position tree, starting with the sibling
+            position = position.sibling();
+            while current.is_some() {
+                let height = current.as_ref().unwrap().height();
+                while height > proof_set.len() as u32 - 1 {
+                    let node = self.storage.read_node(position);
+                    proof_set.push(node.unwrap().data());
+                    position = position.uncle();
+                }
+                current = current.as_ref().unwrap().next();
             }
-            current = current.as_ref().unwrap().next();
         }
 
         let mut current = self.head().clone().unwrap();
@@ -90,6 +90,19 @@ impl<'storage> MerkleTree<'storage> {
         (self.root(), proof_set)
     }
 
+    pub fn push(&mut self, data: &[u8]) {
+        let leaf_sum = leaf_sum(data);
+
+        // Get leaf position from current leaves count:
+        // The position is determined as the in-order position in the binary tree.
+        // The leaf's position will be the next even number, starting at 0.
+        let position = Position::from_leaf_index(self.leaves_count());
+        self.add(position, &leaf_sum);
+
+        // Persist the new leaf
+        self.persist_node(position, &leaf_sum);
+    }
+
     //
     // PRIVATE
     //
@@ -99,18 +112,6 @@ impl<'storage> MerkleTree<'storage> {
             let data = GenericArray::from_slice(node.data());
             self.add(node.key(), data);
         }
-    }
-
-    fn push(&mut self, data: &[u8]) {
-        let leaf_sum = leaf_sum(data);
-
-        // Persist the new leaf:
-        // Get leaf position from current leaves count:
-        // The position is determined as the in-order
-        // position in the binary tree.
-        let position = Position::from_leaf_index(self.leaves_count());
-        self.add(position, &leaf_sum);
-        self.persist_node(position, &leaf_sum);
     }
 
     fn add(&mut self, position: Position, data: &Data) {
@@ -420,9 +421,8 @@ mod test {
         assert_eq!(s_3, &node_2[..]);
     }
 
-
     #[test]
-    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_0() {
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_in_a_mmr() {
         let mut storage_map = StorageMap::new();
         let mut mt = MerkleTree::new(&mut storage_map);
 
