@@ -58,7 +58,11 @@ impl<'storage> MerkleTree<'storage> {
         position = position.sibling();
         let mut current = self.head();
         while current.is_some() {
-            while current.as_ref().unwrap().height() > proof_set.len() as u32 - 1 {
+            let height = current.as_ref().unwrap().height();
+            println!("height: {}", height);
+            let len = proof_set.len();
+            println!("len: {}", len);
+            while height > len as u32 - 1 {
                 let node = self.storage.read_node(position);
                 proof_set.push(node.unwrap().data());
                 position = position.uncle();
@@ -427,10 +431,6 @@ mod test {
             mt.push(datum);
         }
 
-        let proof = mt.prove(0);
-        let root = proof.0;
-        let set = proof.1;
-
         //     N2
         //    /  \
         //   N1   \
@@ -444,16 +444,48 @@ mod test {
         let node_1 = node_data(&leaf_1, &leaf_2);
         let node_2 = node_data(&node_1, &leaf_3);
 
-        let s_1 = set.get(0).unwrap();
-        let s_2 = set.get(1).unwrap();
-        // let s_3 = set.get(2).unwrap();
+        {
+            let proof = mt.prove(0);
+            let root = proof.0;
+            let set = proof.1;
 
-        assert_eq!(root, node_2);
-        // assert_eq!(s_1, &leaf_1[..]);
-        // assert_eq!(s_2, &leaf_2[..]);
-        // assert_eq!(s_3, &leaf_3[..]);
-        // assert_eq!(s_2, &leaf_2[..]);
-        // assert_eq!(s_3, &leaf_3[..]);
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+
+            assert_eq!(root, node_2);
+            assert_eq!(s_1, &leaf_1[..]);
+            assert_eq!(s_2, &leaf_2[..]);
+            assert_eq!(s_3, &leaf_3[..]);
+        }
+
+        {
+            let proof = mt.prove(1);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+
+            assert_eq!(root, node_2);
+            assert_eq!(s_1, &leaf_2[..]);
+            assert_eq!(s_2, &leaf_1[..]);
+            assert_eq!(s_3, &leaf_3[..]);
+        }
+
+        {
+            let proof = mt.prove(2);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+
+            assert_eq!(root, node_2);
+            assert_eq!(s_1, &leaf_3[..]);
+            assert_eq!(s_2, &node_1[..]);
+        }
     }
 
     #[test]
