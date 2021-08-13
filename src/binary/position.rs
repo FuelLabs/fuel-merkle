@@ -67,6 +67,20 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_from_index() {
+        assert_eq!(Position::from_index(0).value(), 0);
+        assert_eq!(Position::from_index(1).value(), 1);
+        assert_eq!(Position::from_index(!0u64).value(), !0u64);
+    }
+
+    #[test]
+    fn test_from_leaf_index() {
+        assert_eq!(Position::from_leaf_index(0).value(), 0);
+        assert_eq!(Position::from_leaf_index(1).value(), 2);
+        assert_eq!(Position::from_leaf_index((!0u64) >> 1).value(), !0u64 - 1);
+    }
+
+    #[test]
     fn test_height() {
         assert_eq!(Position(0).height(), 0);
         assert_eq!(Position(2).height(), 0);
@@ -79,18 +93,6 @@ mod test {
         assert_eq!(Position(3).height(), 2);
         assert_eq!(Position(11).height(), 2);
         assert_eq!(Position(19).height(), 2);
-    }
-
-    #[test]
-    fn test_orientation() {
-        assert_eq!(Position(0).orientation(), 0);
-        assert_eq!(Position(2).orientation(), 1);
-
-        assert_eq!(Position(1).orientation(), 0);
-        assert_eq!(Position(5).orientation(), 1);
-
-        assert_eq!(Position(3).orientation(), 0);
-        assert_eq!(Position(11).orientation(), 1);
     }
 
     #[test]

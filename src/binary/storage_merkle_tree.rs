@@ -55,6 +55,7 @@ impl<'storage> MerkleTree<'storage> {
         let node = self.storage.read_node(position).unwrap();
         proof_set.push(node.data());
 
+        // Decompose the subtree that contains the proof index
         let mut current = self.head();
         if position != current.as_ref().unwrap().position() {
             // Iterate up the position tree, starting with the sibling
@@ -498,9 +499,6 @@ mod test {
             mt.push(datum);
         }
 
-        let proof = mt.prove(2);
-        let root = proof.0;
-        let set = proof.1;
 
         //          N4
         //         /  \
@@ -522,16 +520,52 @@ mod test {
         let node_3 = node_data(&node_1, &node_2);
         let node_4 = node_data(&node_3, &leaf_5);
 
-        let s_1 = set.get(0).unwrap();
-        let s_2 = set.get(1).unwrap();
-        let s_3 = set.get(2).unwrap();
-        let s_4 = set.get(3).unwrap();
+        {
+            let proof = mt.prove(0);
+            let root = proof.0;
+            let set = proof.1;
 
-        assert_eq!(root, node_4);
-        assert_eq!(s_1, &leaf_3[..]);
-        assert_eq!(s_2, &leaf_4[..]);
-        assert_eq!(s_3, &node_1[..]);
-        assert_eq!(s_4, &leaf_5[..]);
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+
+            assert_eq!(root, node_4);
+            assert_eq!(s_1, &leaf_1[..]);
+            assert_eq!(s_2, &leaf_2[..]);
+            assert_eq!(s_3, &node_2[..]);
+            assert_eq!(s_4, &leaf_5[..]);
+        }
+
+        {
+            let proof = mt.prove(4);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+
+            assert_eq!(root, node_4);
+            assert_eq!(s_1, &leaf_5[..]);
+            assert_eq!(s_2, &node_3[..]);
+        }
+
+        {
+            let proof = mt.prove(2);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+
+            assert_eq!(root, node_4);
+            assert_eq!(s_1, &leaf_3[..]);
+            assert_eq!(s_2, &leaf_4[..]);
+            assert_eq!(s_3, &node_1[..]);
+            assert_eq!(s_4, &leaf_5[..]);
+        }
     }
 
     // #[test]
