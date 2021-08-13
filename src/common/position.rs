@@ -68,6 +68,22 @@ impl Position {
     /// Orientation of the position index relative to its parent.
     /// Returns 0 if the index is left of its parent.
     /// Returns 1 if the index is right of its parent.
+    ///
+    /// The orientation is determined by the reading the `n`th rightmost digit of the index's binary
+    /// value, where `n` = the height of the index + 1. The following table demonstrates the
+    /// relationships between a position's index, height, and orientation.
+    ///
+    /// | Index (Dec) | Index (Bin) | Height | Orientation |
+    /// |-------------|-------------|--------|-------------|
+    /// |           0 |        0000 |      0 |           0 |
+    /// |           2 |        0010 |      0 |           1 |
+    /// |           4 |        0100 |      0 |           0 |
+    /// |           6 |        0110 |      0 |           1 |
+    /// |           1 |        0001 |      1 |           0 |
+    /// |           5 |        0101 |      1 |           1 |
+    /// |           9 |        1001 |      1 |           0 |
+    /// |          13 |        1101 |      1 |           1 |
+    ///
     fn orientation(self) -> u8 {
         let shift = 1 << (self.height() + 1);
         (self.index() & shift != 0) as u8
