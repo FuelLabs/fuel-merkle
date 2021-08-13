@@ -6,4 +6,3 @@ pub mod verify;
 
 mod hash;
 mod node;
-
