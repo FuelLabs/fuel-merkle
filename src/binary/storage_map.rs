@@ -1,5 +1,5 @@
-use crate::binary::position::Position;
 use crate::binary::storage::{Node, Storage};
+use crate::common::position::Position;
 
 use std::collections::HashMap;
 use std::convert::TryInto;

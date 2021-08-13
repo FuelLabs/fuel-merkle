@@ -1,4 +1,4 @@
-use crate::binary::position::Position;
+use crate::common::position::Position;
 
 #[derive(Clone)]
 pub struct Node {
