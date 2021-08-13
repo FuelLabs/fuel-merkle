@@ -1,46 +1,66 @@
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Position(u64);
 
 impl Position {
+    pub fn index(self) -> u64 {
+        self.0
+    }
+
+    /// Construct a position from an in-order index.
     pub fn from_index(index: u64) -> Self {
         Position(index)
     }
 
+    /// Construct a position from a leaf index. The in-order index corresponding to the leaf index
+    /// will always equal the leaf index multiplied by 2.
     pub fn from_leaf_index(index: u64) -> Self {
         Position(index * 2)
     }
 
-    pub fn value(self) -> u64 {
-        self.0
-    }
-
     /// The sibling position.
     /// A position shares the same parent and height as its sibling.
-    pub fn sibling(&self) -> Self {
+    pub fn sibling(self) -> Self {
         let shift = 1 << (self.height() + 1);
-        let index = self.value() as i64 + shift * self.direction();
+        let index = self.index() as i64 + shift * self.direction();
         Self(index as u64)
     }
 
     /// The parent position.
     /// The parent position has a height less 1 relative to this position.
-    pub fn parent(&self) -> Self {
+    pub fn parent(self) -> Self {
         let shift = 1 << self.height();
-        let index = self.value() as i64 + shift * self.direction();
+        let index = self.index() as i64 + shift * self.direction();
         Self(index as u64)
     }
 
     /// The uncle position.
-    /// The uncle position is the sibling of the parent and has a height less 1 relative to this position.
-    pub fn uncle(&self) -> Self {
+    /// The uncle position is the sibling of the parent and has a height less 1 relative to this
+    /// position.
+    pub fn uncle(self) -> Self {
         self.parent().sibling()
     }
 
     /// The height of the index in a binary tree.
     /// Leaf nodes represent height 0. A leaf's parent represents height 1.
     /// Height values monotonically increase as you ascend the tree.
-    pub fn height(&self) -> u32 {
-        (!self.value()).trailing_zeros()
+    ///
+    /// Height is deterministically calculated as the number of trailing zeros of the complement of
+    /// the position's index. The following table demonstrates the relationship between a position's
+    /// height and the trailing zeros.
+    ///
+    /// | Height | Index (Dec) | Index (Bin) | !Index (Bin) | Trailing 0s |
+    /// |--------|-------------|-------------|--------------| ------------|
+    /// |      0 |           0 |        0000 |         1111 |           0 |
+    /// |      0 |           2 |        0010 |         1101 |           0 |
+    /// |      0 |           4 |        0100 |         1011 |           0 |
+    /// |      1 |           1 |        0001 |         1110 |           1 |
+    /// |      1 |           5 |        0101 |         1010 |           1 |
+    /// |      1 |           9 |        1001 |         0110 |           1 |
+    /// |      2 |           3 |        0011 |         1100 |           2 |
+    /// |      2 |          11 |        1011 |         0100 |           2 |
+    ///
+    pub fn height(self) -> u32 {
+        (!self.index()).trailing_zeros()
     }
 
     // PRIVATE
@@ -48,15 +68,15 @@ impl Position {
     /// Orientation of the position index relative to its parent.
     /// Returns 0 if the index is left of its parent.
     /// Returns 1 if the index is right of its parent.
-    fn orientation(&self) -> u8 {
+    fn orientation(self) -> u8 {
         let shift = 1 << (self.height() + 1);
-        (self.value() & shift != 0) as u8
+        (self.index() & shift != 0) as u8
     }
 
     /// The "direction" to travel to reach the parent node.
     /// Returns +1 if the index is left of its parent.
     /// Returns -1 if the index is right of its parent.
-    fn direction(&self) -> i64 {
+    fn direction(self) -> i64 {
         let scale = self.orientation() as i64 * 2 - 1; // Scale [0, 1] to [-1, 1];
         -scale
     }
@@ -68,16 +88,30 @@ mod test {
 
     #[test]
     fn test_from_index() {
-        assert_eq!(Position::from_index(0).value(), 0);
-        assert_eq!(Position::from_index(1).value(), 1);
-        assert_eq!(Position::from_index(!0u64).value(), !0u64);
+        assert_eq!(Position::from_index(0).index(), 0);
+        assert_eq!(Position::from_index(1).index(), 1);
+        assert_eq!(Position::from_index(!0u64).index(), !0u64);
     }
 
     #[test]
     fn test_from_leaf_index() {
-        assert_eq!(Position::from_leaf_index(0).value(), 0);
-        assert_eq!(Position::from_leaf_index(1).value(), 2);
-        assert_eq!(Position::from_leaf_index((!0u64) >> 1).value(), !0u64 - 1);
+        assert_eq!(Position::from_leaf_index(0).index(), 0);
+        assert_eq!(Position::from_leaf_index(1).index(), 2);
+        assert_eq!(Position::from_leaf_index((!0u64) >> 1).index(), !0u64 - 1);
+    }
+
+    #[test]
+    fn test_equality_returns_true_for_two_equal_positions() {
+        assert_eq!(Position(0), Position(0));
+        assert_eq!(Position::from_index(0), Position(0));
+        assert_eq!(Position::from_leaf_index(1), Position(2));
+    }
+
+    #[test]
+    fn test_equality_returns_false_for_two_unequal_positions() {
+        assert_ne!(Position(0), Position(1));
+        assert_ne!(Position::from_index(0), Position(1));
+        assert_ne!(Position::from_leaf_index(0), Position(2));
     }
 
     #[test]
