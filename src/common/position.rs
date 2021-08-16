@@ -39,7 +39,7 @@
 /// 00  01  02  03  04  05  06  07
 /// ```
 ///
-/// A `Position` exposes methods to traverse the binary tree. 
+/// A `Position` exposes methods to traverse the binary tree.
 ///
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Position(u64);
