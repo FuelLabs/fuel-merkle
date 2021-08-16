@@ -1,3 +1,46 @@
+/// Position
+///
+/// A `Position` represents a node's position in a binary tree by encapsulating the node's index
+/// data. Indices are calculated through in-order traversal of the nodes, starting with the first
+/// leaf node. Indexing starts at 0.
+///
+/// In the context of Merkle trees, trees are constructed "upwards" from leaf nodes. Therefore,
+/// traversal is done from the bottom up, starting with the leaves, rather than top down, starting
+/// with the root, and we can guarantee a deterministic construction of index data. Furthermore,
+/// this means we can deterministically calculate related positional attributes, such as height,
+/// in constant time.
+///
+/// In-order indices:
+/// ```text
+///               07
+///              /  \
+///             /    \
+///            /      \
+///           /        \
+///          /          \
+///         /            \
+///       03              11
+///      /  \            /  \
+///     /    \          /    \
+///   01      05      09      13
+///  /  \    /  \    /  \    /  \
+/// 00  02  04  06  08  10  12  14
+/// ```
+///
+/// In-order indices can be considered internal to the `Position` struct and are used to facilitate
+/// the calculation of positional attributes and the construction of other nodes. Leaf nodes have
+/// both an in-order index as part of the tree, and a leaf index determined by its position in the
+/// bottom row. Because of the in-order traversal used to calculate the in-order indices, leaf nodes
+/// have the property that their in-order index is always equal to their leaf index multiplied by 2.
+///
+/// Leaf indices:
+/// ```text
+///  /  \    /  \    /  \    /  \
+/// 00  01  02  03  04  05  06  07
+/// ```
+///
+/// A `Position` exposes methods to traverse the binary tree. 
+///
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Position(u64);
 
@@ -7,7 +50,7 @@ impl Position {
     }
 
     /// Construct a position from an in-order index.
-    pub fn from_index(index: u64) -> Self {
+    pub fn from_in_order_index(index: u64) -> Self {
         Position(index)
     }
 
@@ -22,7 +65,7 @@ impl Position {
     pub fn sibling(self) -> Self {
         let shift = 1 << (self.height() + 1);
         let index = self.index() as i64 + shift * self.direction();
-        Self(index as u64)
+        Self::from_in_order_index(index as u64)
     }
 
     /// The parent position.
@@ -30,7 +73,7 @@ impl Position {
     pub fn parent(self) -> Self {
         let shift = 1 << self.height();
         let index = self.index() as i64 + shift * self.direction();
-        Self(index as u64)
+        Self::from_in_order_index(index as u64)
     }
 
     /// The uncle position.
@@ -70,7 +113,7 @@ impl Position {
     /// Returns 1 if the index is right of its parent.
     ///
     /// The orientation is determined by the reading the `n`th rightmost digit of the index's binary
-    /// value, where `n` = the height of the index + 1. The following table demonstrates the
+    /// value, where `n` = the height of the position + 1. The following table demonstrates the
     /// relationships between a position's index, height, and orientation.
     ///
     /// | Index (Dec) | Index (Bin) | Height | Orientation |
@@ -103,10 +146,10 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_from_index() {
-        assert_eq!(Position::from_index(0).index(), 0);
-        assert_eq!(Position::from_index(1).index(), 1);
-        assert_eq!(Position::from_index(!0u64).index(), !0u64);
+    fn test_from_in_order_index() {
+        assert_eq!(Position::from_in_order_index(0).index(), 0);
+        assert_eq!(Position::from_in_order_index(1).index(), 1);
+        assert_eq!(Position::from_in_order_index(!0u64).index(), !0u64);
     }
 
     #[test]
@@ -119,14 +162,14 @@ mod test {
     #[test]
     fn test_equality_returns_true_for_two_equal_positions() {
         assert_eq!(Position(0), Position(0));
-        assert_eq!(Position::from_index(0), Position(0));
+        assert_eq!(Position::from_in_order_index(0), Position(0));
         assert_eq!(Position::from_leaf_index(1), Position(2));
     }
 
     #[test]
     fn test_equality_returns_false_for_two_unequal_positions() {
         assert_ne!(Position(0), Position(1));
-        assert_ne!(Position::from_index(0), Position(1));
+        assert_ne!(Position::from_in_order_index(0), Position(1));
         assert_ne!(Position::from_leaf_index(0), Position(2));
     }
 
