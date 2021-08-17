@@ -175,16 +175,16 @@ mod test {
 
     #[test]
     fn test_from_in_order_index() {
-        assert_eq!(Position::from_in_order_index(0).index(), 0);
-        assert_eq!(Position::from_in_order_index(1).index(), 1);
-        assert_eq!(Position::from_in_order_index(!0u64).index(), !0u64);
+        assert_eq!(Position::from_in_order_index(0).in_order_index(), 0);
+        assert_eq!(Position::from_in_order_index(1).in_order_index(), 1);
+        assert_eq!(Position::from_in_order_index(!0u64).in_order_index(), !0u64);
     }
 
     #[test]
     fn test_from_leaf_index() {
-        assert_eq!(Position::from_leaf_index(0).index(), 0);
-        assert_eq!(Position::from_leaf_index(1).index(), 2);
-        assert_eq!(Position::from_leaf_index((!0u64) >> 1).index(), !0u64 - 1);
+        assert_eq!(Position::from_leaf_index(0).in_order_index(), 0);
+        assert_eq!(Position::from_leaf_index(1).in_order_index(), 2);
+        assert_eq!(Position::from_leaf_index((!0u64) >> 1).in_order_index(), !0u64 - 1);
     }
 
     #[test]
