@@ -62,8 +62,8 @@
 /// ```
 ///
 /// Note the absence of internal nodes that would be present in a fully balanced tree: inner nodes
-/// with indices 7, 11, and 13 are absent. This is owing to the fact that nodes indices are
-/// calculated deterministically through in-order traversal, not calculated as a sequence.
+/// with indices 7 and 11 are absent. This is owing to the fact that nodes indices are calculated
+/// deterministically through in-order traversal, not calculated as a sequence.
 ///
 /// Traversal of a Merkle Mountain Range is still done in the same manner as a balanced Merkle tree,
 /// using methods to retrieve a `Position's` sibling, parent, or uncle `Position`. However, in such
