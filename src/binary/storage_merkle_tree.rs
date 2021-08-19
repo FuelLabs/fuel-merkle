@@ -60,9 +60,7 @@ impl<'storage> MerkleTree<'storage> {
         if position != current.as_ref().unwrap().position() {
             // Iterate up the position tree, starting with the sibling
             position = position.sibling();
-            while current.is_some()
-                && position.uncle() != current.as_ref().unwrap().position()
-            {
+            while current.is_some() && position.uncle() != current.as_ref().unwrap().position() {
                 let height = current.as_ref().unwrap().height();
                 while height > proof_set.len() as u32 - 1
                     && position.sibling() != current.as_ref().unwrap().position()
