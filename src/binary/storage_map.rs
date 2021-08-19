@@ -16,7 +16,7 @@ impl StorageMap {
     }
 
     fn insert_node(&mut self, key: Position, node: Node) {
-        self.map.insert(key.index(), node);
+        self.map.insert(key.in_order_index(), node);
     }
 }
 
@@ -31,7 +31,7 @@ impl Storage for StorageMap {
     }
 
     fn read_node(&self, key: Position) -> Option<&Node> {
-        self.map.get(&key.index())
+        self.map.get(&key.in_order_index())
     }
 
     fn delete_node(&mut self, ptr: u64) {
