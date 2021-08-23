@@ -1,8 +1,7 @@
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::fmt;
 use std::fmt::Debug;
-use std::borrow::Borrow;
+use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct Node<T> {
@@ -16,8 +15,11 @@ type RefNode<T> = Rc<RefCell<Node<T>>>;
 
 impl<T> Node<T> {
     pub fn new(data: T) -> RefNode<T> {
-        Rc::new(RefCell::new( Self {
-            data, parent: None, left: None, right: None
+        Rc::new(RefCell::new(Self {
+            data,
+            parent: None,
+            left: None,
+            right: None,
         }))
     }
 
@@ -62,20 +64,26 @@ impl<T: Debug> fmt::Debug for Node<T> {
 
 #[derive(Debug)]
 struct NNode<T> {
-    node: RefNode<T>
+    node: RefNode<T>,
 }
 
 impl<T> NNode<T> {
     pub fn new(data: T) -> Self {
-        Self { node: Node::<T>::new(data) }
+        Self {
+            node: Node::<T>::new(data),
+        }
     }
 
     pub fn set_parent(&mut self, node: &NNode<T>) {
-        self.node.borrow_mut().set_parent(Some(Rc::clone(&node.node)));
+        self.node
+            .borrow_mut()
+            .set_parent(Some(Rc::clone(&node.node)));
     }
 
     pub fn parent(&self) -> Option<Self> {
-        self.node.borrow_mut().parent().map(|node| Self { node: Rc::clone(&node) })
+        self.node.borrow_mut().parent().map(|node| Self {
+            node: Rc::clone(&node),
+        })
     }
 
     pub fn set_left(&mut self, node: &mut NNode<T>) {
@@ -84,16 +92,22 @@ impl<T> NNode<T> {
     }
 
     pub fn left(&self) -> Option<Self> {
-        self.node.borrow_mut().left().map(|node| Self { node: Rc::clone(&node) })
+        self.node.borrow_mut().left().map(|node| Self {
+            node: Rc::clone(&node),
+        })
     }
 
     pub fn set_right(&mut self, node: &mut NNode<T>) {
         node.set_parent(&self);
-        self.node.borrow_mut().set_right(Some(Rc::clone(&node.node)));
+        self.node
+            .borrow_mut()
+            .set_right(Some(Rc::clone(&node.node)));
     }
 
     pub fn right(&self) -> Option<Self> {
-        self.node.borrow_mut().right().map(|node| Self { node: Rc::clone(&node) })
+        self.node.borrow_mut().right().map(|node| Self {
+            node: Rc::clone(&node),
+        })
     }
 }
 
@@ -189,8 +203,6 @@ mod test {
 
     #[test]
     fn test_nnode() {
-        type N<'a> = Node<u32>;
-
         //          08
         //         /  \
         //       07    \
@@ -222,7 +234,7 @@ mod test {
         n08.set_left(&mut n07);
         n08.set_right(&mut n04);
 
-        let mut current = Some(n04);
+        let mut current = Some(n00);
         while current.is_some() {
             println!("Current: {:?}", current);
             current = current.unwrap().parent().map(|node| node);
