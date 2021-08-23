@@ -75,7 +75,7 @@ impl<T> NNode<T> {
     }
 
     pub fn parent(&self) -> Option<Self> {
-        self.node.borrow_mut().parent().map(|node| Self { node })
+        self.node.borrow_mut().parent().map(|node| Self { node: Rc::clone(&node) })
     }
 
     pub fn set_left(&mut self, node: &mut NNode<T>) {
@@ -84,7 +84,7 @@ impl<T> NNode<T> {
     }
 
     pub fn left(&self) -> Option<Self> {
-        self.node.borrow_mut().left().map(|node| Self { node })
+        self.node.borrow_mut().left().map(|node| Self { node: Rc::clone(&node) })
     }
 
     pub fn set_right(&mut self, node: &mut NNode<T>) {
@@ -93,7 +93,7 @@ impl<T> NNode<T> {
     }
 
     pub fn right(&self) -> Option<Self> {
-        self.node.borrow_mut().right().map(|node| Self { node })
+        self.node.borrow_mut().right().map(|node| Self { node: Rc::clone(&node) })
     }
 }
 
