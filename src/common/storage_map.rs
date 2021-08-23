@@ -1,4 +1,4 @@
-use crate::binary::storage::{Node, Storage};
+use crate::common::storage::{Node, Storage};
 use crate::common::position::Position;
 
 use std::collections::HashMap;

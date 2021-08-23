@@ -1,7 +1,7 @@
-use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
-use crate::binary::node::Node;
-use crate::binary::storage::Storage;
-use crate::common::position::Position;
+use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
+use crate::storage_binary::node::Node;
+use crate::common::storage::Storage;
+use crate::common::{position::Position};
 use crate::proof_set::ProofSet;
 use digest::generic_array::GenericArray;
 
@@ -44,54 +44,71 @@ impl<'storage> MerkleTree<'storage> {
         self.leaves_count
     }
 
-    pub fn prove(&self, proof_index: u64) -> (Data, ProofSet) {
+    pub fn prove(&mut self, proof_index: u64) -> (Data, ProofSet) {
         let mut proof_set = ProofSet::new();
 
         if self.head().is_none() {
             return (self.root(), proof_set);
         }
 
-        let mut position = Position::from_leaf_index(proof_index);
-        let node = self.storage.read_node(position).unwrap();
-        proof_set.push(node.data());
+        let mut current = self.head().clone().unwrap();
+        while current.next().is_some() {
+            let mut node = current;
+            let mut next_node = node.take_next().unwrap();
+            current = Self::join_subtrees(&mut next_node, &node);
 
-        // Decompose the subtree that contains the proof index
-        let mut current = self.head();
-        if position != current.as_ref().unwrap().position() {
-            // Iterate up the position tree, starting with the sibling
-            position = position.sibling();
-            while current.is_some() && position.uncle() != current.as_ref().unwrap().position() {
-                let height = current.as_ref().unwrap().height();
-                while height > proof_set.len() as u32 - 1
-                    && position.sibling() != current.as_ref().unwrap().position()
-                {
-                    let node = self.storage.read_node(position);
-                    proof_set.push(node.unwrap().data());
-                    position = position.uncle();
-                }
-                current = current.as_ref().unwrap().next();
-            }
+            let position = current.position();
+            let data = current.data();
+            self.persist_node(position, data);
+        }
+        let max_height = current.height();
+
+
+        let max_position = Position::from_leaf_index(self.leaves_count() - 1);
+        let proof_position = Position::from_leaf_index(proof_index);
+
+        {
+            // Push the leaf at the proof index
+            let node = self.storage.read_node(proof_position).unwrap();
+            println!("pushing proof: {:?}", proof_position);
+            proof_set.push(node.data());
         }
 
         let mut current = self.head().clone().unwrap();
-        while current.next().is_some()
-            && current.next_height().unwrap() < proof_set.len() as u32 - 1
-        {
-            let mut node = current;
-            let mut next_node = node.take_next().unwrap();
-            current = Self::join_subtrees(&mut next_node, &node)
-        }
-
-        if current.next().is_some() && current.next_height().unwrap() == proof_set.len() as u32 - 1
-        {
-            proof_set.push(current.data());
+        if current.next().is_some() && proof_position.is_descendant_of(current.position()) {
+            println!("{:?} is descendant of {:?}", proof_position, current.position());
             current = current.take_next().unwrap();
         }
 
-        while current.next().is_some() {
-            proof_set.push(current.next_data().unwrap());
-            current = current.take_next().unwrap();
+        let position_iter = proof_position
+            .iter_uncle()
+            .take_while(|position| position.height() < max_height);
+        for pos in position_iter {
+            if pos.in_order_index() <= max_position.in_order_index() {
+                let node = self.storage.read_node(pos).unwrap();
+                println!("pushing pos: {:?}", pos);
+                proof_set.push(node.data());
+            } else {
+                // Exited the tree; there is at least 1 head node
+                // Join all heads with height lower than pos
+                println!("exiting tree {:?}", pos);
+                while current.next().is_some() && current.next_height().unwrap() < pos.height() {
+                    let mut node = current;
+                    let mut next_node = node.take_next().unwrap();
+                    print!("joining {:?} and {:?}", node.position(), next_node.position());
+                    current = Self::join_subtrees(&mut next_node, &node);
+                    println!(" = {:?}", current.position());
+                }
+                if current.height() < pos.height() {
+                    println!("pushing current pos: {:?}", current.position());
+                    proof_set.push(current.data());
+                    current = current.take_next().unwrap();
+                }
+            }
         }
+
+        println!();
+        println!();
 
         (self.root(), proof_set)
     }
@@ -156,7 +173,7 @@ impl<'storage> MerkleTree<'storage> {
 
     fn join_subtrees(a: &mut DataNode, b: &DataNode) -> Box<DataNode> {
         let next = a.take_next();
-        let position = b.position().parent();
+        let position = a.position().parent();
         let data = node_sum(a.data(), b.data());
         Self::create_node(next, position, data.clone())
     }
@@ -174,8 +191,8 @@ impl<'storage> MerkleTree<'storage> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::binary::hash::Hash;
-    use crate::binary::storage_map::StorageMap;
+    use crate::storage_binary::hash::Hash;
+    use crate::common::storage_map::StorageMap;
     use digest::Digest;
 
     const NODE: u8 = 0x01;
@@ -185,7 +202,6 @@ mod test {
         let hash = Hash::new();
         hash.finalize()
     }
-
     fn leaf_data(data: &[u8]) -> Data {
         let mut hash = Hash::new();
         hash.update(&[LEAF]);
@@ -200,7 +216,18 @@ mod test {
         hash.finalize()
     }
 
-    const DATA: [&[u8]; 10] = [
+    const DATA: [&[u8]; 20] = [
+        "Frankly, my dear, I don't give a damn.".as_bytes(),
+        "I'm going to make him an offer he can't refuse".as_bytes(),
+        "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
+        "Here's looking at you, kid.".as_bytes(),
+        "Go ahead, make my day.".as_bytes(),
+        "May the Force be with you.".as_bytes(),
+        "You talking to me?".as_bytes(),
+        "What we've got here is failure to communicate.".as_bytes(),
+        "I love the smell of napalm in the morning.".as_bytes(),
+        "Love means never having to say you're sorry.".as_bytes(),
+
         "Frankly, my dear, I don't give a damn.".as_bytes(),
         "I'm going to make him an offer he can't refuse".as_bytes(),
         "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
@@ -569,7 +596,7 @@ mod test {
     }
 
     #[test]
-    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_left_of_the_root_2() {
+    fn prove_returns_the_merkle_root_and_proof_set_for_7_leaves() {
         let mut storage_map = StorageMap::new();
         let mut mt = MerkleTree::new(&mut storage_map);
 
@@ -626,6 +653,23 @@ mod test {
         }
 
         {
+            let proof = mt.prove(5);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+
+            assert_eq!(root, node_7);
+            assert_eq!(s_1, &leaf_5[..]);
+            assert_eq!(s_2, &leaf_4[..]);
+            assert_eq!(s_3, &leaf_6[..]);
+            assert_eq!(s_4, &node_3[..]);
+        }
+
+        {
             let proof = mt.prove(4);
             let root = proof.0;
             let set = proof.1;
@@ -659,9 +703,308 @@ mod test {
     }
 
     #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_15_leaves() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..15]; // 15 leaves
+        for datum in data.iter() {
+            mt.push(datum);
+        }
+
+        let leaf_0 = leaf_data(&data[0]);
+        let leaf_1 = leaf_data(&data[1]);
+        let leaf_2 = leaf_data(&data[2]);
+        let leaf_3 = leaf_data(&data[3]);
+        let leaf_4 = leaf_data(&data[4]);
+        let leaf_5 = leaf_data(&data[5]);
+        let leaf_6 = leaf_data(&data[6]);
+        let leaf_7 = leaf_data(&data[7]);
+        let leaf_8 = leaf_data(&data[8]);
+        let leaf_9 = leaf_data(&data[9]);
+        let leaf_10 = leaf_data(&data[10]);
+        let leaf_11 = leaf_data(&data[11]);
+        let leaf_12 = leaf_data(&data[12]);
+        let leaf_13 = leaf_data(&data[13]);
+        let leaf_14 = leaf_data(&data[14]);
+
+        let node_1 = node_data(&leaf_0, &leaf_1);
+        let node_5 = node_data(&leaf_2, &leaf_3);
+        let node_9 = node_data(&leaf_4, &leaf_5);
+        let node_13 = node_data(&leaf_6, &leaf_7);
+        let node_17 = node_data(&leaf_8, &leaf_9);
+        let node_21 = node_data(&leaf_10, &leaf_11);
+        let node_25 = node_data(&leaf_12, &leaf_13);
+
+        let node_3 = node_data(&node_1, &node_5);
+        let node_11 = node_data(&node_9, &node_13);
+        let node_19 = node_data(&node_17, &node_21);
+
+        let node_7 = node_data(&node_3, &node_11);
+
+        let node_27 = node_data(&node_25, &leaf_14);
+        let node_23 = node_data(&node_19, &node_27);
+        let node_15 = node_data(&node_7, &node_23);
+
+        {
+            let proof = mt.prove(0);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+            let s_5 = set.get(4).unwrap();
+
+            assert_eq!(root, node_15);
+            assert_eq!(s_1, &leaf_0[..]);
+            assert_eq!(s_2, &leaf_1[..]);
+            assert_eq!(s_3, &node_5[..]);
+            assert_eq!(s_4, &node_11[..]);
+            assert_eq!(s_5, &node_23[..]);
+        }
+
+        {
+            let proof = mt.prove(8);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+            let s_5 = set.get(4).unwrap();
+
+            assert_eq!(root, node_15);
+            assert_eq!(s_1, &leaf_8[..]);
+            assert_eq!(s_2, &leaf_9[..]);
+            assert_eq!(s_3, &node_21[..]);
+            assert_eq!(s_4, &node_27[..]);
+            assert_eq!(s_5, &node_7[..]);
+        }
+
+        {
+            let proof = mt.prove(12);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+            let s_5 = set.get(4).unwrap();
+
+            assert_eq!(root, node_15);
+            assert_eq!(s_1, &leaf_12[..]);
+            assert_eq!(s_2, &leaf_13[..]);
+            assert_eq!(s_3, &leaf_14[..]);
+            assert_eq!(s_4, &node_19[..]);
+            assert_eq!(s_5, &node_7[..]);
+        }
+
+        {
+            let proof = mt.prove(14);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+
+            assert_eq!(root, node_15);
+            assert_eq!(s_1, &leaf_14[..]);
+            assert_eq!(s_2, &node_25[..]);
+            assert_eq!(s_3, &node_19[..]);
+            assert_eq!(s_4, &node_7[..]);
+        }
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_17_leaves() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..17];
+        for datum in data.iter() {
+            mt.push(datum);
+        }
+
+        mt.prove(16);
+        println!();
+
+        mt.prove(0);
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_18_leaves() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..18];
+        for datum in data.iter() {
+            mt.push(datum);
+        }
+
+        mt.prove(16);
+        println!();
+
+        mt.prove(0);
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_19_leaves() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..19];
+        for datum in data.iter() {
+            mt.push(datum);
+        }
+
+        mt.prove(16);
+        println!();
+
+        mt.prove(0);
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_20_leaves() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..20];
+        for datum in data.iter() {
+            mt.push(datum);
+        }
+
+        mt.prove(19);
+        println!();
+
+        mt.prove(0);
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_left_of_the_root_4() {
+        let mut storage_map = StorageMap::new();
+        let mut mt = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..14];
+        for datum in data.iter() {
+            mt.push(datum);
+        }
+
+        let leaf_0 = leaf_data(&data[0]);
+        let leaf_1 = leaf_data(&data[1]);
+        let leaf_2 = leaf_data(&data[2]);
+        let leaf_3 = leaf_data(&data[3]);
+        let leaf_4 = leaf_data(&data[4]);
+        let leaf_5 = leaf_data(&data[5]);
+        let leaf_6 = leaf_data(&data[6]);
+        let leaf_7 = leaf_data(&data[7]);
+        let leaf_8 = leaf_data(&data[8]);
+        let leaf_9 = leaf_data(&data[9]);
+        let leaf_10 = leaf_data(&data[10]);
+        let leaf_11 = leaf_data(&data[11]);
+        let leaf_12 = leaf_data(&data[12]);
+        let leaf_13 = leaf_data(&data[13]);
+
+        let node_1 = node_data(&leaf_0, &leaf_1);
+        let node_5 = node_data(&leaf_2, &leaf_3);
+        let node_9 = node_data(&leaf_4, &leaf_5);
+        let node_13 = node_data(&leaf_6, &leaf_7);
+        let node_17 = node_data(&leaf_8, &leaf_9);
+        let node_21 = node_data(&leaf_10, &leaf_11);
+        let node_25 = node_data(&leaf_12, &leaf_13);
+
+        let node_3 = node_data(&node_1, &node_5);
+        let node_11 = node_data(&node_9, &node_13);
+        let node_19 = node_data(&node_17, &node_21);
+
+        let node_7 = node_data(&node_3, &node_11);
+
+        let node_23 = node_data(&node_19, &node_25);
+        let node_15 = node_data(&node_7, &node_23);
+
+        {
+            let proof = mt.prove(0);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+            let s_5 = set.get(4).unwrap();
+
+            assert_eq!(root, node_15);
+            assert_eq!(s_1, &leaf_0[..]);
+            assert_eq!(s_2, &leaf_1[..]);
+            assert_eq!(s_3, &node_5[..]);
+            assert_eq!(s_4, &node_11[..]);
+            assert_eq!(s_5, &node_23[..]);
+        }
+
+        {
+            let proof = mt.prove(8);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+            let s_5 = set.get(4).unwrap();
+
+            assert_eq!(root, node_15);
+            assert_eq!(s_1, &leaf_8[..]);
+            assert_eq!(s_2, &leaf_9[..]);
+            assert_eq!(s_3, &node_21[..]);
+            assert_eq!(s_4, &node_25[..]);
+            assert_eq!(s_5, &node_7[..]);
+        }
+
+        {
+            let proof = mt.prove(12);
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_1 = set.get(0).unwrap();
+            let s_2 = set.get(1).unwrap();
+            let s_3 = set.get(2).unwrap();
+            let s_4 = set.get(3).unwrap();
+
+            assert_eq!(root, node_15);
+            assert_eq!(s_1, &leaf_12[..]);
+            assert_eq!(s_2, &leaf_13[..]);
+            assert_eq!(s_3, &node_19[..]);
+            assert_eq!(s_4, &node_7[..]);
+        }
+
+        // {
+        //     let proof = mt.prove(14);
+        //     let root = proof.0;
+        //     let set = proof.1;
+        //
+        //     let s_1 = set.get(0).unwrap();
+        //     let s_2 = set.get(1).unwrap();
+        //     let s_3 = set.get(2).unwrap();
+        //     let s_4 = set.get(3).unwrap();
+        //
+        //     assert_eq!(root, node_15);
+        //     assert_eq!(s_1, &leaf_14[..]);
+        //     assert_eq!(s_2, &node_25[..]);
+        //     assert_eq!(s_3, &node_19[..]);
+        //     assert_eq!(s_4, &node_7[..]);
+        // }
+    }
+
+
+    #[test]
     fn prove_returns_the_root_of_the_empty_merkle_tree_when_no_leaves_are_added() {
         let mut storage_map = StorageMap::new();
-        let mt = MerkleTree::new(&mut storage_map);
+        let mut mt = MerkleTree::new(&mut storage_map);
 
         let proof = mt.prove(0);
         let root = proof.0;
@@ -673,7 +1016,7 @@ mod test {
     #[test]
     fn prove_returns_an_empty_proof_set_when_no_leaves_are_added() {
         let mut storage_map = StorageMap::new();
-        let mt = MerkleTree::new(&mut storage_map);
+        let mut mt = MerkleTree::new(&mut storage_map);
 
         let proof = mt.prove(0);
         let set = proof.1;
