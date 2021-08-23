@@ -97,47 +97,47 @@ impl<T> NNode<T> {
     }
 }
 
-// pub struct NodeProofIterator<T> {
-//     current: Option<RefNode<T>>,
-//     previous: Option<RefNode<T>>,
-// }
-//
-// impl<T> NodeProofIterator<T> {
-//     pub fn new(node: RefNode<T>) -> Self {
-//         Self {
-//             current: Some(Rc::clone(&node)),
-//             previous: Some(Rc::clone(&node)),
-//         }
-//     }
-// }
-//
-// impl<T> Iterator for NodeProofIterator<T> {
-//     type Item = RefNode<T>;
-//
-//     fn next(&mut self) -> Option<Self::Item> {
-//         let node = self.node.take();
-//         node.map(|mut n| {
-//             self.node = n.take_next();
-//             n
-//         })
-//     }
-// }
-//
-// impl<T> IntoIterator for Node<T> {
-//     type Item = RefCell<Node<T>>;
-//     type IntoIter = NodeProofIterator<T>;
-//
-//     fn into_iter(self) -> Self::IntoIter {
-//         Self::IntoIter::new(Some)
-//     }
-// }
+/*pub struct NodeProofIterator<T> {
+    current: Option<RefNode<T>>,
+    previous: Option<RefNode<T>>,
+}
+
+impl<T> NodeProofIterator<T> {
+    pub fn new(node: RefNode<T>) -> Self {
+        Self {
+            current: Some(Rc::clone(&node)),
+            previous: Some(Rc::clone(&node)),
+        }
+    }
+}
+
+impl<T> Iterator for NodeProofIterator<T> {
+    type Item = RefNode<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let node = self.node.take();
+        node.map(|mut n| {
+            self.node = n.take_next();
+            n
+        })
+    }
+}
+
+impl<T> IntoIterator for Node<T> {
+    type Item = RefCell<Node<T>>;
+    type IntoIter = NodeProofIterator<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Self::IntoIter::new(Some)
+    }
+}*/
 
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
-    fn test_into_iter() {
+    fn test_node() {
         type N<'a> = Node<u32>;
 
         //          08
@@ -151,30 +151,29 @@ mod test {
 
         let n00 = N::new(0);
         let n01 = N::new(1);
-        let n05 = N::new(5);
+        let n02 = N::new(2);
+        let n03 = N::new(3);
+        let n04 = N::new(4);
 
+        let n05 = N::new(5);
         n00.borrow_mut().set_parent(Some(Rc::clone(&n05)));
         n01.borrow_mut().set_parent(Some(Rc::clone(&n05)));
         n05.borrow_mut().set_left(Some(Rc::clone(&n00)));
         n05.borrow_mut().set_right(Some(Rc::clone(&n01)));
 
-        let n02 = N::new(2);
-        let n03 = N::new(3);
         let n06 = N::new(6);
-
         n02.borrow_mut().set_parent(Some(Rc::clone(&n06)));
         n03.borrow_mut().set_parent(Some(Rc::clone(&n06)));
         n06.borrow_mut().set_left(Some(Rc::clone(&n02)));
         n06.borrow_mut().set_right(Some(Rc::clone(&n03)));
 
         let n07 = N::new(7);
-        let n04 = N::new(4);
-        let n08 = N::new(8);
-
         n05.borrow_mut().set_parent(Some(Rc::clone(&n07)));
         n06.borrow_mut().set_parent(Some(Rc::clone(&n07)));
         n07.borrow_mut().set_left(Some(Rc::clone(&n05)));
         n07.borrow_mut().set_right(Some(Rc::clone(&n06)));
+
+        let n08 = N::new(8);
         n07.borrow_mut().set_parent(Some(Rc::clone(&n08)));
         n04.borrow_mut().set_parent(Some(Rc::clone(&n08)));
         n08.borrow_mut().set_left(Some(Rc::clone(&n07)));
