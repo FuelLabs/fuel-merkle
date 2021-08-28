@@ -1,5 +1,3 @@
-use digest::generic_array::GenericArray;
-
 use crate::common::{position::Position};
 
 use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
@@ -9,8 +7,6 @@ use crate::storage_binary::storage::Storage;
 use crate::proof_set::ProofSet;
 
 type DataNode = Node<Data>;
-
-
 
 #[derive(Debug, Clone)]
 pub struct Head<T> {
@@ -42,7 +38,6 @@ impl<T> Head<T> {
 pub struct MerkleTree<'storage> {
     storage: &'storage mut dyn Storage<Data, DataNode>,
     head: Option<Box<Head<DataNode>>>,
-    nodes: Vec<DataNode>,
     leaves_count: u64,
 }
 
@@ -50,7 +45,6 @@ impl<'storage> MerkleTree<'storage> {
     pub fn new(storage: &'storage mut dyn Storage<Data, DataNode>) -> Self {
         let mut tree = Self {
             storage,
-            nodes: vec!(),
             head: None,
             leaves_count: 0,
         };
@@ -79,10 +73,12 @@ impl<'storage> MerkleTree<'storage> {
         self.head = Some(head);
         self.join_all_subtrees();
 
-        // self.storage.create(leaf_sum, "hello".to_string());
-
         self.leaves_count += 1;
     }
+
+    //
+    // PRIVATE
+    //
 
     fn join_all_subtrees(&mut self) {
         loop {
@@ -116,7 +112,6 @@ impl<'storage> MerkleTree<'storage> {
         println!();
     }
 
-
     fn join_subtrees(&mut self, a: &mut Head<DataNode>, b: &mut Head<DataNode>) -> Box<Head<DataNode>> {
         print!("joining {:?}, {:?}... ", a.node.position(), b.node.position());
 
@@ -129,29 +124,14 @@ impl<'storage> MerkleTree<'storage> {
 
         a.node.set_parent_key(Some(joined_node.key()));
         b.node.set_parent_key(Some(joined_node.key()));
-        self.storage.update(a.node.key(), a.node.clone());
-        self.storage.update(b.node.key(), b.node.clone());
+        self.storage.update(a.node.key(), a.node.clone()).expect("Unable to update!");
+        self.storage.update(b.node.key(), b.node.clone()).expect("Unable to update!");
 
         let joined_head = Head::new(joined_node, a.take_next());
 
         println!("created {:?}", joined_head.node.position());
         Box::new(joined_head)
     }
-
-    //
-    // PRIVATE
-    //
-
-    // fn join_subtrees(a: &mut DataNode, b: &DataNode) -> DataNode {
-    //     let p = a.position().parent();
-    //     let key = node_sum(&*a.key(), &*b.key());
-    //     Self::create_node(p, key)
-    // }
-
-    // fn create_node(position: Position, key: Data) -> DataNode {
-    //     let node = DataNode::new(position, key);
-    //     node
-    // }
 }
 
 #[cfg(test)]
@@ -245,7 +225,7 @@ mod test {
         let node_11 = node_data(&node_9, &leaf_6);
         let node_7 = node_data(&node_3, &node_11);
 
-        let s_leaf_0 = storage_map.get(leaf_0.clone()).unwrap();
+        let s_leaf_0 = storage_map.get(leaf_0).unwrap();
         assert_eq!(s_leaf_0.left_key(), None);
         assert_eq!(s_leaf_0.right_key(), None);
         assert_eq!(s_leaf_0.parent_key(), Some(node_1.clone()));
@@ -255,12 +235,12 @@ mod test {
         assert_eq!(s_leaf_1.right_key(), None);
         assert_eq!(s_leaf_1.parent_key(), Some(node_1.clone()));
 
-        let s_leaf_2 = storage_map.get(leaf_2.clone()).unwrap();
+        let s_leaf_2 = storage_map.get(leaf_2).unwrap();
         assert_eq!(s_leaf_2.left_key(), None);
         assert_eq!(s_leaf_2.right_key(), None);
         assert_eq!(s_leaf_2.parent_key(), Some(node_5.clone()));
 
-        let s_leaf_3 = storage_map.get(leaf_3.clone()).unwrap();
+        let s_leaf_3 = storage_map.get(leaf_3).unwrap();
         assert_eq!(s_leaf_3.left_key(), None);
         assert_eq!(s_leaf_3.right_key(), None);
         assert_eq!(s_leaf_3.parent_key(), Some(node_5.clone()));
@@ -270,32 +250,32 @@ mod test {
         assert_eq!(s_leaf_4.right_key(), None);
         assert_eq!(s_leaf_4.parent_key(), Some(node_9.clone()));
 
-        let s_leaf_5 = storage_map.get(leaf_5.clone()).unwrap();
+        let s_leaf_5 = storage_map.get(leaf_5).unwrap();
         assert_eq!(s_leaf_5.left_key(), None);
         assert_eq!(s_leaf_5.right_key(), None);
         assert_eq!(s_leaf_5.parent_key(), Some(node_9.clone()));
 
-        let s_leaf_6 = storage_map.get(leaf_6.clone()).unwrap();
+        let s_leaf_6 = storage_map.get(leaf_6).unwrap();
         assert_eq!(s_leaf_6.left_key(), None);
         assert_eq!(s_leaf_6.right_key(), None);
         assert_eq!(s_leaf_6.parent_key(), None);
 
-        let s_node_1 = storage_map.get(node_1.clone()).unwrap();
+        let s_node_1 = storage_map.get(node_1).unwrap();
         assert_eq!(s_node_1.left_key(), Some(leaf_0.clone()));
         assert_eq!(s_node_1.right_key(), Some(leaf_1.clone()));
         assert_eq!(s_node_1.parent_key(), Some(node_3.clone()));
 
-        let s_node_5 = storage_map.get(node_5.clone()).unwrap();
+        let s_node_5 = storage_map.get(node_5).unwrap();
         assert_eq!(s_node_5.left_key(), Some(leaf_2.clone()));
         assert_eq!(s_node_5.right_key(), Some(leaf_3.clone()));
         assert_eq!(s_node_5.parent_key(), Some(node_3.clone()));
 
-        let s_node_9 = storage_map.get(node_9.clone()).unwrap();
+        let s_node_9 = storage_map.get(node_9).unwrap();
         assert_eq!(s_node_9.left_key(), Some(leaf_4.clone()));
         assert_eq!(s_node_9.right_key(), Some(leaf_5.clone()));
         assert_eq!(s_node_9.parent_key(), None);
 
-        let s_node_3 = storage_map.get(node_3.clone()).unwrap();
+        let s_node_3 = storage_map.get(node_3).unwrap();
         assert_eq!(s_node_3.left_key(), Some(node_1.clone()));
         assert_eq!(s_node_3.right_key(), Some(node_5.clone()));
         assert_eq!(s_node_3.parent_key(), None);

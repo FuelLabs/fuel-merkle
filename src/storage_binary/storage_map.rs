@@ -1,8 +1,6 @@
 use crate::storage_binary::storage::{Storage, ReadError};
 
 use std::collections::HashMap;
-use std::marker::PhantomData;
-use std::error::Error;
 
 #[derive(Debug)]
 pub struct StorageMap<Key, Value> {
@@ -25,15 +23,23 @@ where
         self.map.insert(key, value);
     }
 
-    fn get(&self, key: Key) -> Option<&Value> {
-        self.map.get(&key)
+    fn get(&self, key: Key) -> Result<&Value, ReadError<Key>> {
+        match self.map.get(&key) {
+            None => Err(ReadError::new(key)),
+            Some(record) => {
+                Ok(record)
+            }
+        }
     }
 
-    fn update(&mut self, key: Key, value: Value) -> Result<&Value, ReadError>{
-        let record = self.map.get_mut(&key).ok_or_else(|| "Shit!");
-        let r = record.unwrap();
-        *r = value;
-        Ok(r)
+    fn update(&mut self, key: Key, value: Value) -> Result<&Value, ReadError<Key>>{
+        match self.map.get_mut(&key) {
+            None => Err(ReadError::new(key)),
+            Some(record) => {
+                *record = value;
+                Ok(record)
+            }
+        }
     }
 
     fn delete(&mut self, key: Key) {
@@ -43,23 +49,47 @@ where
 
 #[cfg(test)]
 mod test {
+    use crate::storage_binary::storage::{Storage, ReadError};
     use crate::storage_binary::storage_map::StorageMap;
-    use crate::storage_binary::storage::Storage;
 
     #[test]
-    fn test_it() {
+    fn test_get_returns_value_for_given_key() {
         let mut storage = StorageMap::<u32, String>::new();
+        storage.create(0, "Hello, World!".to_string());
 
-        storage.create(0, "Hello World!".to_string());
+        assert_eq!(storage.get(0).unwrap(), "Hello, World!");
+    }
 
-        println!("{:?}", storage);
+    #[test]
+    fn test_get_returns_read_error_for_invalid_key() {
+        let mut storage = StorageMap::<u32, String>::new();
+        storage.create(0, "Hello, World!".to_string());
 
-        let str = storage.get(0);
-        println!("{:?}", str);
+        assert_eq!(storage.get(1).unwrap_err(), ReadError::new(1));
+    }
 
-        storage.update(0, "fuck you".to_string());
-        println!("{:?}", storage);
+    #[test]
+    fn test_update_updates_value_for_given_key() {
+        let mut storage = StorageMap::<u32, String>::new();
+        storage.create(0, "Hello, World!".to_string());
+        storage.update(0, "Goodbye, World!".to_string());
 
-        storage.update(1, "lol".to_string());
+        assert_eq!(storage.get(0).unwrap(), "Goodbye, World!");
+    }
+
+    #[test]
+    fn test_update_returns_updated_value_for_given_key() {
+        let mut storage = StorageMap::<u32, String>::new();
+        storage.create(0, "Hello, World!".to_string());
+
+        assert_eq!(storage.update(0, "Goodbye, World!".to_string()).unwrap(), "Goodbye, World!");
+    }
+
+    #[test]
+    fn test_update_returns_read_error_for_invalid_key() {
+        let mut storage = StorageMap::<u32, String>::new();
+        storage.create(0, "Hello, World!".to_string());
+
+        assert_eq!(storage.update(1, "Goodbye, World!".to_string()).unwrap_err(),ReadError::new(1));
     }
 }

@@ -1,31 +1,40 @@
 use std::error::Error;
 use std::fmt::{Debug, Formatter, Display};
 
-pub struct ReadError;
+#[derive(PartialEq)]
+pub struct ReadError<Key> {
+    key: Key
+}
 
-impl Debug for ReadError {
+impl<Key> ReadError<Key> {
+    pub fn new(key: Key) -> Self {
+        Self { key }
+    }
+}
+
+impl<Key: Display> Display for ReadError<Key>
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Unable to read {}", self.key)
+    }
+}
+
+impl<Key: Debug> Debug for ReadError<Key> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ReadError")
-            .field("Error", &"Something wrong!".to_string())
+            .field("Key", &self.key)
             .finish()
     }
 }
 
-impl Display for ReadError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Shit son!!")
-    }
-}
-
-impl Error for ReadError {}
+impl<Key: Display + Debug> Error for ReadError<Key> {}
 
 pub trait Storage<Key, Value> {
-    // CRD interface
     fn create(&mut self, key: Key, value: Value);
 
-    fn get(&self, key: Key) -> Option<&Value>;
+    fn get(&self, key: Key) -> Result<&Value, ReadError<Key>>;
 
-    fn update(&mut self, key: Key, value: Value) -> Result<&Value, ReadError>;
+    fn update(&mut self, key: Key, value: Value) -> Result<&Value, ReadError<Key>>;
 
     fn delete(&mut self, key: Key);
 }
