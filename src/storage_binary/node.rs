@@ -78,7 +78,7 @@ where
         &mut self,
         storage: &'storage mut dyn Storage<Key, Self>,
     ) -> ProofIter<'storage, Key> {
-        ProofIter::new(storage, self.clone())
+        ProofIter::new(storage, self)
     }
 }
 
@@ -92,7 +92,7 @@ impl<'storage, Key> ProofIter<'storage, Key>
 where
     Key: Clone,
 {
-    pub fn new(storage: &'storage mut dyn Storage<Key, Node<Key>>, node: Node<Key>) -> Self {
+    pub fn new(storage: &'storage mut dyn Storage<Key, Node<Key>>, node: &Node<Key>) -> Self {
         let curr = storage
             .get(node.parent_key().unwrap())
             .ok()
@@ -108,7 +108,7 @@ where
 
 impl<'storage, Key> Iterator for ProofIter<'storage, Key>
 where
-    Key: Clone + std::cmp::PartialEq + Debug,
+    Key: Clone + std::cmp::PartialEq,
 {
     type Item = Node<Key>;
 
@@ -228,8 +228,7 @@ mod test {
         storage_map.create(node_7.key(), node_7.clone());
 
         let iter = leaf_6.iter(&mut storage_map);
-        for n in iter {
-            println!("Proof: {:?}", n.key())
-        }
+        let col: Vec<N> = iter.collect();
+        println!("{:?}", col);
     }
 }
