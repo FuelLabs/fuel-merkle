@@ -1,4 +1,4 @@
-use crate::common::{position::Position};
+use crate::common::position::Position;
 
 use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::storage_binary::node::Node;
@@ -16,14 +16,19 @@ pub struct Head<T> {
 
 impl<T> Head<T> {
     pub fn new(node: T, next: Option<Box<Head<T>>>) -> Self {
-        Self {
-            node,
-            next,
-        }
+        Self { node, next }
+    }
+
+    pub fn node(&self) -> &T {
+        &self.node
     }
 
     pub fn next(&self) -> &Option<Box<Head<T>>> {
         &self.next
+    }
+
+    pub fn next_node(&self) -> Option<&T> {
+        self.next().as_ref().map(|next| next.node())
     }
 
     pub fn next_mut(&mut self) -> &mut Option<Box<Head<T>>> {
@@ -69,7 +74,6 @@ impl<'storage> MerkleTree<'storage> {
 
         let next = self.head.take();
         let head = Box::new(Head::<DataNode>::new(node, next));
-        println!("Setting head: {:?}", head);
         self.head = Some(head);
         self.join_all_subtrees();
 
@@ -83,20 +87,9 @@ impl<'storage> MerkleTree<'storage> {
     fn join_all_subtrees(&mut self) {
         loop {
             let head = self.head.as_ref().unwrap();
-
-            // if head.next.is_some() {
-            //     println!("comparing {:?} and {:?}", head.node.position(), head.next().as_ref().map(|next| next.node.position()).unwrap());
-            //     if head.node.position().height() == head.next().as_ref().map(|next| next.node.position().height()).unwrap() {
-            //         println!("{:?} == {:?}", head.node.position().height(), head.next().as_ref().map(|next| next.node.position().height()).unwrap());
-            //     } else {
-            //         println!("{:?} != {:?}", head.node.position().height(), head.next().as_ref().map(|next| next.node.position().height()).unwrap());
-            //     }
-            // }
-
-            if !(
-                head.next().is_some() &&
-                head.node.position().height() == head.next().as_ref().map(|next| next.node.position().height()).unwrap()
-            ) {
+            if !(head.next().is_some()
+                && head.node().position().height() == head.next_node().unwrap().position().height())
+            {
                 break;
             }
 
@@ -104,32 +97,34 @@ impl<'storage> MerkleTree<'storage> {
             let mut head_a = self.head.take().unwrap();
             let mut head_b = head_a.take_next().unwrap();
             let joined_head = self.join_subtrees(&mut head_b, &mut head_a);
-            self.storage.create(joined_head.node.key(), joined_head.node.clone());
-
-            println!("Setting head: {:?}", joined_head);
+            self.storage
+                .create(joined_head.node().key(), joined_head.node().clone());
             self.head = Some(joined_head);
         }
-        println!();
     }
 
-    fn join_subtrees(&mut self, a: &mut Head<DataNode>, b: &mut Head<DataNode>) -> Box<Head<DataNode>> {
-        print!("joining {:?}, {:?}... ", a.node.position(), b.node.position());
-
-        let position = a.node.position().parent();
-        let node_sum = node_sum(&a.node.key(), &b.node.key());
+    fn join_subtrees(
+        &mut self,
+        a: &mut Head<DataNode>,
+        b: &mut Head<DataNode>,
+    ) -> Box<Head<DataNode>> {
+        let position = a.node().position().parent();
+        let node_sum = node_sum(&a.node().key(), &b.node().key());
         let mut joined_node = DataNode::new(position, node_sum.clone());
-        joined_node.set_left_key(Some(a.node.key()));
-        joined_node.set_right_key(Some(b.node.key()));
+        joined_node.set_left_key(Some(a.node().key()));
+        joined_node.set_right_key(Some(b.node().key()));
         self.storage.create(node_sum, joined_node.clone());
 
         a.node.set_parent_key(Some(joined_node.key()));
         b.node.set_parent_key(Some(joined_node.key()));
-        self.storage.update(a.node.key(), a.node.clone()).expect("Unable to update!");
-        self.storage.update(b.node.key(), b.node.clone()).expect("Unable to update!");
+        self.storage
+            .update(a.node().key(), a.node().clone())
+            .expect("Unable to update!");
+        self.storage
+            .update(b.node().key(), b.node().clone())
+            .expect("Unable to update!");
 
         let joined_head = Head::new(joined_node, a.take_next());
-
-        println!("created {:?}", joined_head.node.position());
         Box::new(joined_head)
     }
 }

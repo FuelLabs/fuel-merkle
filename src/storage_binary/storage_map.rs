@@ -1,4 +1,4 @@
-use crate::storage_binary::storage::{Storage, ReadError};
+use crate::storage_binary::storage::{ReadError, Storage};
 
 use std::collections::HashMap;
 
@@ -26,13 +26,11 @@ where
     fn get(&self, key: Key) -> Result<&Value, ReadError<Key>> {
         match self.map.get(&key) {
             None => Err(ReadError::new(key)),
-            Some(record) => {
-                Ok(record)
-            }
+            Some(record) => Ok(record),
         }
     }
 
-    fn update(&mut self, key: Key, value: Value) -> Result<&Value, ReadError<Key>>{
+    fn update(&mut self, key: Key, value: Value) -> Result<&Value, ReadError<Key>> {
         match self.map.get_mut(&key) {
             None => Err(ReadError::new(key)),
             Some(record) => {
@@ -49,7 +47,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::storage_binary::storage::{Storage, ReadError};
+    use crate::storage_binary::storage::{ReadError, Storage};
     use crate::storage_binary::storage_map::StorageMap;
 
     #[test]
@@ -72,7 +70,7 @@ mod test {
     fn test_update_updates_value_for_given_key() {
         let mut storage = StorageMap::<u32, String>::new();
         storage.create(0, "Hello, World!".to_string());
-        storage.update(0, "Goodbye, World!".to_string());
+        let _ = storage.update(0, "Goodbye, World!".to_string());
 
         assert_eq!(storage.get(0).unwrap(), "Goodbye, World!");
     }
@@ -82,7 +80,10 @@ mod test {
         let mut storage = StorageMap::<u32, String>::new();
         storage.create(0, "Hello, World!".to_string());
 
-        assert_eq!(storage.update(0, "Goodbye, World!".to_string()).unwrap(), "Goodbye, World!");
+        assert_eq!(
+            storage.update(0, "Goodbye, World!".to_string()).unwrap(),
+            "Goodbye, World!"
+        );
     }
 
     #[test]
@@ -90,6 +91,11 @@ mod test {
         let mut storage = StorageMap::<u32, String>::new();
         storage.create(0, "Hello, World!".to_string());
 
-        assert_eq!(storage.update(1, "Goodbye, World!".to_string()).unwrap_err(),ReadError::new(1));
+        assert_eq!(
+            storage
+                .update(1, "Goodbye, World!".to_string())
+                .unwrap_err(),
+            ReadError::new(1)
+        );
     }
 }

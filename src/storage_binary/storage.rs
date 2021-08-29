@@ -1,9 +1,9 @@
 use std::error::Error;
-use std::fmt::{Debug, Formatter, Display};
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(PartialEq)]
 pub struct ReadError<Key> {
-    key: Key
+    key: Key,
 }
 
 impl<Key> ReadError<Key> {
@@ -12,8 +12,7 @@ impl<Key> ReadError<Key> {
     }
 }
 
-impl<Key: Display> Display for ReadError<Key>
-{
+impl<Key: Display> Display for ReadError<Key> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Unable to read {}", self.key)
     }
@@ -21,9 +20,7 @@ impl<Key: Display> Display for ReadError<Key>
 
 impl<Key: Debug> Debug for ReadError<Key> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ReadError")
-            .field("Key", &self.key)
-            .finish()
+        f.debug_struct("ReadError").field("Key", &self.key).finish()
     }
 }
 

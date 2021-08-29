@@ -14,7 +14,7 @@ pub struct Node<Key> {
 
 impl<Key> Debug for Node<Key>
 where
-    Key: Debug
+    Key: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Node")
@@ -29,7 +29,7 @@ where
 
 impl<Key> Node<Key>
 where
-    Key: Clone
+    Key: Clone,
 {
     pub fn new(position: Position, key: Key) -> Self {
         Self {
@@ -41,7 +41,9 @@ where
         }
     }
 
-    pub fn position(&self) -> Position { self.position }
+    pub fn position(&self) -> Position {
+        self.position
+    }
 
     pub fn key(&self) -> Key {
         self.key.clone()
