@@ -134,19 +134,6 @@ impl Position {
         (!self.in_order_index()).trailing_zeros()
     }
 
-    pub fn is_descendant_of(self, ancestor: Self) -> bool {
-        let mut ancestor_height = ancestor.height();
-        let mut sum = 0;
-        while ancestor_height > self.height() {
-            sum += 1 << ancestor_height - 1;
-            ancestor_height -= 1;
-        }
-        let r0 = ancestor.in_order_index() - sum;
-        let r1 = ancestor.in_order_index() + sum;
-
-        r0 <= self.in_order_index() && self.in_order_index() <= r1
-    }
-
     // PRIVATE
 
     /// Orientation of the position index relative to its parent.
