@@ -1,10 +1,9 @@
 use digest::Digest;
 use generic_array::GenericArray;
+use hex;
 use lazy_static::lazy_static;
 use sha2::Sha256;
 use std::fmt::Formatter;
-
-use hex;
 
 pub type Hash = Sha256;
 
