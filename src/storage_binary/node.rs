@@ -4,28 +4,13 @@ use std::fmt::{Debug, Formatter};
 use crate::common::position::Position;
 use crate::storage_binary::storage::Storage;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Node<Key> {
     position: Position,
     key: Key,
     parent_key: Option<Key>,
     left_key: Option<Key>,
     right_key: Option<Key>,
-}
-
-impl<Key> Debug for Node<Key>
-where
-    Key: Debug,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Node")
-            .field("position", &self.position)
-            .field("key", &self.key)
-            .field("parent_key", &self.parent_key)
-            .field("left_key", &self.left_key)
-            .field("right_key", &self.right_key)
-            .finish()
-    }
 }
 
 impl<Key> Node<Key>
