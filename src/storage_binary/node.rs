@@ -153,7 +153,6 @@ mod test {
     #[test]
     pub fn test_proof_iter() {
         type N = Node<u32>;
-        let mut storage_map = StorageMap::<u32, N>::new();
 
         //               07
         //              /  \
@@ -214,19 +213,20 @@ mod test {
         node_7.set_left_key(Some(node_3.key()));
         node_7.set_right_key(Some(node_11.key()));
 
-        storage_map.create(leaf_0.key(), leaf_0.clone());
-        storage_map.create(leaf_1.key(), leaf_1.clone());
-        storage_map.create(leaf_2.key(), leaf_2.clone());
-        storage_map.create(leaf_3.key(), leaf_3.clone());
-        storage_map.create(leaf_4.key(), leaf_4.clone());
-        storage_map.create(leaf_5.key(), leaf_5.clone());
-        storage_map.create(leaf_6.key(), leaf_6.clone());
-        storage_map.create(node_1.key(), node_1.clone());
-        storage_map.create(node_5.key(), node_5.clone());
-        storage_map.create(node_9.key(), node_9.clone());
-        storage_map.create(node_3.key(), node_3.clone());
-        storage_map.create(node_11.key(), node_11.clone());
-        storage_map.create(node_7.key(), node_7.clone());
+        let mut storage_map = StorageMap::<u32, N>::new();
+        let _ = storage_map.create(leaf_0.key(), leaf_0.clone());
+        let _ = storage_map.create(leaf_1.key(), leaf_1.clone());
+        let _ = storage_map.create(leaf_2.key(), leaf_2.clone());
+        let _ = storage_map.create(leaf_3.key(), leaf_3.clone());
+        let _ = storage_map.create(leaf_4.key(), leaf_4.clone());
+        let _ = storage_map.create(leaf_5.key(), leaf_5.clone());
+        let _ = storage_map.create(leaf_6.key(), leaf_6.clone());
+        let _ = storage_map.create(node_1.key(), node_1.clone());
+        let _ = storage_map.create(node_5.key(), node_5.clone());
+        let _ = storage_map.create(node_9.key(), node_9.clone());
+        let _ = storage_map.create(node_3.key(), node_3.clone());
+        let _ = storage_map.create(node_11.key(), node_11.clone());
+        let _ = storage_map.create(node_7.key(), node_7.clone());
 
         let iter = leaf_0.iter(&mut storage_map);
         let col: Vec<N> = iter.collect();

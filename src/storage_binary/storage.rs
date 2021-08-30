@@ -1,3 +1,4 @@
+use std::error;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
@@ -24,14 +25,14 @@ impl<Key: Debug> Debug for ReadError<Key> {
     }
 }
 
-impl<Key: Display + Debug> Error for ReadError<Key> {}
+impl<Key: Debug + Display> Error for ReadError<Key> {}
 
 pub trait Storage<Key, Value> {
-    fn create(&mut self, key: Key, value: Value);
+    fn create(&mut self, key: Key, value: Value) -> Result<&Value, Box<dyn error::Error>>;
 
-    fn get(&self, key: Key) -> Result<&Value, ReadError<Key>>;
+    fn get(&self, key: Key) -> Result<&Value, Box<dyn error::Error>>;
 
-    fn update(&mut self, key: Key, value: Value) -> Result<&Value, ReadError<Key>>;
+    fn update(&mut self, key: Key, value: Value) -> Result<&Value, Box<dyn error::Error>>;
 
-    fn delete(&mut self, key: Key);
+    fn delete(&mut self, key: Key) -> Result<(), Box<dyn error::Error>>;
 }

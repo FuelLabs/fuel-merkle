@@ -2,15 +2,36 @@ use digest::Digest;
 use generic_array::GenericArray;
 use lazy_static::lazy_static;
 use sha2::Sha256;
+use std::fmt::Formatter;
 
 pub type Hash = Sha256;
-pub type Data = GenericArray<u8, <Hash as Digest>::OutputSize>;
+
+type HashArray = GenericArray<u8, <Hash as Digest>::OutputSize>;
+
+#[derive(Clone, Eq, PartialEq, std::hash::Hash, Debug)]
+pub struct Data(HashArray);
+
+impl Data {
+    pub fn new(data: HashArray) -> Self {
+        Self(data)
+    }
+
+    pub fn data(&self) -> &HashArray {
+        return &self.0;
+    }
+}
+
+impl std::fmt::Display for Data {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Data(0x{})", hex::encode(self.data()))
+    }
+}
 
 const NODE: u8 = 0x01;
 const LEAF: u8 = 0x00;
 
 lazy_static! {
-    static ref EMPTY_SUM: Data = Hash::new().finalize();
+    static ref EMPTY_SUM: Data = Data(Hash::new().finalize());
 }
 
 // Merkle Tree hash of an empty list
@@ -26,7 +47,7 @@ pub fn node_sum(lhs_data: &[u8], rhs_data: &[u8]) -> Data {
     hash.update(&[NODE]);
     hash.update(&lhs_data);
     hash.update(&rhs_data);
-    hash.finalize()
+    Data(hash.finalize())
 }
 
 // Merkle tree hash of a list with one entry
@@ -35,5 +56,5 @@ pub fn leaf_sum(data: &[u8]) -> Data {
     let mut hash = Hash::new();
     hash.update(&[LEAF]);
     hash.update(&data);
-    hash.finalize()
+    Data(hash.finalize())
 }
