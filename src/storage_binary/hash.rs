@@ -4,6 +4,8 @@ use lazy_static::lazy_static;
 use sha2::Sha256;
 use std::fmt::Formatter;
 
+use hex;
+
 pub type Hash = Sha256;
 
 type HashArray = GenericArray<u8, <Hash as Digest>::OutputSize>;
