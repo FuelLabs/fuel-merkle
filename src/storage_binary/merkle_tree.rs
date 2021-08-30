@@ -70,9 +70,11 @@ impl<'storage> MerkleTree<'storage> {
                 break;
             }
 
-            let mut head = current.take().unwrap();
-            let mut head_next = head.take_next().unwrap();
-            let joined_head = self.join_subtrees(&mut head_next, &mut head)?;
+            let joined_head = {
+                let mut head = current.take().unwrap();
+                let mut head_next = head.take_next().unwrap();
+                self.join_subtrees(&mut head_next, &mut head)?
+            };
             self.storage
                 .create(joined_head.node().key(), joined_head.node())?;
 
@@ -92,9 +94,11 @@ impl<'storage> MerkleTree<'storage> {
     }
 
     pub fn push(&mut self, data: &[u8]) {
-        let position = Position::from_leaf_index(self.leaves_count);
-        let leaf_sum = leaf_sum(data);
-        let node = DataNode::new(position, leaf_sum);
+        let node = {
+            let position = Position::from_leaf_index(self.leaves_count);
+            let leaf_sum = leaf_sum(data);
+            DataNode::new(position, leaf_sum)
+        };
         self.storage
             .create(node.key().clone(), node.clone())
             .expect("Unable to push node!");
@@ -123,9 +127,11 @@ impl<'storage> MerkleTree<'storage> {
             }
 
             // Merge the two front heads of the list into a single head
-            let mut head = self.head.take().unwrap();
-            let mut head_next = head.take_next().unwrap();
-            let joined_head = self.join_subtrees(&mut head_next, &mut head)?;
+            let joined_head = {
+                let mut head = self.head.take().unwrap();
+                let mut head_next = head.take_next().unwrap();
+                self.join_subtrees(&mut head_next, &mut head)?
+            };
             self.head = Some(joined_head);
         }
 
@@ -137,16 +143,19 @@ impl<'storage> MerkleTree<'storage> {
         lhs: &mut Head<DataNode>,
         rhs: &mut Head<DataNode>,
     ) -> Result<Box<Head<DataNode>>, Box<dyn Error>> {
-        let position = lhs.node().position().parent();
-        let node_sum = node_sum(&lhs.node().key().data(), &rhs.node().key().data());
-        let mut joined_node = DataNode::new(position, node_sum);
+        let mut joined_node = {
+            let position = lhs.node().position().parent();
+            let node_sum = node_sum(&lhs.node().key().data(), &rhs.node().key().data());
+            DataNode::new(position, node_sum)
+        };
 
         joined_node.set_left_key(Some(lhs.node().key()));
         joined_node.set_right_key(Some(rhs.node().key()));
         lhs.node.set_parent_key(Some(joined_node.key()));
         rhs.node.set_parent_key(Some(joined_node.key()));
 
-        self.storage.create(joined_node.key(), joined_node.clone())?;
+        self.storage
+            .create(joined_node.key(), joined_node.clone())?;
         self.storage.update(lhs.node().key(), lhs.node())?;
         self.storage.update(rhs.node().key(), rhs.node())?;
 
