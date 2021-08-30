@@ -134,10 +134,6 @@ impl Position {
         (!self.in_order_index()).trailing_zeros()
     }
 
-    pub fn iter_uncle(self) -> UncleIterator {
-        UncleIterator::new(self)
-    }
-
     pub fn is_descendant_of(self, ancestor: Self) -> bool {
         let mut ancestor_height = ancestor.height();
         let mut sum = 0;
@@ -183,28 +179,6 @@ impl Position {
     fn direction(self) -> i64 {
         let scale = self.orientation() as i64 * 2 - 1; // Scale [0, 1] to [-1, 1];
         -scale
-    }
-}
-
-pub struct UncleIterator {
-    position: Position,
-}
-
-impl UncleIterator {
-    pub fn new(position: Position) -> Self {
-        Self {
-            position: position.sibling(),
-        }
-    }
-}
-
-impl Iterator for UncleIterator {
-    type Item = Position;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let this = self.position;
-        self.position = self.position.uncle();
-        Some(this)
     }
 }
 
@@ -293,37 +267,5 @@ mod test {
         assert_eq!(Position(5).uncle(), Position(11));
         assert_eq!(Position(9).uncle(), Position(3));
         assert_eq!(Position(13).uncle(), Position(3));
-    }
-
-    #[test]
-    fn test_iter_uncle() {
-        let position = Position(0);
-        let mut iter = position.iter_uncle();
-
-        assert_eq!(iter.next().unwrap(), Position(0));
-        assert_eq!(iter.next().unwrap(), Position(5));
-        assert_eq!(iter.next().unwrap(), Position(11));
-        assert_eq!(iter.next().unwrap(), Position(23));
-    }
-
-    #[test]
-    fn test_shit() {
-        assert!(Position(0).is_descendant_of(Position(3)));
-        assert!(Position(1).is_descendant_of(Position(3)));
-        assert!(Position(2).is_descendant_of(Position(3)));
-        assert!(Position(3).is_descendant_of(Position(3)));
-        assert!(Position(4).is_descendant_of(Position(3)));
-        assert!(Position(5).is_descendant_of(Position(3)));
-        assert!(Position(6).is_descendant_of(Position(3)));
-        assert_eq!(Position(7).is_descendant_of(Position(3)), false);
-
-        assert!(Position(8).is_descendant_of(Position(11)));
-        assert!(Position(9).is_descendant_of(Position(11)));
-        assert!(Position(10).is_descendant_of(Position(11)));
-        assert!(Position(11).is_descendant_of(Position(11)));
-        assert!(Position(12).is_descendant_of(Position(11)));
-        assert!(Position(13).is_descendant_of(Position(11)));
-        assert!(Position(14).is_descendant_of(Position(11)));
-        assert_eq!(Position(7).is_descendant_of(Position(11)), false);
     }
 }
