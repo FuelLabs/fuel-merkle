@@ -113,19 +113,20 @@ where
     type Item = Node<Key>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let previous = self.prev.as_ref().unwrap().clone();
+        let previous = self.prev.take();
         let mut current = self.curr.take();
 
-        let node = current.as_ref().map(|current| {
-            if current.left_key().unwrap() == previous.key() {
+        let node = current.as_ref().map(|curr| {
+            let prev = previous.unwrap();
+            if curr.left_key().unwrap() == prev.key() {
                 self.storage
-                    .get(current.right_key().unwrap())
+                    .get(curr.right_key().unwrap())
                     .ok()
                     .unwrap()
                     .clone()
             } else {
                 self.storage
-                    .get(current.left_key().unwrap())
+                    .get(curr.left_key().unwrap())
                     .ok()
                     .unwrap()
                     .clone()
@@ -148,7 +149,6 @@ mod test {
     use crate::storage_binary::node::Node;
     use crate::storage_binary::storage::Storage;
     use crate::storage_binary::storage_map::StorageMap;
-    use std::convert::TryInto;
 
     #[test]
     pub fn test_proof_iter() {
@@ -180,7 +180,7 @@ mod test {
 
         let mut node_1 = N::new(Position::from_in_order_index(1), 1);
         leaf_0.set_parent_key(Some(node_1.key()));
-        leaf_2.set_parent_key(Some(node_1.key()));
+        leaf_1.set_parent_key(Some(node_1.key()));
         node_1.set_left_key(Some(leaf_0.key()));
         node_1.set_right_key(Some(leaf_1.key()));
 
@@ -228,25 +228,32 @@ mod test {
         storage_map.create(node_11.key(), node_11.clone());
         storage_map.create(node_7.key(), node_7.clone());
 
-        {
-            let iter = leaf_0.iter(&mut storage_map);
-            let col: Vec<N> = iter.collect();
-            assert_eq!(col, vec!(leaf_1.clone(), node_5.clone(), node_11.clone()));
-        }
-        {
-            let iter = leaf_2.iter(&mut storage_map);
-            let col: Vec<N> = iter.collect();
-            assert_eq!(col, vec!(leaf_3.clone(), node_1.clone(), node_11.clone()));
-        }
-        {
-            let iter = leaf_4.iter(&mut storage_map);
-            let col: Vec<N> = iter.collect();
-            assert_eq!(col, vec!(leaf_5.clone(), leaf_6.clone(), node_3.clone()));
-        }
-        {
-            let iter = leaf_6.iter(&mut storage_map);
-            let col: Vec<N> = iter.collect();
-            assert_eq!(col, vec!(node_9.clone(), node_3.clone()));
-        }
+        let iter = leaf_0.iter(&mut storage_map);
+        let col: Vec<N> = iter.collect();
+        assert_eq!(col, vec!(leaf_1.clone(), node_5.clone(), node_11.clone()));
+
+        let iter = leaf_1.iter(&mut storage_map);
+        let col: Vec<N> = iter.collect();
+        assert_eq!(col, vec!(leaf_0.clone(), node_5.clone(), node_11.clone()));
+
+        let iter = leaf_2.iter(&mut storage_map);
+        let col: Vec<N> = iter.collect();
+        assert_eq!(col, vec!(leaf_3.clone(), node_1.clone(), node_11.clone()));
+
+        let iter = leaf_3.iter(&mut storage_map);
+        let col: Vec<N> = iter.collect();
+        assert_eq!(col, vec!(leaf_2.clone(), node_1.clone(), node_11.clone()));
+
+        let iter = leaf_4.iter(&mut storage_map);
+        let col: Vec<N> = iter.collect();
+        assert_eq!(col, vec!(leaf_5.clone(), leaf_6.clone(), node_3.clone()));
+
+        let iter = leaf_5.iter(&mut storage_map);
+        let col: Vec<N> = iter.collect();
+        assert_eq!(col, vec!(leaf_4.clone(), leaf_6.clone(), node_3.clone()));
+
+        let iter = leaf_6.iter(&mut storage_map);
+        let col: Vec<N> = iter.collect();
+        assert_eq!(col, vec!(node_9.clone(), node_3.clone()));
     }
 }
