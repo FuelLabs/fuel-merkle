@@ -1,6 +1,5 @@
 use bytes::Bytes;
 
-#[derive(Clone)]
 pub struct ProofSet {
     storage: Vec<Bytes>,
 }
