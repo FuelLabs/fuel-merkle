@@ -5,6 +5,7 @@ use crate::storage_binary::node::Node;
 use crate::storage_binary::storage::Storage;
 
 use crate::proof_set::ProofSet;
+use std::error::Error;
 
 type DataNode = Node<Data>;
 
@@ -60,34 +61,34 @@ impl<'storage> MerkleTree<'storage> {
         }
     }
 
-    pub fn prove(&mut self, proof_index: u64) -> (Data, ProofSet) {
+    pub fn prove(&mut self, proof_index: u64) -> Result<(Data, ProofSet), Box<dyn Error>> {
         let mut proof_set = ProofSet::new();
 
-        let mut head = self.head.clone();
+        let mut current = self.head.clone();
         loop {
-            if !(head.is_some() && head.as_ref().unwrap().next().is_some()) {
+            if !(current.is_some() && current.as_ref().unwrap().next().is_some()) {
                 break;
             }
 
-            let mut head_a = head.take().unwrap();
-            let mut head_b = head_a.take_next().unwrap();
-            let joined_head = self.join_subtrees(&mut head_b, &mut head_a);
+            let mut head = current.take().unwrap();
+            let mut head_next = head.take_next().unwrap();
+            let joined_head = self.join_subtrees(&mut head_next, &mut head)?;
             self.storage
-                .create(joined_head.node().key(), joined_head.node().clone())
-                .expect("Unable to create!");
-            head = Some(joined_head);
+                .create(joined_head.node().key(), joined_head.node())?;
+
+            current = Some(joined_head);
         }
 
         let key = self.leaves[proof_index as usize].key();
         proof_set.push(key.data());
 
-        let mut node = self.storage.get(key).unwrap().clone();
+        let mut node = self.storage.get(key)?.clone();
         let iter = node.iter(self.storage);
         for n in iter {
             proof_set.push(n.key().data());
         }
 
-        (head.unwrap().node.key(), proof_set)
+        Ok((current.unwrap().node.key(), proof_set))
     }
 
     pub fn push(&mut self, data: &[u8]) {
@@ -96,13 +97,13 @@ impl<'storage> MerkleTree<'storage> {
         let node = DataNode::new(position, leaf_sum);
         self.storage
             .create(node.key().clone(), node.clone())
-            .expect("Unable to create!");
+            .expect("Unable to push node!");
         self.leaves.push(node.clone());
 
         let next = self.head.take();
         let head = Box::new(Head::<DataNode>::new(node, next));
         self.head = Some(head);
-        self.join_all_subtrees();
+        self.join_all_subtrees().expect("Unable to push node!");
 
         self.leaves_count += 1;
     }
@@ -111,7 +112,7 @@ impl<'storage> MerkleTree<'storage> {
     // PRIVATE
     //
 
-    fn join_all_subtrees(&mut self) {
+    fn join_all_subtrees(&mut self) -> Result<(), Box<dyn Error>> {
         loop {
             let current = self.head.as_ref().unwrap();
             if !(current.next().is_some()
@@ -124,39 +125,33 @@ impl<'storage> MerkleTree<'storage> {
             // Merge the two front heads of the list into a single head
             let mut head = self.head.take().unwrap();
             let mut head_next = head.take_next().unwrap();
-            let joined_head = self.join_subtrees(&mut head_next, &mut head);
-            self.storage
-                .create(joined_head.node().key(), joined_head.node().clone())
-                .expect("Unable to create!");
+            let joined_head = self.join_subtrees(&mut head_next, &mut head)?;
             self.head = Some(joined_head);
         }
+
+        Ok(())
     }
 
     fn join_subtrees(
         &mut self,
         lhs: &mut Head<DataNode>,
         rhs: &mut Head<DataNode>,
-    ) -> Box<Head<DataNode>> {
+    ) -> Result<Box<Head<DataNode>>, Box<dyn Error>> {
         let position = lhs.node().position().parent();
         let node_sum = node_sum(&lhs.node().key().data(), &rhs.node().key().data());
-        let mut joined_node = DataNode::new(position, node_sum.clone());
+        let mut joined_node = DataNode::new(position, node_sum);
+
         joined_node.set_left_key(Some(lhs.node().key()));
         joined_node.set_right_key(Some(rhs.node().key()));
-        self.storage
-            .create(node_sum, joined_node.clone())
-            .expect("Unable to create!");
-
         lhs.node.set_parent_key(Some(joined_node.key()));
         rhs.node.set_parent_key(Some(joined_node.key()));
-        self.storage
-            .update(lhs.node().key(), lhs.node().clone())
-            .expect("Unable to update!");
-        self.storage
-            .update(rhs.node().key(), rhs.node().clone())
-            .expect("Unable to update!");
+
+        self.storage.create(joined_node.key(), joined_node.clone())?;
+        self.storage.update(lhs.node().key(), lhs.node())?;
+        self.storage.update(rhs.node().key(), rhs.node())?;
 
         let joined_head = Head::new(joined_node, lhs.take_next());
-        Box::new(joined_head)
+        Ok(Box::new(joined_head))
     }
 }
 
@@ -338,7 +333,7 @@ mod test {
         let node_7 = node_data(&node_3.data(), &node_11.data());
 
         {
-            let proof = tree.prove(0);
+            let proof = tree.prove(0).unwrap();
             let root = proof.0;
             let set = proof.1;
 
@@ -354,7 +349,7 @@ mod test {
             assert_eq!(s_4, &node_11.data()[..]);
         }
         {
-            let proof = tree.prove(4);
+            let proof = tree.prove(4).unwrap();
             let root = proof.0;
             let set = proof.1;
 
@@ -370,7 +365,7 @@ mod test {
             assert_eq!(s_4, &node_3.data()[..]);
         }
         {
-            let proof = tree.prove(5);
+            let proof = tree.prove(5).unwrap();
             let root = proof.0;
             let set = proof.1;
 
@@ -386,7 +381,7 @@ mod test {
             assert_eq!(s_4, &node_3.data()[..]);
         }
         {
-            let proof = tree.prove(6);
+            let proof = tree.prove(6).unwrap();
             let root = proof.0;
             let set = proof.1;
 
