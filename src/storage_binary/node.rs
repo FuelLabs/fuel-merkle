@@ -4,7 +4,7 @@ use std::fmt::{Debug, Formatter};
 use crate::common::position::Position;
 use crate::storage_binary::storage::Storage;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Node<Key> {
     position: Position,
     key: Key,
@@ -148,9 +148,10 @@ mod test {
     use crate::storage_binary::node::Node;
     use crate::storage_binary::storage::Storage;
     use crate::storage_binary::storage_map::StorageMap;
+    use std::convert::TryInto;
 
     #[test]
-    pub fn test_it() {
+    pub fn test_proof_iter() {
         type N = Node<u32>;
         let mut storage_map = StorageMap::<u32, N>::new();
 
@@ -227,8 +228,25 @@ mod test {
         storage_map.create(node_11.key(), node_11.clone());
         storage_map.create(node_7.key(), node_7.clone());
 
-        let iter = leaf_6.iter(&mut storage_map);
-        let col: Vec<N> = iter.collect();
-        println!("{:?}", col);
+        {
+            let iter = leaf_0.iter(&mut storage_map);
+            let col: Vec<N> = iter.collect();
+            assert_eq!(col, vec!(leaf_1.clone(), node_5.clone(), node_11.clone()));
+        }
+        {
+            let iter = leaf_2.iter(&mut storage_map);
+            let col: Vec<N> = iter.collect();
+            assert_eq!(col, vec!(leaf_3.clone(), node_1.clone(), node_11.clone()));
+        }
+        {
+            let iter = leaf_4.iter(&mut storage_map);
+            let col: Vec<N> = iter.collect();
+            assert_eq!(col, vec!(leaf_5.clone(), leaf_6.clone(), node_3.clone()));
+        }
+        {
+            let iter = leaf_6.iter(&mut storage_map);
+            let col: Vec<N> = iter.collect();
+            assert_eq!(col, vec!(node_9.clone(), node_3.clone()));
+        }
     }
 }
