@@ -101,4 +101,20 @@ mod test {
 
         assert!(storage.update(1, "Goodbye, World!".to_string()).is_err());
     }
+
+    #[test]
+    fn test_delete_deletes_the_value_for_the_given_key() {
+        let mut storage = StorageMap::<u32, String>::new();
+        let _ = storage.create(0, "Hello, World!".to_string());
+        let _ = storage.delete(0);
+
+        assert!(storage.get(0).is_err());
+    }
+
+    #[test]
+    fn test_delete_returns_read_error_for_invalid_key() {
+        let mut storage = StorageMap::<u32, String>::new();
+
+        assert!(storage.delete(0).is_err());
+    }
 }
