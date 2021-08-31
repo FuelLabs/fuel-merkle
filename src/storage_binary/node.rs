@@ -2,7 +2,7 @@ use std::fmt;
 use std::fmt::{Debug, Formatter};
 
 use crate::common::position::Position;
-use crate::storage_binary::storage::Storage;
+use crate::common::storage::Storage;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Node<Key> {
@@ -131,9 +131,9 @@ where
 #[cfg(test)]
 mod test {
     use crate::common::position::Position;
+    use crate::common::storage::Storage;
+    use crate::common::storage_map::StorageMap;
     use crate::storage_binary::node::Node;
-    use crate::storage_binary::storage::Storage;
-    use crate::storage_binary::storage_map::StorageMap;
 
     #[test]
     pub fn test_proof_iter() {

@@ -1,4 +1,4 @@
-use crate::storage_binary::storage::{ReadError, Storage};
+use crate::common::storage::{ReadError, Storage};
 
 use std::collections::HashMap;
 use std::error;
@@ -55,8 +55,8 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::storage_binary::storage::Storage;
-    use crate::storage_binary::storage_map::StorageMap;
+    use crate::common::storage::Storage;
+    use crate::common::storage_map::StorageMap;
 
     #[test]
     fn test_get_returns_value_for_given_key() {
