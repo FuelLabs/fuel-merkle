@@ -41,44 +41,6 @@ where
     }
 }
 
-/*
-impl<Key: 'static, Value> Storage<Key, Value> for StorageMap<Key, Value>
-where
-    Key: Eq + std::hash::Hash + std::fmt::Debug + std::fmt::Display + Clone,
-{
-    fn create(&mut self, key: Key, value: Value) -> Result<&Value, Box<dyn error::Error>> {
-        self.map.insert(key.clone(), value);
-        Ok(self.map.get(&key).unwrap())
-    }
-
-    fn get(&self, key: Key) -> Result<&Value, Box<dyn error::Error>> {
-        match self.map.get(&key) {
-            None => Err(Box::new(ReadError::new(key))),
-            Some(record) => Ok(record),
-        }
-    }
-
-    fn update(&mut self, key: Key, value: Value) -> Result<&Value, Box<dyn error::Error>> {
-        match self.map.get_mut(&key) {
-            None => Err(Box::new(ReadError::new(key))),
-            Some(record) => {
-                *record = value;
-                Ok(record)
-            }
-        }
-    }
-
-    fn delete(&mut self, key: Key) -> Result<(), Box<dyn error::Error>> {
-        match self.map.get(&key) {
-            None => Err(Box::new(ReadError::new(key))),
-            Some(_) => {
-                self.map.remove(&key);
-                Ok(())
-            }
-        }
-    }
-}*/
-
 #[cfg(test)]
 mod test {
     use super::*;
