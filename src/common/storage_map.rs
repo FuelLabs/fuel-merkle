@@ -1,7 +1,7 @@
-use crate::common::storage::{ReadError, Storage};
+use fuel_vm::data::{DataError, Key, Storage, Value};
 
 use std::collections::HashMap;
-use std::error;
+use std::hash::Hash;
 
 #[derive(Debug)]
 pub struct StorageMap<Key, Value> {
@@ -16,6 +16,32 @@ impl<Key, Value> StorageMap<Key, Value> {
     }
 }
 
+impl<K, V> Storage<K, V> for StorageMap<K, V>
+where
+    K: Key + Copy + Hash + Eq,
+    V: Value + Clone,
+{
+    fn insert(&mut self, key: &K, value: &V) -> Result<Option<V>, DataError> {
+        self.map.insert(*key, value.clone());
+        Ok(Some(value.clone()))
+    }
+
+    fn remove(&mut self, key: &K) -> Result<Option<V>, DataError> {
+        let value = self.map.remove(key);
+        Ok(value)
+    }
+
+    fn get(&self, key: &K) -> Result<Option<V>, DataError> {
+        let result = self.map.get(key);
+        Ok(result.cloned())
+    }
+
+    fn contains_key(&self, key: &K) -> Result<bool, DataError> {
+        Ok(self.map.contains_key(key))
+    }
+}
+
+/*
 impl<Key: 'static, Value> Storage<Key, Value> for StorageMap<Key, Value>
 where
     Key: Eq + std::hash::Hash + std::fmt::Debug + std::fmt::Display + Clone,
@@ -51,70 +77,90 @@ where
             }
         }
     }
-}
+}*/
 
 #[cfg(test)]
 mod test {
-    use crate::common::storage::Storage;
-    use crate::common::storage_map::StorageMap;
+    use super::*;
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    struct MyKey(u32);
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+    struct MyValue(u32);
+
+    impl Key for MyKey {}
+    impl Value for MyValue {}
 
     #[test]
     fn test_get_returns_value_for_given_key() {
-        let mut storage = StorageMap::<u32, String>::new();
-        let _ = storage.create(0, "Hello, World!".to_string());
+        let key = MyKey(0);
+        let mut storage = StorageMap::<MyKey, MyValue>::new();
+        let _ = storage.insert(&key, &MyValue(0));
 
-        assert_eq!(storage.get(0).unwrap(), "Hello, World!");
+        assert_eq!(storage.get(&key).unwrap(), Some(MyValue(0)));
+    }
+    #[test]
+    fn test_get_returns_none_for_invalid_key() {
+        let key = MyKey(0);
+        let invalid_key = MyKey(1);
+        let mut storage = StorageMap::<MyKey, MyValue>::new();
+        let _ = storage.insert(&key, &MyValue(0));
+
+        assert_eq!(storage.get(&invalid_key).unwrap(), None);
     }
 
     #[test]
-    fn test_get_returns_read_error_for_invalid_key() {
-        let mut storage = StorageMap::<u32, String>::new();
-        let _ = storage.create(0, "Hello, World!".to_string());
+    fn test_insert_existing_key_updates_value_for_given_key() {
+        let key = MyKey(0);
+        let mut storage = StorageMap::<MyKey, MyValue>::new();
+        let _ = storage.insert(&key, &MyValue(0));
+        let _ = storage.insert(&key, &MyValue(1));
 
-        assert!(storage.get(1).is_err());
+        assert_eq!(storage.get(&key).unwrap(), Some(MyValue(1)));
     }
 
     #[test]
-    fn test_update_updates_value_for_given_key() {
-        let mut storage = StorageMap::<u32, String>::new();
-        let _ = storage.create(0, "Hello, World!".to_string());
-        let _ = storage.update(0, "Goodbye, World!".to_string());
+    fn test_remove_deletes_the_value_for_given_key() {
+        let key = MyKey(0);
+        let mut storage = StorageMap::<MyKey, MyValue>::new();
+        let _ = storage.insert(&key, &MyValue(0));
+        let _ = storage.remove(&key);
 
-        assert_eq!(storage.get(0).unwrap(), "Goodbye, World!");
+        assert_eq!(storage.get(&key).unwrap(), None);
     }
 
     #[test]
-    fn test_update_returns_updated_value_for_given_key() {
-        let mut storage = StorageMap::<u32, String>::new();
-        let _ = storage.create(0, "Hello, World!".to_string());
+    fn test_remove_returns_the_deleted_value_for_given_key() {
+        let key = MyKey(0);
+        let mut storage = StorageMap::<MyKey, MyValue>::new();
+        let _ = storage.insert(&key, &MyValue(0));
 
-        assert_eq!(
-            storage.update(0, "Goodbye, World!".to_string()).unwrap(),
-            "Goodbye, World!"
-        );
+        assert_eq!(storage.remove(&key).unwrap(), Some(MyValue(0)));
     }
 
     #[test]
-    fn test_update_returns_read_error_for_invalid_key() {
-        let mut storage = StorageMap::<u32, String>::new();
-        let _ = storage.create(0, "Hello, World!".to_string());
+    fn test_remove_returns_none_for_invalid_key() {
+        let invalid_key = MyKey(0);
+        let mut storage = StorageMap::<MyKey, MyValue>::new();
 
-        assert!(storage.update(1, "Goodbye, World!".to_string()).is_err());
+        assert_eq!(storage.remove(&invalid_key).unwrap(), None);
     }
 
     #[test]
-    fn test_delete_deletes_the_value_for_the_given_key() {
-        let mut storage = StorageMap::<u32, String>::new();
-        let _ = storage.create(0, "Hello, World!".to_string());
-        let _ = storage.delete(0);
+    fn test_contains_key_returns_true_for_valid_key() {
+        let key = MyKey(0);
+        let mut storage = StorageMap::<MyKey, MyValue>::new();
+        let _ = storage.insert(&key, &MyValue(0));
 
-        assert!(storage.get(0).is_err());
+        assert_eq!(storage.contains_key(&key).unwrap(), true);
     }
 
     #[test]
-    fn test_delete_returns_read_error_for_invalid_key() {
-        let mut storage = StorageMap::<u32, String>::new();
+    fn test_contains_key_returns_false_for_invalid_key() {
+        let invalid_key = MyKey(0);
+        let storage = StorageMap::<MyKey, MyValue>::new();
 
-        assert!(storage.delete(0).is_err());
+        assert_eq!(storage.contains_key(&invalid_key).unwrap(), false);
     }
 }
