@@ -1,3 +1,3 @@
 pub mod position;
-pub mod store;
-pub mod store_map;
+pub mod storage;
+pub mod storage_map;
