@@ -1,5 +1,4 @@
-use std::fmt;
-use std::fmt::{Debug, Formatter};
+use std::fmt::Debug;
 
 use crate::common::position::Position;
 use crate::common::storage::Storage;
@@ -78,11 +77,7 @@ where
     Key: Clone,
 {
     pub fn new(storage: &'storage mut dyn Storage<Key, Node<Key>>, node: &Node<Key>) -> Self {
-        let curr = storage
-            .get(node.parent_key().unwrap())
-            .ok()
-            .unwrap()
-            .clone();
+        let curr = storage.get(&node.parent_key().unwrap()).unwrap().unwrap();
         Self {
             storage,
             prev: Some(node.clone()),
@@ -105,23 +100,21 @@ where
             let prev = previous.unwrap();
             if curr.left_key().unwrap() == prev.key() {
                 self.storage
-                    .get(curr.right_key().unwrap())
-                    .ok()
+                    .get(&curr.right_key().unwrap())
                     .unwrap()
-                    .clone()
+                    .unwrap()
             } else {
                 self.storage
-                    .get(curr.left_key().unwrap())
-                    .ok()
+                    .get(&curr.left_key().unwrap())
                     .unwrap()
-                    .clone()
+                    .unwrap()
             }
         });
 
         self.curr = current
             .as_ref()?
             .parent_key()
-            .map(|key| self.storage.get(key).ok().unwrap().clone());
+            .map(|key| self.storage.get(&key).unwrap().unwrap());
         self.prev = current.take();
 
         node
@@ -199,19 +192,19 @@ mod test {
         node_7.set_right_key(Some(node_11.key()));
 
         let mut storage_map = StorageMap::<u32, N>::new();
-        let _ = storage_map.create(leaf_0.key(), leaf_0.clone());
-        let _ = storage_map.create(leaf_1.key(), leaf_1.clone());
-        let _ = storage_map.create(leaf_2.key(), leaf_2.clone());
-        let _ = storage_map.create(leaf_3.key(), leaf_3.clone());
-        let _ = storage_map.create(leaf_4.key(), leaf_4.clone());
-        let _ = storage_map.create(leaf_5.key(), leaf_5.clone());
-        let _ = storage_map.create(leaf_6.key(), leaf_6.clone());
-        let _ = storage_map.create(node_1.key(), node_1.clone());
-        let _ = storage_map.create(node_5.key(), node_5.clone());
-        let _ = storage_map.create(node_9.key(), node_9.clone());
-        let _ = storage_map.create(node_3.key(), node_3.clone());
-        let _ = storage_map.create(node_11.key(), node_11.clone());
-        let _ = storage_map.create(node_7.key(), node_7.clone());
+        let _ = storage_map.insert(&leaf_1.key(), &leaf_1);
+        let _ = storage_map.insert(&leaf_2.key(), &leaf_2);
+        let _ = storage_map.insert(&leaf_0.key(), &leaf_0);
+        let _ = storage_map.insert(&leaf_3.key(), &leaf_3);
+        let _ = storage_map.insert(&leaf_4.key(), &leaf_4);
+        let _ = storage_map.insert(&leaf_5.key(), &leaf_5);
+        let _ = storage_map.insert(&leaf_6.key(), &leaf_6);
+        let _ = storage_map.insert(&node_1.key(), &node_1);
+        let _ = storage_map.insert(&node_5.key(), &node_5);
+        let _ = storage_map.insert(&node_9.key(), &node_9);
+        let _ = storage_map.insert(&node_3.key(), &node_3);
+        let _ = storage_map.insert(&node_11.key(), &node_11);
+        let _ = storage_map.insert(&node_7.key(), &node_7);
 
         let iter = leaf_0.iter(&mut storage_map);
         let col: Vec<N> = iter.collect();
