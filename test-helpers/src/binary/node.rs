@@ -1,13 +1,19 @@
+use crate::common::position::Position;
+
 #[derive(Clone)]
 pub struct Node<T> {
     next: Option<Box<Node<T>>>,
-    height: u32,
+    position: Position,
     data: T,
 }
 
 impl<T> Node<T> {
-    pub fn new(next: Option<Box<Node<T>>>, height: u32, data: T) -> Self {
-        Self { next, height, data }
+    pub fn new(next: Option<Box<Node<T>>>, position: Position, data: T) -> Self {
+        Self {
+            next,
+            position,
+            data,
+        }
     }
 
     pub fn next(&self) -> &Option<Box<Node<T>>> {
@@ -23,7 +29,11 @@ impl<T> Node<T> {
     }
 
     pub fn height(&self) -> u32 {
-        self.height
+        self.position.height()
+    }
+
+    pub fn position(&self) -> Position {
+        self.position
     }
 
     pub fn data(&self) -> &T {
