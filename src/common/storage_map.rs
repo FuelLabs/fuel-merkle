@@ -18,11 +18,11 @@ impl<Key, Value> StorageMap<Key, Value> {
 
 impl<Key, Value> Storage<Key, Value> for StorageMap<Key, Value>
 where
-    Key: Copy + Hash + Eq,
+    Key: Clone + Hash + Eq,
     Value: Clone,
 {
     fn insert(&mut self, key: &Key, value: &Value) -> Result<Option<Value>, StorageError> {
-        self.map.insert(*key, value.clone());
+        self.map.insert(key.clone(), value.clone());
         Ok(Some(value.clone()))
     }
 
