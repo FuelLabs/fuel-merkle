@@ -58,7 +58,7 @@ where
         self.right_key = key.clone();
     }
 
-    pub fn iter<'storage>(
+    pub fn proof_iter<'storage>(
         &mut self,
         storage: &'storage mut dyn Storage<Key, Self>,
     ) -> ProofIter<'storage, Key> {
@@ -206,31 +206,31 @@ mod test {
         let _ = storage_map.insert(&node_11.key(), &node_11);
         let _ = storage_map.insert(&node_7.key(), &node_7);
 
-        let iter = leaf_0.iter(&mut storage_map);
+        let iter = leaf_0.proof_iter(&mut storage_map);
         let col: Vec<N> = iter.collect();
         assert_eq!(col, vec!(leaf_1.clone(), node_5.clone(), node_11.clone()));
 
-        let iter = leaf_1.iter(&mut storage_map);
+        let iter = leaf_1.proof_iter(&mut storage_map);
         let col: Vec<N> = iter.collect();
         assert_eq!(col, vec!(leaf_0.clone(), node_5.clone(), node_11.clone()));
 
-        let iter = leaf_2.iter(&mut storage_map);
+        let iter = leaf_2.proof_iter(&mut storage_map);
         let col: Vec<N> = iter.collect();
         assert_eq!(col, vec!(leaf_3.clone(), node_1.clone(), node_11.clone()));
 
-        let iter = leaf_3.iter(&mut storage_map);
+        let iter = leaf_3.proof_iter(&mut storage_map);
         let col: Vec<N> = iter.collect();
         assert_eq!(col, vec!(leaf_2.clone(), node_1.clone(), node_11.clone()));
 
-        let iter = leaf_4.iter(&mut storage_map);
+        let iter = leaf_4.proof_iter(&mut storage_map);
         let col: Vec<N> = iter.collect();
         assert_eq!(col, vec!(leaf_5.clone(), leaf_6.clone(), node_3.clone()));
 
-        let iter = leaf_5.iter(&mut storage_map);
+        let iter = leaf_5.proof_iter(&mut storage_map);
         let col: Vec<N> = iter.collect();
         assert_eq!(col, vec!(leaf_4.clone(), leaf_6.clone(), node_3.clone()));
 
-        let iter = leaf_6.iter(&mut storage_map);
+        let iter = leaf_6.proof_iter(&mut storage_map);
         let col: Vec<N> = iter.collect();
         assert_eq!(col, vec!(node_9.clone(), node_3.clone()));
     }
