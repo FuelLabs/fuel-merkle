@@ -1,10 +1,10 @@
 use crate::common::position::Position;
 use crate::common::storage::Storage;
+use crate::proof_set::ProofSet;
 use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::storage_binary::node::Node;
-
-use crate::proof_set::ProofSet;
 use crate::storage_binary::subtree::Subtree;
+
 use std::error::Error;
 
 type DataNode = Node<Data>;
@@ -21,7 +21,7 @@ impl<'storage> MerkleTree<'storage> {
         Self {
             storage,
             head: None,
-            leaves: vec![],
+            leaves: Vec::<DataNode>::default(),
             leaves_count: 0,
         }
     }
@@ -158,7 +158,7 @@ mod test {
 
     const DATA: [&[u8]; 10] = [
         "Frankly, my dear, I don't give a damn.".as_bytes(),
-        "I'm going to make him an offer he can't refuse".as_bytes(),
+        "I'm going to make him an offer he can't refuse.".as_bytes(),
         "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
         "Here's looking at you, kid.".as_bytes(),
         "Go ahead, make my day.".as_bytes(),
