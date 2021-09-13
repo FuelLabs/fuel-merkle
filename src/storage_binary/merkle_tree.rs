@@ -310,62 +310,78 @@ mod test {
             let root = proof.0;
             let set = proof.1;
 
-            let s_1 = set.get(0).unwrap();
-            let s_2 = set.get(1).unwrap();
-            let s_3 = set.get(2).unwrap();
-            let s_4 = set.get(3).unwrap();
+            let s_0 = set.get(0).unwrap();
+            let s_1 = set.get(1).unwrap();
+            let s_2 = set.get(2).unwrap();
+            let s_3 = set.get(3).unwrap();
 
             assert_eq!(root, node_7);
-            assert_eq!(s_1, &leaf_0.data()[..]);
-            assert_eq!(s_2, &leaf_1.data()[..]);
-            assert_eq!(s_3, &node_5.data()[..]);
-            assert_eq!(s_4, &node_11.data()[..]);
+            assert_eq!(s_0, &leaf_0.data()[..]);
+            assert_eq!(s_1, &leaf_1.data()[..]);
+            assert_eq!(s_2, &node_5.data()[..]);
+            assert_eq!(s_3, &node_11.data()[..]);
+        }
+        {
+            let proof = tree.prove(2).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_0 = set.get(0).unwrap();
+            let s_1 = set.get(1).unwrap();
+            let s_2 = set.get(2).unwrap();
+            let s_3 = set.get(3).unwrap();
+
+            assert_eq!(root, node_7);
+            assert_eq!(s_0, &leaf_2.data()[..]);
+            assert_eq!(s_1, &leaf_3.data()[..]);
+            assert_eq!(s_2, &node_1.data()[..]);
+            assert_eq!(s_3, &node_11.data()[..]);
         }
         {
             let proof = tree.prove(4).unwrap();
             let root = proof.0;
             let set = proof.1;
 
-            let s_1 = set.get(0).unwrap();
-            let s_2 = set.get(1).unwrap();
-            let s_3 = set.get(2).unwrap();
-            let s_4 = set.get(3).unwrap();
+            let s_0 = set.get(0).unwrap();
+            let s_1 = set.get(1).unwrap();
+            let s_2 = set.get(2).unwrap();
+            let s_3 = set.get(3).unwrap();
 
             assert_eq!(root, node_7);
-            assert_eq!(s_1, &leaf_4.data()[..]);
-            assert_eq!(s_2, &leaf_5.data()[..]);
-            assert_eq!(s_3, &leaf_6.data()[..]);
-            assert_eq!(s_4, &node_3.data()[..]);
+            assert_eq!(s_0, &leaf_4.data()[..]);
+            assert_eq!(s_1, &leaf_5.data()[..]);
+            assert_eq!(s_2, &leaf_6.data()[..]);
+            assert_eq!(s_3, &node_3.data()[..]);
         }
         {
             let proof = tree.prove(5).unwrap();
             let root = proof.0;
             let set = proof.1;
 
-            let s_1 = set.get(0).unwrap();
-            let s_2 = set.get(1).unwrap();
-            let s_3 = set.get(2).unwrap();
-            let s_4 = set.get(3).unwrap();
+            let s_0 = set.get(0).unwrap();
+            let s_1 = set.get(1).unwrap();
+            let s_2 = set.get(2).unwrap();
+            let s_3 = set.get(3).unwrap();
 
             assert_eq!(root, node_7);
-            assert_eq!(s_1, &leaf_5.data()[..]);
-            assert_eq!(s_2, &leaf_4.data()[..]);
-            assert_eq!(s_3, &leaf_6.data()[..]);
-            assert_eq!(s_4, &node_3.data()[..]);
+            assert_eq!(s_0, &leaf_5.data()[..]);
+            assert_eq!(s_1, &leaf_4.data()[..]);
+            assert_eq!(s_2, &leaf_6.data()[..]);
+            assert_eq!(s_3, &node_3.data()[..]);
         }
         {
             let proof = tree.prove(6).unwrap();
             let root = proof.0;
             let set = proof.1;
 
-            let s_1 = set.get(0).unwrap();
-            let s_2 = set.get(1).unwrap();
-            let s_3 = set.get(2).unwrap();
+            let s_0 = set.get(0).unwrap();
+            let s_1 = set.get(1).unwrap();
+            let s_2 = set.get(2).unwrap();
 
             assert_eq!(root, node_7);
-            assert_eq!(s_1, &leaf_6.data()[..]);
-            assert_eq!(s_2, &node_9.data()[..]);
-            assert_eq!(s_3, &node_3.data()[..]);
+            assert_eq!(s_0, &leaf_6.data()[..]);
+            assert_eq!(s_1, &node_9.data()[..]);
+            assert_eq!(s_2, &node_3.data()[..]);
         }
     }
 }
