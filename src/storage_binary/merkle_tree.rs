@@ -4,48 +4,14 @@ use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::storage_binary::node::Node;
 
 use crate::proof_set::ProofSet;
+use crate::storage_binary::subtree::Subtree;
 use std::error::Error;
 
 type DataNode = Node<Data>;
 
-#[derive(Debug, Clone)]
-pub struct Head<T> {
-    node: T,
-    next: Option<Box<Head<T>>>,
-}
-
-impl<T> Head<T>
-where
-    T: Clone,
-{
-    pub fn new(node: T, next: Option<Box<Head<T>>>) -> Self {
-        Self { node, next }
-    }
-
-    pub fn node(&self) -> T {
-        self.node.clone()
-    }
-
-    pub fn next(&self) -> &Option<Box<Head<T>>> {
-        &self.next
-    }
-
-    pub fn next_node(&self) -> Option<T> {
-        self.next().as_ref().map(|next| next.node())
-    }
-
-    pub fn next_mut(&mut self) -> &mut Option<Box<Head<T>>> {
-        &mut self.next
-    }
-
-    pub fn take_next(&mut self) -> Option<Box<Head<T>>> {
-        self.next_mut().take()
-    }
-}
-
 pub struct MerkleTree<'storage> {
     storage: &'storage mut dyn Storage<Data, DataNode>,
-    head: Option<Box<Head<DataNode>>>,
+    head: Option<Box<Subtree<DataNode>>>,
     leaves: Vec<DataNode>,
     leaves_count: u64,
 }
@@ -89,7 +55,7 @@ impl<'storage> MerkleTree<'storage> {
             proof_set.push(n.key().data());
         }
 
-        Ok((current.unwrap().node.key(), proof_set))
+        Ok((current.unwrap().node().key(), proof_set))
     }
 
     pub fn push(&mut self, data: &[u8]) {
@@ -104,7 +70,7 @@ impl<'storage> MerkleTree<'storage> {
         self.leaves.push(node.clone());
 
         let next = self.head.take();
-        let head = Box::new(Head::<DataNode>::new(node, next));
+        let head = Box::new(Subtree::<DataNode>::new(node, next));
         self.head = Some(head);
         self.join_all_subtrees().expect("Unable to push node!");
 
@@ -139,9 +105,9 @@ impl<'storage> MerkleTree<'storage> {
 
     fn join_subtrees(
         &mut self,
-        lhs: &mut Head<DataNode>,
-        rhs: &mut Head<DataNode>,
-    ) -> Result<Box<Head<DataNode>>, Box<dyn Error>> {
+        lhs: &mut Subtree<DataNode>,
+        rhs: &mut Subtree<DataNode>,
+    ) -> Result<Box<Subtree<DataNode>>, Box<dyn Error>> {
         let mut joined_node = {
             let position = lhs.node().position().parent();
             let node_sum = node_sum(&lhs.node().key().data(), &rhs.node().key().data());
@@ -150,14 +116,14 @@ impl<'storage> MerkleTree<'storage> {
 
         joined_node.set_left_key(Some(lhs.node().key()));
         joined_node.set_right_key(Some(rhs.node().key()));
-        lhs.node.set_parent_key(Some(joined_node.key()));
-        rhs.node.set_parent_key(Some(joined_node.key()));
+        lhs.node_mut().set_parent_key(Some(joined_node.key()));
+        rhs.node_mut().set_parent_key(Some(joined_node.key()));
 
         self.storage.insert(&joined_node.key(), &joined_node)?;
         self.storage.insert(&lhs.node().key(), &lhs.node())?;
         self.storage.insert(&rhs.node().key(), &rhs.node())?;
 
-        let joined_head = Head::new(joined_node, lhs.take_next());
+        let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
     }
 }

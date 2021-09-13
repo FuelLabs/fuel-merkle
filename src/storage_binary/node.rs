@@ -77,7 +77,8 @@ where
     Key: Clone,
 {
     pub fn new(storage: &'storage mut dyn Storage<Key, Node<Key>>, node: &Node<Key>) -> Self {
-        let curr = storage.get(&node.parent_key().unwrap()).unwrap().unwrap();
+        let parent_key = node.parent_key().unwrap();
+        let curr = storage.get(&parent_key).unwrap().unwrap();
         Self {
             storage,
             prev: Some(node.clone()),
