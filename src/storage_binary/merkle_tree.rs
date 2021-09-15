@@ -49,7 +49,7 @@ impl<'storage> MerkleTree<'storage> {
         let key = self.leaves[proof_index as usize].key();
         proof_set.push(key.data());
 
-        let mut node = self.storage.get(&key).unwrap().unwrap();
+        let mut node = self.storage.get(&key)?.unwrap();
         let iter = node.proof_iter(self.storage);
         for n in iter {
             proof_set.push(n.key().data());
