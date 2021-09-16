@@ -304,6 +304,162 @@ mod test {
     }
 
     #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_4_leaves() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..4]; // 4 leaves
+        for datum in data.iter() {
+            tree.push(datum);
+        }
+
+        //       03
+        //      /  \
+        //     /    \
+        //   01      05
+        //  /  \    /  \
+        // 00  02  04  06
+        // 00  01  02  03
+
+        let leaf_0 = leaf_data(&data[0]);
+        let leaf_1 = leaf_data(&data[1]);
+        let leaf_2 = leaf_data(&data[2]);
+        let leaf_3 = leaf_data(&data[3]);
+
+        let node_1 = node_data(&leaf_0.data(), &leaf_1.data());
+        let node_5 = node_data(&leaf_2.data(), &leaf_3.data());
+        let node_3 = node_data(&node_1.data(), &node_5.data());
+
+        {
+            let proof = tree.prove(0).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_3);
+            assert_eq!(set.get(0).unwrap(), &leaf_0.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &leaf_1.data()[..]);
+            assert_eq!(set.get(2).unwrap(), &node_5.data()[..]);
+        }
+        {
+            let proof = tree.prove(1).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_3);
+            assert_eq!(set.get(0).unwrap(), &leaf_1.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &leaf_0.data()[..]);
+            assert_eq!(set.get(2).unwrap(), &node_5.data()[..]);
+        }
+        {
+            let proof = tree.prove(2).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_3);
+            assert_eq!(set.get(0).unwrap(), &leaf_2.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &leaf_3.data()[..]);
+            assert_eq!(set.get(2).unwrap(), &node_1.data()[..]);
+        }
+        {
+            let proof = tree.prove(3).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_3);
+            assert_eq!(set.get(0).unwrap(), &leaf_3.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &leaf_2.data()[..]);
+            assert_eq!(set.get(2).unwrap(), &node_1.data()[..]);
+        }
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_5_leaves() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..5]; // 5 leaves
+        for datum in data.iter() {
+            tree.push(datum);
+        }
+
+        //          07
+        //          /\
+        //         /  \
+        //       03    \
+        //      /  \    \
+        //     /    \    \
+        //   01      05   \
+        //  /  \    /  \   \
+        // 00  02  04  06  08
+        // 00  01  02  03  04
+
+        let leaf_0 = leaf_data(&data[0]);
+        let leaf_1 = leaf_data(&data[1]);
+        let leaf_2 = leaf_data(&data[2]);
+        let leaf_3 = leaf_data(&data[3]);
+        let leaf_4 = leaf_data(&data[4]);
+
+        let node_1 = node_data(&leaf_0.data(), &leaf_1.data());
+        let node_5 = node_data(&leaf_2.data(), &leaf_3.data());
+        let node_3 = node_data(&node_1.data(), &node_5.data());
+        let node_7 = node_data(&node_3.data(), &leaf_4.data());
+
+        {
+            let proof = tree.prove(0).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_7);
+            assert_eq!(set.get(0).unwrap(), &leaf_0.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &leaf_1.data()[..]);
+            assert_eq!(set.get(2).unwrap(), &node_5.data()[..]);
+            assert_eq!(set.get(3).unwrap(), &leaf_4.data()[..]);
+        }
+        {
+            let proof = tree.prove(1).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_7);
+            assert_eq!(set.get(0).unwrap(), &leaf_1.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &leaf_0.data()[..]);
+            assert_eq!(set.get(2).unwrap(), &node_5.data()[..]);
+            assert_eq!(set.get(3).unwrap(), &leaf_4.data()[..]);
+        }
+        {
+            let proof = tree.prove(2).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_7);
+            assert_eq!(set.get(0).unwrap(), &leaf_2.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &leaf_3.data()[..]);
+            assert_eq!(set.get(2).unwrap(), &node_1.data()[..]);
+            assert_eq!(set.get(3).unwrap(), &leaf_4.data()[..]);
+        }
+        {
+            let proof = tree.prove(3).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_7);
+            assert_eq!(set.get(0).unwrap(), &leaf_3.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &leaf_2.data()[..]);
+            assert_eq!(set.get(2).unwrap(), &node_1.data()[..]);
+            assert_eq!(set.get(3).unwrap(), &leaf_4.data()[..]);
+        }
+        {
+            let proof = tree.prove(4).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            assert_eq!(root, node_7);
+            assert_eq!(set.get(0).unwrap(), &leaf_4.data()[..]);
+            assert_eq!(set.get(1).unwrap(), &node_3.data()[..]);
+        }
+    }
+
+    #[test]
     fn prove_returns_the_merkle_root_and_proof_set_for_7_leaves() {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MerkleTree::new(&mut storage_map);

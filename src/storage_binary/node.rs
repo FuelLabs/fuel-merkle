@@ -79,13 +79,11 @@ where
     pub fn new(storage: &'storage mut dyn Storage<Key, Node<Key>>, node: &Node<Key>) -> Self {
         let parent_key = node.parent_key();
         match parent_key {
-            None => {
-                Self {
-                    storage,
-                    prev: Some(node.clone()),
-                    curr: None
-                }
-            }
+            None => Self {
+                storage,
+                prev: Some(node.clone()),
+                curr: None,
+            },
             Some(key) => {
                 let curr = storage.get(&key).unwrap().unwrap();
                 Self {
@@ -95,7 +93,6 @@ where
                 }
             }
         }
-
     }
 }
 
