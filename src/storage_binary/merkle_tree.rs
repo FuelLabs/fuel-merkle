@@ -26,24 +26,27 @@ impl<'storage> MerkleTree<'storage> {
         }
     }
 
+    pub fn root(&mut self) -> Result<Data, Box<dyn Error>> {
+        match self.head {
+            None => Ok(empty_sum().clone()),
+            Some(ref h) => {
+                let mut current = h.clone();
+                while current.next().is_some() {
+                    let mut head = current;
+                    let mut head_next = head.take_next().unwrap();
+                    current = self.join_subtrees(&mut head_next, &mut head)?
+                }
+                Ok(current.node().key())
+            }
+        }
+    }
+
     pub fn prove(&mut self, proof_index: u64) -> Result<(Data, ProofSet), Box<dyn Error>> {
+        let root = self.root()?;
         let mut proof_set = ProofSet::new();
 
-        let mut current = self.head.clone();
-        loop {
-            if !(current.is_some() && current.as_ref().unwrap().next().is_some()) {
-                break;
-            }
-
-            let joined_head = {
-                let mut head = current.take().unwrap();
-                let mut head_next = head.take_next().unwrap();
-                self.join_subtrees(&mut head_next, &mut head)?
-            };
-            self.storage
-                .insert(&joined_head.node().key(), &joined_head.node())?;
-
-            current = Some(joined_head);
+        if proof_index + 1 > self.leaves_count {
+            return Ok((root, proof_set));
         }
 
         let key = self.leaves[proof_index as usize].key();
@@ -55,7 +58,7 @@ impl<'storage> MerkleTree<'storage> {
             proof_set.push(n.key().data());
         }
 
-        Ok((current.unwrap().node().key(), proof_set))
+        Ok((root, proof_set))
     }
 
     pub fn push(&mut self, data: &[u8]) {
@@ -266,6 +269,18 @@ mod test {
     }
 
     #[test]
+    fn prove_returns_the_empty_root_and_empty_set_for_0_leaves() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let proof = tree.prove(0).unwrap();
+        let root = proof.0;
+        let set = proof.1;
+        assert_eq!(root, empty_data());
+        assert_eq!(set.len(), 0);
+    }
+
+    #[test]
     fn prove_returns_the_merkle_root_and_proof_set_for_7_leaves() {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MerkleTree::new(&mut storage_map);
@@ -322,6 +337,22 @@ mod test {
             assert_eq!(s_3, &node_11.data()[..]);
         }
         {
+            let proof = tree.prove(1).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_0 = set.get(0).unwrap();
+            let s_1 = set.get(1).unwrap();
+            let s_2 = set.get(2).unwrap();
+            let s_3 = set.get(3).unwrap();
+
+            assert_eq!(root, node_7);
+            assert_eq!(s_0, &leaf_1.data()[..]);
+            assert_eq!(s_1, &leaf_0.data()[..]);
+            assert_eq!(s_2, &node_5.data()[..]);
+            assert_eq!(s_3, &node_11.data()[..]);
+        }
+        {
             let proof = tree.prove(2).unwrap();
             let root = proof.0;
             let set = proof.1;
@@ -334,6 +365,22 @@ mod test {
             assert_eq!(root, node_7);
             assert_eq!(s_0, &leaf_2.data()[..]);
             assert_eq!(s_1, &leaf_3.data()[..]);
+            assert_eq!(s_2, &node_1.data()[..]);
+            assert_eq!(s_3, &node_11.data()[..]);
+        }
+        {
+            let proof = tree.prove(3).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            let s_0 = set.get(0).unwrap();
+            let s_1 = set.get(1).unwrap();
+            let s_2 = set.get(2).unwrap();
+            let s_3 = set.get(3).unwrap();
+
+            assert_eq!(root, node_7);
+            assert_eq!(s_0, &leaf_3.data()[..]);
+            assert_eq!(s_1, &leaf_2.data()[..]);
             assert_eq!(s_2, &node_1.data()[..]);
             assert_eq!(s_3, &node_11.data()[..]);
         }
