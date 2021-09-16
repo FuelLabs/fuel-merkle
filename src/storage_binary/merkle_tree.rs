@@ -209,8 +209,6 @@ mod test {
         let node_5 = node_data(&leaf_2.data(), &leaf_3.data());
         let node_3 = node_data(&node_1.data(), &node_5.data());
         let node_9 = node_data(&leaf_4.data(), &leaf_5.data());
-        let node_11 = node_data(&node_9.data(), &leaf_6.data());
-        let node_7 = node_data(&node_3.data(), &node_11.data());
 
         let s_leaf_0 = storage_map.get(&leaf_0).unwrap().unwrap();
         assert_eq!(s_leaf_0.left_key(), None);
