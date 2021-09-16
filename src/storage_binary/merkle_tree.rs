@@ -5,7 +5,11 @@ use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::storage_binary::node::Node;
 use crate::storage_binary::subtree::Subtree;
 
-use std::error::Error;
+#[derive(Debug, thiserror::Error)]
+pub enum MerkleTreeError {
+    #[error("proof index {0} is not valid")]
+    InvalidProofIndex(u64)
+}
 
 type DataNode = Node<Data>;
 
@@ -26,7 +30,7 @@ impl<'storage> MerkleTree<'storage> {
         }
     }
 
-    pub fn root(&mut self) -> Result<Data, Box<dyn Error>> {
+    pub fn root(&mut self) -> Result<Data, Box<dyn std::error::Error>> {
         match self.head {
             None => Ok(empty_sum().clone()),
             Some(ref h) => {
@@ -41,13 +45,13 @@ impl<'storage> MerkleTree<'storage> {
         }
     }
 
-    pub fn prove(&mut self, proof_index: u64) -> Result<(Data, ProofSet), Box<dyn Error>> {
+    pub fn prove(&mut self, proof_index: u64) -> Result<(Data, ProofSet), Box<dyn std::error::Error>> {
+        if proof_index + 1 > self.leaves_count {
+            return Err(Box::new(MerkleTreeError::InvalidProofIndex(proof_index)));
+        }
+
         let root = self.root()?;
         let mut proof_set = ProofSet::new();
-
-        if proof_index + 1 > self.leaves_count {
-            return Ok((root, proof_set));
-        }
 
         let key = self.leaves[proof_index as usize].key();
         proof_set.push(key.data());
@@ -84,7 +88,7 @@ impl<'storage> MerkleTree<'storage> {
     // PRIVATE
     //
 
-    fn join_all_subtrees(&mut self) -> Result<(), Box<dyn Error>> {
+    fn join_all_subtrees(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         loop {
             let current = self.head.as_ref().unwrap();
             if !(current.next().is_some()
@@ -110,7 +114,7 @@ impl<'storage> MerkleTree<'storage> {
         &mut self,
         lhs: &mut Subtree<DataNode>,
         rhs: &mut Subtree<DataNode>,
-    ) -> Result<Box<Subtree<DataNode>>, Box<dyn Error>> {
+    ) -> Result<Box<Subtree<DataNode>>, Box<dyn std::error::Error>> {
         let mut joined_node = {
             let position = lhs.node().position().parent();
             let node_sum = node_sum(&lhs.node().key().data(), &rhs.node().key().data());
@@ -267,16 +271,95 @@ mod test {
     }
 
     #[test]
-    fn prove_returns_the_empty_root_and_empty_set_for_0_leaves() {
+    fn root_returns_the_empty_root_for_0_leaves() {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MerkleTree::new(&mut storage_map);
 
-        let proof = tree.prove(0).unwrap();
-        let root = proof.0;
-        let set = proof.1;
-
+        let root = tree.root().unwrap();
         assert_eq!(root, empty_data());
-        assert_eq!(set.len(), 0);
+    }
+
+    #[test]
+    fn root_returns_the_merkle_root_for_1_leaf() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..1]; // 1 leaf
+        for datum in data.iter() {
+            tree.push(datum);
+        }
+
+        let leaf_0 = leaf_data(&data[0]);
+
+        let root = tree.root().unwrap();
+        assert_eq!(root, leaf_0);
+    }
+
+    #[test]
+    fn root_returns_the_merkle_root_for_7_leaves() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..7]; // 7 leaves
+        for datum in data.iter() {
+            tree.push(datum);
+        }
+
+        //               07
+        //              /  \
+        //             /    \
+        //            /      \
+        //           /        \
+        //          /          \
+        //         /            \
+        //       03              11
+        //      /  \            /  \
+        //     /    \          /    \
+        //   01      05       09     \
+        //  /  \    /  \     /  \     \
+        // 00  02  04  06   08  10    12
+        // 00  01  02  03   04  05    06
+
+        let leaf_0 = leaf_data(&data[0]);
+        let leaf_1 = leaf_data(&data[1]);
+        let leaf_2 = leaf_data(&data[2]);
+        let leaf_3 = leaf_data(&data[3]);
+        let leaf_4 = leaf_data(&data[4]);
+        let leaf_5 = leaf_data(&data[5]);
+        let leaf_6 = leaf_data(&data[6]);
+
+        let node_1 = node_data(&leaf_0.data(), &leaf_1.data());
+        let node_5 = node_data(&leaf_2.data(), &leaf_3.data());
+        let node_3 = node_data(&node_1.data(), &node_5.data());
+        let node_9 = node_data(&leaf_4.data(), &leaf_5.data());
+        let node_11 = node_data(&node_9.data(), &leaf_6.data());
+        let node_7 = node_data(&node_3.data(), &node_11.data());
+
+        let root = tree.root().unwrap();
+        assert_eq!(root, node_7);
+    }
+
+    #[test]
+    fn prove_returns_invalid_proof_index_error_for_0_leaves() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let proof = tree.prove(0);
+        assert!(proof.is_err());
+    }
+
+    #[test]
+    fn prove_returns_invalid_proof_index_error_when_index_is_greater_than_number_of_leaves() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let data = &DATA[0..5]; // 5 leaves
+        for datum in data.iter() {
+            tree.push(datum);
+        }
+
+        let proof = tree.prove(10);
+        assert!(proof.is_err());
     }
 
     #[test]
