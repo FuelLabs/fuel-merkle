@@ -31,18 +31,20 @@ impl<'storage> MerkleTree<'storage> {
     }
 
     pub fn root(&mut self) -> Result<Data, Box<dyn std::error::Error>> {
-        match self.head {
-            None => Ok(empty_sum().clone()),
-            Some(ref h) => {
-                let mut current = h.clone();
+        let root = match self.head {
+            None => empty_sum().clone(),
+            Some(ref initial) => {
+                let mut current = initial.clone();
                 while current.next().is_some() {
                     let mut head = current;
                     let mut head_next = head.take_next().unwrap();
                     current = self.join_subtrees(&mut head_next, &mut head)?
                 }
-                Ok(current.node().key())
+                current.node().key()
             }
-        }
+        };
+
+        Ok(root)
     }
 
     pub fn prove(
