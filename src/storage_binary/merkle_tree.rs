@@ -68,23 +68,23 @@ impl<'storage> MerkleTree<'storage> {
         Ok((root, proof_set))
     }
 
-    pub fn push(&mut self, data: &[u8]) {
+    pub fn push(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         let node = {
             let position = Position::from_leaf_index(self.leaves_count);
             let leaf_sum = leaf_sum(data);
             DataNode::new(position, leaf_sum)
         };
-        self.storage
-            .insert(&node.key(), &node)
-            .expect("Unable to push node!");
+        self.storage.insert(&node.key(), &node)?;
         self.leaves.push(node.clone());
 
         let next = self.head.take();
         let head = Box::new(Subtree::<DataNode>::new(node, next));
         self.head = Some(head);
-        self.join_all_subtrees().expect("Unable to push node!");
+        self.join_all_subtrees()?;
 
         self.leaves_count += 1;
+
+        Ok(())
     }
 
     //
@@ -186,7 +186,7 @@ mod test {
 
         let data = &DATA[0..7]; // 7 leaves
         for datum in data.iter() {
-            tree.push(datum);
+            let _ = tree.push(datum);
         }
 
         //               07
@@ -289,7 +289,7 @@ mod test {
 
         let data = &DATA[0..1]; // 1 leaf
         for datum in data.iter() {
-            tree.push(datum);
+            let _ = tree.push(datum);
         }
 
         let leaf_0 = leaf_data(&data[0]);
@@ -305,7 +305,7 @@ mod test {
 
         let data = &DATA[0..7]; // 7 leaves
         for datum in data.iter() {
-            tree.push(datum);
+            let _ = tree.push(datum);
         }
 
         //               07
@@ -358,7 +358,7 @@ mod test {
 
         let data = &DATA[0..5]; // 5 leaves
         for datum in data.iter() {
-            tree.push(datum);
+            let _ = tree.push(datum);
         }
 
         let proof = tree.prove(10);
@@ -372,7 +372,7 @@ mod test {
 
         let data = &DATA[0..1]; // 1 leaf
         for datum in data.iter() {
-            tree.push(datum);
+            let _ = tree.push(datum);
         }
 
         let leaf_0 = leaf_data(&data[0]);
@@ -394,7 +394,7 @@ mod test {
 
         let data = &DATA[0..4]; // 4 leaves
         for datum in data.iter() {
-            tree.push(datum);
+            let _ = tree.push(datum);
         }
 
         //       03
@@ -463,7 +463,7 @@ mod test {
 
         let data = &DATA[0..5]; // 5 leaves
         for datum in data.iter() {
-            tree.push(datum);
+            let _ = tree.push(datum);
         }
 
         //          07
@@ -550,7 +550,7 @@ mod test {
 
         let data = &DATA[0..7]; // 7 leaves
         for datum in data.iter() {
-            tree.push(datum);
+            let _ = tree.push(datum);
         }
 
         //               07
