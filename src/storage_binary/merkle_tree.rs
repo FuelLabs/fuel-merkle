@@ -153,12 +153,14 @@ mod test {
         let hash = Hash::new();
         hash.finalize().try_into().unwrap()
     }
+
     fn leaf_data(data: &[u8]) -> Data {
         let mut hash = Hash::new();
         hash.update(&[LEAF]);
         hash.update(&data);
         hash.finalize().try_into().unwrap()
     }
+
     fn node_data(lhs_data: &[u8], rhs_data: &[u8]) -> Data {
         let mut hash = Hash::new();
         hash.update(&[NODE]);
