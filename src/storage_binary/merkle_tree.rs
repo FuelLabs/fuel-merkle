@@ -8,7 +8,7 @@ use crate::storage_binary::subtree::Subtree;
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
     #[error("proof index {0} is not valid")]
-    InvalidProofIndex(u64)
+    InvalidProofIndex(u64),
 }
 
 type DataNode = Node<Data>;
@@ -45,7 +45,10 @@ impl<'storage> MerkleTree<'storage> {
         }
     }
 
-    pub fn prove(&mut self, proof_index: u64) -> Result<(Data, ProofSet), Box<dyn std::error::Error>> {
+    pub fn prove(
+        &mut self,
+        proof_index: u64,
+    ) -> Result<(Data, ProofSet), Box<dyn std::error::Error>> {
         if proof_index + 1 > self.leaves_count {
             return Err(Box::new(MerkleTreeError::InvalidProofIndex(proof_index)));
         }
