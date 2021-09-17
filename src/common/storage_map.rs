@@ -24,15 +24,15 @@ impl<Key, Value> StorageMap<Key, Value> {
     }
 }
 
-impl<Key, Value> Storage<Key, Value, &Value, StorageError> for StorageMap<Key, Value>
+impl<Key, Value> Storage<Key, Value, Value, StorageError> for StorageMap<Key, Value>
 where
-    Key: Clone + Hash + Eq,
+    Key: Eq + std::hash::Hash + Clone,
     Value: Clone,
 {
     fn insert(&mut self, key: &Key, value: &Value) -> Result<Option<Value>, StorageError> {
         self.map.insert(key.clone(), value.clone());
-        let value = Some(value.clone());
-        Ok(value)
+        let v = Some(value.clone());
+        Ok(v)
     }
 
     fn remove(&mut self, key: &Key) -> Result<Option<Value>, StorageError> {
@@ -40,9 +40,9 @@ where
         Ok(value)
     }
 
-    fn get(&self, key: &Key) -> Result<Option<&Value>, StorageError> {
+    fn get(&self, key: &Key) -> Result<Option<Value>, StorageError> {
         let result = self.map.get(key);
-        Ok(result)
+        Ok(result.cloned())
     }
 
     fn contains_key(&self, key: &Key) -> Result<bool, StorageError> {
