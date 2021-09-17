@@ -1,7 +1,15 @@
-use crate::common::storage::{Storage, StorageError};
+use fuel_data::Storage;
 
 use std::collections::HashMap;
 use std::hash::Hash;
+
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum StorageError {
+    #[error("generic error occurred")]
+    Error(Box<dyn std::error::Error + Send>),
+}
 
 #[derive(Debug)]
 pub struct StorageMap<Key, Value> {
@@ -16,14 +24,15 @@ impl<Key, Value> StorageMap<Key, Value> {
     }
 }
 
-impl<Key, Value> Storage<Key, Value> for StorageMap<Key, Value>
+impl<Key, Value> Storage<Key, Value, &Value, StorageError> for StorageMap<Key, Value>
 where
     Key: Clone + Hash + Eq,
     Value: Clone,
 {
     fn insert(&mut self, key: &Key, value: &Value) -> Result<Option<Value>, StorageError> {
         self.map.insert(key.clone(), value.clone());
-        Ok(Some(value.clone()))
+        let value = Some(value.clone());
+        Ok(value)
     }
 
     fn remove(&mut self, key: &Key) -> Result<Option<Value>, StorageError> {
@@ -31,13 +40,14 @@ where
         Ok(value)
     }
 
-    fn get(&self, key: &Key) -> Result<Option<Value>, StorageError> {
+    fn get(&self, key: &Key) -> Result<Option<&Value>, StorageError> {
         let result = self.map.get(key);
-        Ok(result.cloned())
+        Ok(result)
     }
 
     fn contains_key(&self, key: &Key) -> Result<bool, StorageError> {
-        Ok(self.map.contains_key(key))
+        let contains = self.map.contains_key(key);
+        Ok(contains)
     }
 }
 
