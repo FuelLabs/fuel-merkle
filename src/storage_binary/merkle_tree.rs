@@ -1,5 +1,7 @@
+use fuel_data::Storage;
+
 use crate::common::position::Position;
-use crate::common::storage::Storage;
+use crate::common::storage_map::StorageError;
 use crate::proof_set::ProofSet;
 use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::storage_binary::node::Node;
@@ -14,14 +16,14 @@ pub enum MerkleTreeError {
 type DataNode = Node<Data>;
 
 pub struct MerkleTree<'storage> {
-    storage: &'storage mut dyn Storage<Data, DataNode>,
+    storage: &'storage mut dyn Storage<Data, DataNode, StorageError>,
     head: Option<Box<Subtree<DataNode>>>,
     leaves: Vec<Data>,
     leaves_count: u64,
 }
 
 impl<'storage> MerkleTree<'storage> {
-    pub fn new(storage: &'storage mut dyn Storage<Data, DataNode>) -> Self {
+    pub fn new(storage: &'storage mut dyn Storage<Data, DataNode, StorageError>) -> Self {
         Self {
             storage,
             head: None,
@@ -62,7 +64,7 @@ impl<'storage> MerkleTree<'storage> {
         proof_set.push(&key);
 
         let mut node = self.storage.get(&key)?.unwrap();
-        let iter = node.proof_iter(self.storage);
+        let iter = node.to_mut().proof_iter(self.storage);
         for n in iter {
             proof_set.push(&n.key());
         }

@@ -1,7 +1,8 @@
+use fuel_data::Storage;
 use std::fmt::Debug;
 
 use crate::common::position::Position;
-use crate::common::storage::Storage;
+use crate::common::storage_map::StorageError;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Node<Key> {
@@ -60,14 +61,14 @@ where
 
     pub fn proof_iter<'storage>(
         &mut self,
-        storage: &'storage mut dyn Storage<Key, Self>,
+        storage: &'storage dyn Storage<Key, Self, StorageError>,
     ) -> ProofIter<'storage, Key> {
         ProofIter::new(storage, self)
     }
 }
 
 pub struct ProofIter<'storage, Key> {
-    storage: &'storage mut dyn Storage<Key, Node<Key>>,
+    storage: &'storage dyn Storage<Key, Node<Key>, StorageError>,
     prev: Option<Node<Key>>,
     curr: Option<Node<Key>>,
 }
@@ -76,7 +77,10 @@ impl<'storage, Key> ProofIter<'storage, Key>
 where
     Key: Clone,
 {
-    pub fn new(storage: &'storage mut dyn Storage<Key, Node<Key>>, node: &Node<Key>) -> Self {
+    pub fn new(
+        storage: &'storage dyn Storage<Key, Node<Key>, StorageError>,
+        node: &Node<Key>,
+    ) -> Self {
         let parent_key = node.parent_key();
         match parent_key {
             None => Self {
@@ -89,7 +93,7 @@ where
                 Self {
                     storage,
                     prev: Some(node.clone()),
-                    curr: Some(curr),
+                    curr: Some(curr.into_owned()),
                 }
             }
         }
@@ -113,18 +117,20 @@ where
                     .get(&curr.right_key().unwrap())
                     .unwrap()
                     .unwrap()
+                    .into_owned()
             } else {
                 self.storage
                     .get(&curr.left_key().unwrap())
                     .unwrap()
                     .unwrap()
+                    .into_owned()
             }
         });
 
         self.curr = current
             .as_ref()?
             .parent_key()
-            .map(|key| self.storage.get(&key).unwrap().unwrap());
+            .map(|key| self.storage.get(&key).unwrap().unwrap().into_owned());
         self.prev = current.take();
 
         node
@@ -134,9 +140,9 @@ where
 #[cfg(test)]
 mod test {
     use crate::common::position::Position;
-    use crate::common::storage::Storage;
     use crate::common::storage_map::StorageMap;
     use crate::storage_binary::node::Node;
+    use fuel_data::Storage;
 
     #[test]
     pub fn test_proof_iter() {
