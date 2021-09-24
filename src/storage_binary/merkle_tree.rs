@@ -16,7 +16,7 @@ type DataNode = Node<Data>;
 pub struct MerkleTree<'storage> {
     storage: &'storage mut dyn Storage<Data, DataNode>,
     head: Option<Box<Subtree<DataNode>>>,
-    leaves: Vec<DataNode>,
+    leaves: Vec<Data>,
     leaves_count: u64,
 }
 
@@ -25,7 +25,7 @@ impl<'storage> MerkleTree<'storage> {
         Self {
             storage,
             head: None,
-            leaves: Vec::<DataNode>::default(),
+            leaves: Vec::<Data>::default(),
             leaves_count: 0,
         }
     }
@@ -58,7 +58,7 @@ impl<'storage> MerkleTree<'storage> {
         let root = self.root()?;
         let mut proof_set = ProofSet::new();
 
-        let key = self.leaves[proof_index as usize].key();
+        let key = self.leaves[proof_index as usize];
         proof_set.push(&key);
 
         let mut node = self.storage.get(&key)?.unwrap();
@@ -77,7 +77,7 @@ impl<'storage> MerkleTree<'storage> {
             DataNode::new(position, leaf_sum)
         };
         self.storage.insert(&node.key(), &node)?;
-        self.leaves.push(node.clone());
+        self.leaves.push(node.key());
 
         let next = self.head.take();
         let head = Box::new(Subtree::<DataNode>::new(node, next));
