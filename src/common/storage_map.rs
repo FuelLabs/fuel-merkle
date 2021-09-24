@@ -1,8 +1,8 @@
 use fuel_data::Storage;
 
 use std::collections::HashMap;
-use std::hash::Hash;
 
+use std::borrow::Cow;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -24,7 +24,7 @@ impl<Key, Value> StorageMap<Key, Value> {
     }
 }
 
-impl<Key, Value> Storage<Key, Value, Value, StorageError> for StorageMap<Key, Value>
+impl<Key, Value> Storage<Key, Value, StorageError> for StorageMap<Key, Value>
 where
     Key: Eq + std::hash::Hash + Clone,
     Value: Clone,
@@ -40,9 +40,10 @@ where
         Ok(value)
     }
 
-    fn get(&self, key: &Key) -> Result<Option<Value>, StorageError> {
+    fn get(&self, key: &Key) -> Result<Option<Cow<Value>>, StorageError> {
         let result = self.map.get(key);
-        Ok(result.cloned())
+        let value = result.map(|value| Cow::Borrowed(value));
+        Ok(value)
     }
 
     fn contains_key(&self, key: &Key) -> Result<bool, StorageError> {
@@ -74,7 +75,7 @@ mod test {
         let mut store = StorageMap::<TestKey, TestValue>::new();
         let _ = store.insert(&key, &TestValue(0));
 
-        assert_eq!(store.get(&key).unwrap(), Some(TestValue(0)));
+        assert_eq!(store.get(&key).unwrap(), Some(Cow::Borrowed(&TestValue(0))));
     }
     #[test]
     fn test_get_returns_none_for_invalid_key() {
@@ -93,7 +94,7 @@ mod test {
         let _ = store.insert(&key, &TestValue(0));
         let _ = store.insert(&key, &TestValue(1));
 
-        assert_eq!(store.get(&key).unwrap(), Some(TestValue(1)));
+        assert_eq!(store.get(&key).unwrap(), Some(Cow::Borrowed(&TestValue(1))));
     }
 
     #[test]
