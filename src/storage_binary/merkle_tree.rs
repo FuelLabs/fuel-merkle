@@ -1,12 +1,10 @@
 use fuel_data::Storage;
 
 use crate::common::position::Position;
-// use crate::common::storage_map::StorageError;
 use crate::proof_set::ProofSet;
 use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
 use crate::storage_binary::node::Node;
 use crate::storage_binary::subtree::Subtree;
-use std::error::Error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -25,7 +23,7 @@ pub struct MerkleTree<'storage, StorageError> {
 
 impl<'storage, StorageError> MerkleTree<'storage, StorageError>
 where
-    StorageError: std::error::Error + 'static
+    StorageError: std::error::Error + 'static,
 {
     pub fn new(storage: &'storage mut dyn Storage<Data, DataNode, StorageError>) -> Self {
         Self {

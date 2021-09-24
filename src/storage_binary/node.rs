@@ -2,7 +2,6 @@ use fuel_data::Storage;
 use std::fmt::Debug;
 
 use crate::common::position::Position;
-// use crate::common::storage_map::StorageError;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Node<Key> {
@@ -59,7 +58,7 @@ where
         self.right_key = key.clone();
     }
 
-    pub fn proof_iter<'storage, StorageError: std::error::Error>  (
+    pub fn proof_iter<'storage, StorageError: std::error::Error>(
         &mut self,
         storage: &'storage dyn Storage<Key, Self, StorageError>,
     ) -> ProofIter<'storage, Key, StorageError> {
@@ -76,7 +75,7 @@ pub struct ProofIter<'storage, Key, StorageError> {
 impl<'storage, Key, StorageError> ProofIter<'storage, Key, StorageError>
 where
     Key: Clone,
-    StorageError: std::error::Error
+    StorageError: std::error::Error,
 {
     pub fn new(
         storage: &'storage dyn Storage<Key, Node<Key>, StorageError>,
@@ -104,7 +103,7 @@ where
 impl<'storage, Key, StorageError> Iterator for ProofIter<'storage, Key, StorageError>
 where
     Key: Clone + std::cmp::PartialEq,
-    StorageError: std::error::Error
+    StorageError: std::error::Error,
 {
     type Item = Node<Key>;
 
