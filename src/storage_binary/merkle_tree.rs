@@ -155,7 +155,7 @@ mod test {
     const NODE: u8 = 0x01;
     const LEAF: u8 = 0x00;
 
-    type MT<'a> = MerkleTree<'a, StorageMapError>;
+    type MT<'a> = MerkleTree<'a, StorageError>;
 
     fn empty_data() -> Data {
         let hash = Hash::new();
