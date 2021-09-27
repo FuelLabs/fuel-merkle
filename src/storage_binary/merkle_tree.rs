@@ -147,7 +147,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::common::storage_map::{StorageMap, StorageMapError};
+    use crate::common::storage_map::{StorageMap, StorageError};
     use crate::storage_binary::hash::Hash;
     use digest::Digest;
     use std::convert::TryInto;
