@@ -1,6 +1,7 @@
-use crate::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
-use crate::binary::node::Node;
-use crate::proof_set::ProofSet;
+use crate::helpers::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
+use crate::helpers::binary::node::Node;
+
+use fuel_merkle::proof_set::ProofSet;
 
 type DataNode = Node<Data>;
 
@@ -136,51 +137,16 @@ impl MerkleTree {
 #[cfg(test)]
 mod test {
     use super::*;
-    use digest::Digest;
-    use sha2::Sha256;
-
-    const NODE: u8 = 0x01;
-    const LEAF: u8 = 0x00;
-
-    fn empty_data() -> Data {
-        let hash = Sha256::new();
-        hash.finalize()
-    }
-
-    fn leaf_data(data: &[u8]) -> Data {
-        let mut hash = Sha256::new();
-        hash.update(&[LEAF]);
-        hash.update(&data);
-        hash.finalize()
-    }
-    fn node_data(lhs_data: &[u8], rhs_data: &[u8]) -> Data {
-        let mut hash = Sha256::new();
-        hash.update(&[NODE]);
-        hash.update(&lhs_data);
-        hash.update(&rhs_data);
-        hash.finalize()
-    }
-
-    const DATA: [&[u8]; 10] = [
-        "Frankly, my dear, I don't give a damn.".as_bytes(),
-        "I'm going to make him an offer he can't refuse".as_bytes(),
-        "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
-        "Here's looking at you, kid.".as_bytes(),
-        "Go ahead, make my day.".as_bytes(),
-        "May the Force be with you.".as_bytes(),
-        "You talking to me?".as_bytes(),
-        "What we've got here is failure to communicate.".as_bytes(),
-        "I love the smell of napalm in the morning.".as_bytes(),
-        "Love means never having to say you're sorry.".as_bytes(),
-    ];
+    use crate::helpers::binary::hash::{empty_sum, leaf_sum, node_sum};
+    use crate::helpers::test_data::DATA;
 
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
         let mt = MerkleTree::new();
         let root = mt.root();
 
-        let expected = empty_data();
-        assert_eq!(root, expected);
+        let expected = empty_sum();
+        assert_eq!(&root, expected);
     }
 
     #[test]
@@ -191,7 +157,7 @@ mod test {
         mt.push(&data);
         let root = mt.root();
 
-        let expected = leaf_data(&data);
+        let expected = leaf_sum(&data);
         assert_eq!(root, expected);
     }
 
@@ -212,14 +178,14 @@ mod test {
         //  /  \    /  \
         // L1  L2  L3  L4
 
-        let leaf_1 = leaf_data(&data[0]);
-        let leaf_2 = leaf_data(&data[1]);
-        let leaf_3 = leaf_data(&data[2]);
-        let leaf_4 = leaf_data(&data[3]);
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
 
-        let node_1 = node_data(&leaf_1, &leaf_2);
-        let node_2 = node_data(&leaf_3, &leaf_4);
-        let node_3 = node_data(&node_1, &node_2);
+        let node_1 = node_sum(&leaf_1, &leaf_2);
+        let node_2 = node_sum(&leaf_3, &leaf_4);
+        let node_3 = node_sum(&node_1, &node_2);
 
         let expected = node_3;
         assert_eq!(root, expected);
@@ -244,16 +210,16 @@ mod test {
         //  /  \    /  \   \
         // L1  L2  L3  L4  L5
 
-        let leaf_1 = leaf_data(&data[0]);
-        let leaf_2 = leaf_data(&data[1]);
-        let leaf_3 = leaf_data(&data[2]);
-        let leaf_4 = leaf_data(&data[3]);
-        let leaf_5 = leaf_data(&data[4]);
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
+        let leaf_5 = leaf_sum(&data[4]);
 
-        let node_1 = node_data(&leaf_1, &leaf_2);
-        let node_2 = node_data(&leaf_3, &leaf_4);
-        let node_3 = node_data(&node_1, &node_2);
-        let node_4 = node_data(&node_3, &leaf_5);
+        let node_1 = node_sum(&leaf_1, &leaf_2);
+        let node_2 = node_sum(&leaf_3, &leaf_4);
+        let node_3 = node_sum(&node_1, &node_2);
+        let node_4 = node_sum(&node_3, &leaf_5);
 
         let expected = node_4;
         assert_eq!(root, expected);
@@ -279,20 +245,20 @@ mod test {
         //  /  \    /  \    /  \   \
         // L1  L2  L3  L4  L5  L6  L7
 
-        let leaf_1 = leaf_data(&data[0]);
-        let leaf_2 = leaf_data(&data[1]);
-        let leaf_3 = leaf_data(&data[2]);
-        let leaf_4 = leaf_data(&data[3]);
-        let leaf_5 = leaf_data(&data[4]);
-        let leaf_6 = leaf_data(&data[5]);
-        let leaf_7 = leaf_data(&data[6]);
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
+        let leaf_5 = leaf_sum(&data[4]);
+        let leaf_6 = leaf_sum(&data[5]);
+        let leaf_7 = leaf_sum(&data[6]);
 
-        let node_1 = node_data(&leaf_1, &leaf_2);
-        let node_2 = node_data(&leaf_3, &leaf_4);
-        let node_3 = node_data(&leaf_5, &leaf_6);
-        let node_4 = node_data(&node_1, &node_2);
-        let node_5 = node_data(&node_3, &leaf_7);
-        let node_6 = node_data(&node_4, &node_5);
+        let node_1 = node_sum(&leaf_1, &leaf_2);
+        let node_2 = node_sum(&leaf_3, &leaf_4);
+        let node_3 = node_sum(&leaf_5, &leaf_6);
+        let node_4 = node_sum(&node_1, &node_2);
+        let node_5 = node_sum(&node_3, &leaf_7);
+        let node_6 = node_sum(&node_4, &node_5);
 
         let expected = node_6;
         assert_eq!(root, expected);
@@ -331,14 +297,14 @@ mod test {
         //  /  \    /  \
         // L1  L2  L3  L4
 
-        let leaf_1 = leaf_data(&data[0]);
-        let leaf_2 = leaf_data(&data[1]);
-        let leaf_3 = leaf_data(&data[2]);
-        let leaf_4 = leaf_data(&data[3]);
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
 
-        let node_1 = node_data(&leaf_1, &leaf_2);
-        let node_2 = node_data(&leaf_3, &leaf_4);
-        let node_3 = node_data(&node_1, &node_2);
+        let node_1 = node_sum(&leaf_1, &leaf_2);
+        let node_2 = node_sum(&leaf_3, &leaf_4);
+        let node_3 = node_sum(&node_1, &node_2);
 
         let s_1 = set.get(0).unwrap();
         let s_2 = set.get(1).unwrap();
@@ -371,16 +337,16 @@ mod test {
         //  /  \    /  \   \
         // L1  L2  L3  L4  L5
 
-        let leaf_1 = leaf_data(&data[0]);
-        let leaf_2 = leaf_data(&data[1]);
-        let leaf_3 = leaf_data(&data[2]);
-        let leaf_4 = leaf_data(&data[3]);
-        let leaf_5 = leaf_data(&data[4]);
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
+        let leaf_5 = leaf_sum(&data[4]);
 
-        let node_1 = node_data(&leaf_1, &leaf_2);
-        let node_2 = node_data(&leaf_3, &leaf_4);
-        let node_3 = node_data(&node_1, &node_2);
-        let node_4 = node_data(&node_3, &leaf_5);
+        let node_1 = node_sum(&leaf_1, &leaf_2);
+        let node_2 = node_sum(&leaf_3, &leaf_4);
+        let node_3 = node_sum(&node_1, &node_2);
+        let node_4 = node_sum(&node_3, &leaf_5);
 
         let s_1 = set.get(0).unwrap();
         let s_2 = set.get(1).unwrap();
@@ -417,16 +383,16 @@ mod test {
         //  /  \    /  \   \
         // L1  L2  L3  L4  L5
 
-        let leaf_1 = leaf_data(&data[0]);
-        let leaf_2 = leaf_data(&data[1]);
-        let leaf_3 = leaf_data(&data[2]);
-        let leaf_4 = leaf_data(&data[3]);
-        let leaf_5 = leaf_data(&data[4]);
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
+        let leaf_5 = leaf_sum(&data[4]);
 
-        let node_1 = node_data(&leaf_1, &leaf_2);
-        let node_2 = node_data(&leaf_3, &leaf_4);
-        let node_3 = node_data(&node_1, &node_2);
-        let node_4 = node_data(&node_3, &leaf_5);
+        let node_1 = node_sum(&leaf_1, &leaf_2);
+        let node_2 = node_sum(&leaf_3, &leaf_4);
+        let node_3 = node_sum(&node_1, &node_2);
+        let node_4 = node_sum(&node_3, &leaf_5);
 
         let s_1 = set.get(0).unwrap();
         let s_2 = set.get(1).unwrap();
@@ -443,8 +409,8 @@ mod test {
         let proof = mt.prove();
         let root = proof.0;
 
-        let expected_root = empty_data();
-        assert_eq!(root, expected_root);
+        let expected_root = empty_sum();
+        assert_eq!(&root, expected_root);
     }
 
     #[test]

@@ -1,5 +1,6 @@
-use crate::binary::hash::{leaf_sum, node_sum, Data};
-use crate::proof_set::ProofSet;
+use crate::helpers::binary::hash::{leaf_sum, node_sum, Data};
+
+use fuel_merkle::proof_set::ProofSet;
 
 pub fn verify(root: &Data, proof_set: ProofSet, proof_index: u64, num_leaves: u64) -> bool {
     if proof_index >= num_leaves {
@@ -61,20 +62,8 @@ pub fn verify(root: &Data, proof_set: ProofSet, proof_index: u64, num_leaves: u6
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::binary::merkle_tree::MerkleTree;
-
-    const DATA: [&[u8]; 10] = [
-        "Frankly, my dear, I don't give a damn.".as_bytes(),
-        "I'm going to make him an offer he can't refuse".as_bytes(),
-        "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
-        "Here's looking at you, kid.".as_bytes(),
-        "Go ahead, make my day.".as_bytes(),
-        "May the Force be with you.".as_bytes(),
-        "You talking to me?".as_bytes(),
-        "What we've got here is failure to communicate.".as_bytes(),
-        "I love the smell of napalm in the morning.".as_bytes(),
-        "Love means never having to say you're sorry.".as_bytes(),
-    ];
+    use crate::helpers::binary::merkle_tree::MerkleTree;
+    use crate::helpers::test_data::DATA;
 
     #[test]
     fn verify_returns_true_when_the_given_proof_set_matches_the_given_merkle_root() {
