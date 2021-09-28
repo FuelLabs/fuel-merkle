@@ -61,7 +61,7 @@ pub fn verify(root: &Data, proof_set: ProofSet, proof_index: u64, num_leaves: u6
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use super::verify;
     use crate::helpers::binary::merkle_tree::MerkleTree;
     use crate::helpers::test_data::DATA;
 

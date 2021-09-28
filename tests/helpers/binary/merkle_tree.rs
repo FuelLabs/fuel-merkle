@@ -136,7 +136,7 @@ impl MerkleTree {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use super::MerkleTree;
     use crate::helpers::binary::hash::{empty_sum, leaf_sum, node_sum};
     use crate::helpers::test_data::DATA;
 
