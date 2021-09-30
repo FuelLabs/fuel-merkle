@@ -1,4 +1,4 @@
-use fuel_data::Storage;
+use fuel_storage::Storage;
 
 use crate::common::position::Position;
 use crate::proof_set::ProofSet;
@@ -15,7 +15,7 @@ pub enum MerkleTreeError {
 type DataNode = Node<Data>;
 
 pub struct MerkleTree<'storage, StorageError> {
-    storage: &'storage mut dyn Storage<Data, DataNode, StorageError>,
+    storage: &'storage mut dyn Storage<Data, DataNode, Error = StorageError>,
     head: Option<Box<Subtree<DataNode>>>,
     leaves: Vec<Data>,
     leaves_count: u64,
@@ -25,7 +25,7 @@ impl<'storage, StorageError> MerkleTree<'storage, StorageError>
 where
     StorageError: std::error::Error + 'static,
 {
-    pub fn new(storage: &'storage mut dyn Storage<Data, DataNode, StorageError>) -> Self {
+    pub fn new(storage: &'storage mut dyn Storage<Data, DataNode, Error = StorageError>) -> Self {
         Self {
             storage,
             head: None,

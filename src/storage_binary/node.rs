@@ -1,4 +1,4 @@
-use fuel_data::Storage;
+use fuel_storage::Storage;
 use std::fmt::Debug;
 
 use crate::common::position::Position;
@@ -60,14 +60,14 @@ where
 
     pub fn proof_iter<'storage, StorageError: std::error::Error>(
         &mut self,
-        storage: &'storage dyn Storage<Key, Self, StorageError>,
+        storage: &'storage dyn Storage<Key, Self, Error = StorageError>,
     ) -> ProofIter<'storage, Key, StorageError> {
         ProofIter::new(storage, self)
     }
 }
 
 pub struct ProofIter<'storage, Key, StorageError> {
-    storage: &'storage dyn Storage<Key, Node<Key>, StorageError>,
+    storage: &'storage dyn Storage<Key, Node<Key>, Error = StorageError>,
     prev: Option<Node<Key>>,
     curr: Option<Node<Key>>,
 }
@@ -78,7 +78,7 @@ where
     StorageError: std::error::Error,
 {
     pub fn new(
-        storage: &'storage dyn Storage<Key, Node<Key>, StorageError>,
+        storage: &'storage dyn Storage<Key, Node<Key>, Error = StorageError>,
         node: &Node<Key>,
     ) -> Self {
         let parent_key = node.parent_key();
@@ -143,7 +143,7 @@ mod test {
     use crate::common::position::Position;
     use crate::common::storage_map::StorageMap;
     use crate::storage_binary::node::Node;
-    use fuel_data::Storage;
+    use fuel_storage::Storage;
 
     #[test]
     pub fn test_proof_iter() {
