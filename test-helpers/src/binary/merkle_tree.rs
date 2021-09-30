@@ -1,7 +1,5 @@
-use crate::helpers::binary::hash::{empty_sum, leaf_sum, node_sum, Data};
-use crate::helpers::binary::node::Node;
-
-use fuel_merkle::proof_set::ProofSet;
+use crate::binary::{empty_sum, leaf_sum, node_sum, Data, Node};
+use crate::common::ProofSet;
 
 type DataNode = Node<Data>;
 
@@ -50,7 +48,7 @@ impl MerkleTree {
 
     pub fn push(&mut self, data: &[u8]) {
         if self.leaves_count == self.proof_index {
-            self.proof_set.push(data);
+            self.proof_set.push(&leaf_sum(data));
         }
 
         let node = Self::create_node(self.head.take(), 0, leaf_sum(data));
@@ -137,8 +135,8 @@ impl MerkleTree {
 #[cfg(test)]
 mod test {
     use super::MerkleTree;
-    use crate::helpers::binary::hash::{empty_sum, leaf_sum, node_sum};
-    use crate::helpers::test_data::DATA;
+    use crate::binary::{empty_sum, leaf_sum, node_sum};
+    use crate::TEST_DATA;
 
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
@@ -153,7 +151,7 @@ mod test {
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
         let mut mt = MerkleTree::new();
 
-        let data = &DATA[0];
+        let data = &TEST_DATA[0];
         mt.push(&data);
         let root = mt.root();
 
@@ -165,7 +163,7 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
         let mut mt = MerkleTree::new();
 
-        let data = &DATA[0..4]; // 4 leaves
+        let data = &TEST_DATA[0..4]; // 4 leaves
         for datum in data.iter() {
             mt.push(datum);
         }
@@ -195,7 +193,7 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
         let mut mt = MerkleTree::new();
 
-        let data = &DATA[0..5]; // 5 leaves
+        let data = &TEST_DATA[0..5]; // 5 leaves
         for datum in data.iter() {
             mt.push(datum);
         }
@@ -229,7 +227,7 @@ mod test {
     fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
         let mut mt = MerkleTree::new();
 
-        let data = &DATA[0..7]; // 7 leaves
+        let data = &TEST_DATA[0..7]; // 7 leaves
         for datum in data.iter() {
             mt.push(datum);
         }
@@ -268,7 +266,7 @@ mod test {
     fn leaves_count_returns_the_number_of_leaves_pushed_to_the_tree() {
         let mut mt = MerkleTree::new();
 
-        let data = &DATA[0..4];
+        let data = &TEST_DATA[0..4];
         for datum in data.iter() {
             mt.push(datum);
         }
@@ -281,7 +279,7 @@ mod test {
         let mut mt = MerkleTree::new();
         mt.set_proof_index(0);
 
-        let data = &DATA[0..4]; // 4 leaves
+        let data = &TEST_DATA[0..4]; // 4 leaves
         for datum in data.iter() {
             mt.push(datum);
         }
@@ -310,8 +308,8 @@ mod test {
         let s_2 = set.get(1).unwrap();
 
         assert_eq!(root, node_3);
-        assert_eq!(s_1, data[0]);
-        assert_eq!(s_2, &leaf_2[..]);
+        assert_eq!(s_1, leaf_1);
+        assert_eq!(s_2, leaf_2);
     }
 
     #[test]
@@ -319,7 +317,7 @@ mod test {
         let mut mt = MerkleTree::new();
         mt.set_proof_index(2);
 
-        let data = &DATA[0..5]; // 5 leaves
+        let data = &TEST_DATA[0..5]; // 5 leaves
         for datum in data.iter() {
             mt.push(datum);
         }
@@ -354,10 +352,10 @@ mod test {
         let s_4 = set.get(3).unwrap();
 
         assert_eq!(root, node_4);
-        assert_eq!(s_1, data[2]);
-        assert_eq!(s_2, &leaf_4[..]);
-        assert_eq!(s_3, &node_1[..]);
-        assert_eq!(s_4, &leaf_5[..]);
+        assert_eq!(s_1, leaf_3);
+        assert_eq!(s_2, leaf_4);
+        assert_eq!(s_3, node_1);
+        assert_eq!(s_4, leaf_5);
     }
 
     #[test]
@@ -365,7 +363,7 @@ mod test {
         let mut mt = MerkleTree::new();
         mt.set_proof_index(4);
 
-        let data = &DATA[0..5]; // 5 leaves
+        let data = &TEST_DATA[0..5]; // 5 leaves
         for datum in data.iter() {
             mt.push(datum);
         }
@@ -398,8 +396,8 @@ mod test {
         let s_2 = set.get(1).unwrap();
 
         assert_eq!(root, node_4);
-        assert_eq!(s_1, data[4]);
-        assert_eq!(s_2, &node_3[..]);
+        assert_eq!(s_1, leaf_5);
+        assert_eq!(s_2, node_3);
     }
 
     #[test]
