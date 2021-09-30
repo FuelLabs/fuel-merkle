@@ -1,7 +1,7 @@
-use std::convert::TryInto;
 use digest::Digest;
 use lazy_static::lazy_static;
 use sha2::Sha256 as Hash;
+use std::convert::TryInto;
 
 pub type Data = [u8; 32];
 

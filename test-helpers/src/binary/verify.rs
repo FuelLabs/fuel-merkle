@@ -11,7 +11,7 @@ pub fn verify(root: &Data, proof_set: ProofSet, proof_index: u64, num_leaves: u6
     }
 
     let mut height = 0usize;
-    let mut sum  = proof_set.get(height).unwrap();
+    let mut sum = proof_set.get(height).unwrap();
     height += 1;
 
     let mut stable_end = proof_index;
