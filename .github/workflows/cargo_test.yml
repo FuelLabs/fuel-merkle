@@ -53,3 +53,9 @@ jobs:
       with:
         command: test
         args: --verbose
+
+    - name: Run helper tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test -p fuel-merkle-helper-tests
+        args: --verbose
