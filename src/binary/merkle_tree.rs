@@ -34,7 +34,7 @@ where
 
     pub fn root(&mut self) -> Result<Data, Box<dyn std::error::Error>> {
         let root = match self.head {
-            None => empty_sum().clone(),
+            None => *empty_sum(),
             Some(ref initial) => {
                 let mut current = initial.clone();
                 while current.next().is_some() {
@@ -134,8 +134,8 @@ where
         rhs.node_mut().set_parent_key(Some(joined_node.key()));
 
         self.storage.insert(&joined_node.key(), &joined_node)?;
-        self.storage.insert(&lhs.node().key(), &lhs.node())?;
-        self.storage.insert(&rhs.node().key(), &rhs.node())?;
+        self.storage.insert(&lhs.node().key(), lhs.node())?;
+        self.storage.insert(&rhs.node().key(), rhs.node())?;
 
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))

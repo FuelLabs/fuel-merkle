@@ -47,15 +47,15 @@ where
     }
 
     pub fn set_parent_key(&mut self, key: Option<Key>) {
-        self.parent_key = key.clone();
+        self.parent_key = key;
     }
 
     pub fn set_left_key(&mut self, key: Option<Key>) {
-        self.left_key = key.clone();
+        self.left_key = key;
     }
 
     pub fn set_right_key(&mut self, key: Option<Key>) {
-        self.right_key = key.clone();
+        self.right_key = key;
     }
 
     pub fn proof_iter<'storage, StorageError: std::error::Error>(
