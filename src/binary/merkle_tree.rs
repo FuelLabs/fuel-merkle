@@ -1,10 +1,8 @@
 use fuel_storage::Storage;
 
-use crate::common::position::Position;
+use crate::binary::{empty_sum, leaf_sum, node_sum, Data, Node, Subtree};
+use crate::common::Position;
 use crate::proof_set::ProofSet;
-use crate::storage_binary::hash::{empty_sum, leaf_sum, node_sum, Data};
-use crate::storage_binary::node::Node;
-use crate::storage_binary::subtree::Subtree;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -146,56 +144,20 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::common::storage_map::{StorageError, StorageMap};
-    use crate::storage_binary::hash::Hash;
-    use digest::Digest;
-    use std::convert::TryInto;
+    use super::{MerkleTree, Storage};
+    use crate::binary::{empty_sum, leaf_sum, node_sum, Data, Node};
+    use crate::common::{StorageError, StorageMap};
+    use fuel_merkle_test_helpers::TEST_DATA;
 
-    const NODE: u8 = 0x01;
-    const LEAF: u8 = 0x00;
-
+    type DataNode = Node<Data>;
     type MT<'a> = MerkleTree<'a, StorageError>;
-
-    fn empty_data() -> Data {
-        let hash = Hash::new();
-        hash.finalize().try_into().unwrap()
-    }
-
-    fn leaf_data(data: &[u8]) -> Data {
-        let mut hash = Hash::new();
-        hash.update(&[LEAF]);
-        hash.update(&data);
-        hash.finalize().try_into().unwrap()
-    }
-
-    fn node_data(lhs_data: &[u8], rhs_data: &[u8]) -> Data {
-        let mut hash = Hash::new();
-        hash.update(&[NODE]);
-        hash.update(&lhs_data);
-        hash.update(&rhs_data);
-        hash.finalize().try_into().unwrap()
-    }
-
-    const DATA: [&[u8]; 10] = [
-        "Frankly, my dear, I don't give a damn.".as_bytes(),
-        "I'm going to make him an offer he can't refuse.".as_bytes(),
-        "Toto, I've got a feeling we're not in Kansas anymore.".as_bytes(),
-        "Here's looking at you, kid.".as_bytes(),
-        "Go ahead, make my day.".as_bytes(),
-        "May the Force be with you.".as_bytes(),
-        "You talking to me?".as_bytes(),
-        "What we've got here is failure to communicate.".as_bytes(),
-        "I love the smell of napalm in the morning.".as_bytes(),
-        "Love means never having to say you're sorry.".as_bytes(),
-    ];
 
     #[test]
     fn test_push_builds_internal_tree_structure() {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
-        let data = &DATA[0..7]; // 7 leaves
+        let data = &TEST_DATA[0..7]; // 7 leaves
         for datum in data.iter() {
             let _ = tree.push(datum);
         }
@@ -215,18 +177,18 @@ mod test {
         // 00  02  04  06   08  10    12
         // 00  01  02  03   04  05    06
 
-        let leaf_0 = leaf_data(&data[0]);
-        let leaf_1 = leaf_data(&data[1]);
-        let leaf_2 = leaf_data(&data[2]);
-        let leaf_3 = leaf_data(&data[3]);
-        let leaf_4 = leaf_data(&data[4]);
-        let leaf_5 = leaf_data(&data[5]);
-        let leaf_6 = leaf_data(&data[6]);
+        let leaf_0 = leaf_sum(&data[0]);
+        let leaf_1 = leaf_sum(&data[1]);
+        let leaf_2 = leaf_sum(&data[2]);
+        let leaf_3 = leaf_sum(&data[3]);
+        let leaf_4 = leaf_sum(&data[4]);
+        let leaf_5 = leaf_sum(&data[5]);
+        let leaf_6 = leaf_sum(&data[6]);
 
-        let node_1 = node_data(&leaf_0, &leaf_1);
-        let node_5 = node_data(&leaf_2, &leaf_3);
-        let node_3 = node_data(&node_1, &node_5);
-        let node_9 = node_data(&leaf_4, &leaf_5);
+        let node_1 = node_sum(&leaf_0, &leaf_1);
+        let node_5 = node_sum(&leaf_2, &leaf_3);
+        let node_3 = node_sum(&node_1, &node_5);
+        let node_9 = node_sum(&leaf_4, &leaf_5);
 
         let s_leaf_0 = storage_map.get(&leaf_0).unwrap().unwrap();
         assert_eq!(s_leaf_0.left_key(), None);
@@ -290,7 +252,7 @@ mod test {
         let mut tree = MT::new(&mut storage_map);
 
         let root = tree.root().unwrap();
-        assert_eq!(root, empty_data());
+        assert_eq!(root, empty_sum().clone());
     }
 
     #[test]
@@ -298,12 +260,12 @@ mod test {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
-        let data = &DATA[0..1]; // 1 leaf
+        let data = &TEST_DATA[0..1]; // 1 leaf
         for datum in data.iter() {
             let _ = tree.push(datum);
         }
 
-        let leaf_0 = leaf_data(&data[0]);
+        let leaf_0 = leaf_sum(&data[0]);
 
         let root = tree.root().unwrap();
         assert_eq!(root, leaf_0);
@@ -314,7 +276,7 @@ mod test {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
-        let data = &DATA[0..7]; // 7 leaves
+        let data = &TEST_DATA[0..7]; // 7 leaves
         for datum in data.iter() {
             let _ = tree.push(datum);
         }
@@ -334,20 +296,20 @@ mod test {
         // 00  02  04  06   08  10    12
         // 00  01  02  03   04  05    06
 
-        let leaf_0 = leaf_data(&data[0]);
-        let leaf_1 = leaf_data(&data[1]);
-        let leaf_2 = leaf_data(&data[2]);
-        let leaf_3 = leaf_data(&data[3]);
-        let leaf_4 = leaf_data(&data[4]);
-        let leaf_5 = leaf_data(&data[5]);
-        let leaf_6 = leaf_data(&data[6]);
+        let leaf_0 = leaf_sum(&data[0]);
+        let leaf_1 = leaf_sum(&data[1]);
+        let leaf_2 = leaf_sum(&data[2]);
+        let leaf_3 = leaf_sum(&data[3]);
+        let leaf_4 = leaf_sum(&data[4]);
+        let leaf_5 = leaf_sum(&data[5]);
+        let leaf_6 = leaf_sum(&data[6]);
 
-        let node_1 = node_data(&leaf_0, &leaf_1);
-        let node_5 = node_data(&leaf_2, &leaf_3);
-        let node_3 = node_data(&node_1, &node_5);
-        let node_9 = node_data(&leaf_4, &leaf_5);
-        let node_11 = node_data(&node_9, &leaf_6);
-        let node_7 = node_data(&node_3, &node_11);
+        let node_1 = node_sum(&leaf_0, &leaf_1);
+        let node_5 = node_sum(&leaf_2, &leaf_3);
+        let node_3 = node_sum(&node_1, &node_5);
+        let node_9 = node_sum(&leaf_4, &leaf_5);
+        let node_11 = node_sum(&node_9, &leaf_6);
+        let node_7 = node_sum(&node_3, &node_11);
 
         let root = tree.root().unwrap();
         assert_eq!(root, node_7);
@@ -367,7 +329,7 @@ mod test {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
-        let data = &DATA[0..5]; // 5 leaves
+        let data = &TEST_DATA[0..5]; // 5 leaves
         for datum in data.iter() {
             let _ = tree.push(datum);
         }
@@ -381,12 +343,12 @@ mod test {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
-        let data = &DATA[0..1]; // 1 leaf
+        let data = &TEST_DATA[0..1]; // 1 leaf
         for datum in data.iter() {
             let _ = tree.push(datum);
         }
 
-        let leaf_0 = leaf_data(&data[0]);
+        let leaf_0 = leaf_sum(&data[0]);
 
         {
             let proof = tree.prove(0).unwrap();
@@ -403,7 +365,7 @@ mod test {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
-        let data = &DATA[0..4]; // 4 leaves
+        let data = &TEST_DATA[0..4]; // 4 leaves
         for datum in data.iter() {
             let _ = tree.push(datum);
         }
@@ -416,14 +378,14 @@ mod test {
         // 00  02  04  06
         // 00  01  02  03
 
-        let leaf_0 = leaf_data(&data[0]);
-        let leaf_1 = leaf_data(&data[1]);
-        let leaf_2 = leaf_data(&data[2]);
-        let leaf_3 = leaf_data(&data[3]);
+        let leaf_0 = leaf_sum(&data[0]);
+        let leaf_1 = leaf_sum(&data[1]);
+        let leaf_2 = leaf_sum(&data[2]);
+        let leaf_3 = leaf_sum(&data[3]);
 
-        let node_1 = node_data(&leaf_0, &leaf_1);
-        let node_5 = node_data(&leaf_2, &leaf_3);
-        let node_3 = node_data(&node_1, &node_5);
+        let node_1 = node_sum(&leaf_0, &leaf_1);
+        let node_5 = node_sum(&leaf_2, &leaf_3);
+        let node_3 = node_sum(&node_1, &node_5);
 
         {
             let proof = tree.prove(0).unwrap();
@@ -472,7 +434,7 @@ mod test {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
-        let data = &DATA[0..5]; // 5 leaves
+        let data = &TEST_DATA[0..5]; // 5 leaves
         for datum in data.iter() {
             let _ = tree.push(datum);
         }
@@ -488,16 +450,16 @@ mod test {
         // 00  02  04  06  08
         // 00  01  02  03  04
 
-        let leaf_0 = leaf_data(&data[0]);
-        let leaf_1 = leaf_data(&data[1]);
-        let leaf_2 = leaf_data(&data[2]);
-        let leaf_3 = leaf_data(&data[3]);
-        let leaf_4 = leaf_data(&data[4]);
+        let leaf_0 = leaf_sum(&data[0]);
+        let leaf_1 = leaf_sum(&data[1]);
+        let leaf_2 = leaf_sum(&data[2]);
+        let leaf_3 = leaf_sum(&data[3]);
+        let leaf_4 = leaf_sum(&data[4]);
 
-        let node_1 = node_data(&leaf_0, &leaf_1);
-        let node_5 = node_data(&leaf_2, &leaf_3);
-        let node_3 = node_data(&node_1, &node_5);
-        let node_7 = node_data(&node_3, &leaf_4);
+        let node_1 = node_sum(&leaf_0, &leaf_1);
+        let node_5 = node_sum(&leaf_2, &leaf_3);
+        let node_3 = node_sum(&node_1, &node_5);
+        let node_7 = node_sum(&node_3, &leaf_4);
 
         {
             let proof = tree.prove(0).unwrap();
@@ -559,7 +521,7 @@ mod test {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
-        let data = &DATA[0..7]; // 7 leaves
+        let data = &TEST_DATA[0..7]; // 7 leaves
         for datum in data.iter() {
             let _ = tree.push(datum);
         }
@@ -579,20 +541,20 @@ mod test {
         // 00  02  04  06   08  10    12
         // 00  01  02  03   04  05    06
 
-        let leaf_0 = leaf_data(&data[0]);
-        let leaf_1 = leaf_data(&data[1]);
-        let leaf_2 = leaf_data(&data[2]);
-        let leaf_3 = leaf_data(&data[3]);
-        let leaf_4 = leaf_data(&data[4]);
-        let leaf_5 = leaf_data(&data[5]);
-        let leaf_6 = leaf_data(&data[6]);
+        let leaf_0 = leaf_sum(&data[0]);
+        let leaf_1 = leaf_sum(&data[1]);
+        let leaf_2 = leaf_sum(&data[2]);
+        let leaf_3 = leaf_sum(&data[3]);
+        let leaf_4 = leaf_sum(&data[4]);
+        let leaf_5 = leaf_sum(&data[5]);
+        let leaf_6 = leaf_sum(&data[6]);
 
-        let node_1 = node_data(&leaf_0, &leaf_1);
-        let node_5 = node_data(&leaf_2, &leaf_3);
-        let node_3 = node_data(&node_1, &node_5);
-        let node_9 = node_data(&leaf_4, &leaf_5);
-        let node_11 = node_data(&node_9, &leaf_6);
-        let node_7 = node_data(&node_3, &node_11);
+        let node_1 = node_sum(&leaf_0, &leaf_1);
+        let node_5 = node_sum(&leaf_2, &leaf_3);
+        let node_3 = node_sum(&node_1, &node_5);
+        let node_9 = node_sum(&leaf_4, &leaf_5);
+        let node_11 = node_sum(&node_9, &leaf_6);
+        let node_7 = node_sum(&node_3, &node_11);
 
         {
             let proof = tree.prove(0).unwrap();

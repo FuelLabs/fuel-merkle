@@ -1,7 +1,7 @@
 use fuel_storage::Storage;
 use std::fmt::Debug;
 
-use crate::common::position::Position;
+use crate::common::Position;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Node<Key> {
@@ -140,9 +140,8 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::common::position::Position;
-    use crate::common::storage_map::StorageMap;
-    use crate::storage_binary::node::Node;
+    use crate::binary::Node;
+    use crate::common::{Position, StorageMap};
     use fuel_storage::Storage;
 
     #[test]
