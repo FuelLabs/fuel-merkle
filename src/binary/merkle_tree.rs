@@ -2,7 +2,6 @@ use fuel_storage::Storage;
 
 use crate::binary::{empty_sum, leaf_sum, node_sum, Data, Node, Subtree};
 use crate::common::Position;
-use crate::proof_set::ProofSet;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -11,6 +10,7 @@ pub enum MerkleTreeError {
 }
 
 type DataNode = Node<Data>;
+type ProofSet = Vec<Data>;
 
 pub struct MerkleTree<'storage, StorageError> {
     storage: &'storage mut dyn Storage<Data, DataNode, Error = StorageError>,
@@ -61,12 +61,12 @@ where
         let mut proof_set = ProofSet::new();
 
         let key = self.leaves[proof_index as usize];
-        proof_set.push(&key);
+        proof_set.push(key);
 
         let mut node = self.storage.get(&key)?.unwrap();
         let iter = node.to_mut().proof_iter(self.storage);
         for n in iter {
-            proof_set.push(&n.key());
+            proof_set.push(n.key());
         }
 
         Ok((root, proof_set))
@@ -356,7 +356,7 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, leaf_0);
-            assert_eq!(set.get(0).unwrap(), &leaf_0);
+            assert_eq!(set[0], leaf_0);
         }
     }
 
@@ -393,9 +393,9 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_3);
-            assert_eq!(set.get(0).unwrap(), &leaf_0);
-            assert_eq!(set.get(1).unwrap(), &leaf_1);
-            assert_eq!(set.get(2).unwrap(), &node_5);
+            assert_eq!(set[0], leaf_0);
+            assert_eq!(set[1], leaf_1);
+            assert_eq!(set[2], node_5);
         }
         {
             let proof = tree.prove(1).unwrap();
@@ -403,9 +403,9 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_3);
-            assert_eq!(set.get(0).unwrap(), &leaf_1);
-            assert_eq!(set.get(1).unwrap(), &leaf_0);
-            assert_eq!(set.get(2).unwrap(), &node_5);
+            assert_eq!(set[0], leaf_1);
+            assert_eq!(set[1], leaf_0);
+            assert_eq!(set[2], node_5);
         }
         {
             let proof = tree.prove(2).unwrap();
@@ -413,9 +413,9 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_3);
-            assert_eq!(set.get(0).unwrap(), &leaf_2);
-            assert_eq!(set.get(1).unwrap(), &leaf_3);
-            assert_eq!(set.get(2).unwrap(), &node_1);
+            assert_eq!(set[0], leaf_2);
+            assert_eq!(set[1], leaf_3);
+            assert_eq!(set[2], node_1);
         }
         {
             let proof = tree.prove(3).unwrap();
@@ -423,9 +423,9 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_3);
-            assert_eq!(set.get(0).unwrap(), &leaf_3);
-            assert_eq!(set.get(1).unwrap(), &leaf_2);
-            assert_eq!(set.get(2).unwrap(), &node_1);
+            assert_eq!(set[0], leaf_3);
+            assert_eq!(set[1], leaf_2);
+            assert_eq!(set[2], node_1);
         }
     }
 
@@ -467,10 +467,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_0);
-            assert_eq!(set.get(1).unwrap(), &leaf_1);
-            assert_eq!(set.get(2).unwrap(), &node_5);
-            assert_eq!(set.get(3).unwrap(), &leaf_4);
+            assert_eq!(set[0], leaf_0);
+            assert_eq!(set[1], leaf_1);
+            assert_eq!(set[2], node_5);
+            assert_eq!(set[3], leaf_4);
         }
         {
             let proof = tree.prove(1).unwrap();
@@ -478,10 +478,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_1);
-            assert_eq!(set.get(1).unwrap(), &leaf_0);
-            assert_eq!(set.get(2).unwrap(), &node_5);
-            assert_eq!(set.get(3).unwrap(), &leaf_4);
+            assert_eq!(set[0], leaf_1);
+            assert_eq!(set[1], leaf_0);
+            assert_eq!(set[2], node_5);
+            assert_eq!(set[3], leaf_4);
         }
         {
             let proof = tree.prove(2).unwrap();
@@ -489,10 +489,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_2);
-            assert_eq!(set.get(1).unwrap(), &leaf_3);
-            assert_eq!(set.get(2).unwrap(), &node_1);
-            assert_eq!(set.get(3).unwrap(), &leaf_4);
+            assert_eq!(set[0], leaf_2);
+            assert_eq!(set[1], leaf_3);
+            assert_eq!(set[2], node_1);
+            assert_eq!(set[3], leaf_4);
         }
         {
             let proof = tree.prove(3).unwrap();
@@ -500,10 +500,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_3);
-            assert_eq!(set.get(1).unwrap(), &leaf_2);
-            assert_eq!(set.get(2).unwrap(), &node_1);
-            assert_eq!(set.get(3).unwrap(), &leaf_4);
+            assert_eq!(set[0], leaf_3);
+            assert_eq!(set[1], leaf_2);
+            assert_eq!(set[2], node_1);
+            assert_eq!(set[3], leaf_4);
         }
         {
             let proof = tree.prove(4).unwrap();
@@ -511,8 +511,8 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_4);
-            assert_eq!(set.get(1).unwrap(), &node_3);
+            assert_eq!(set[0], leaf_4);
+            assert_eq!(set[1], node_3);
         }
     }
 
@@ -562,10 +562,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_0);
-            assert_eq!(set.get(1).unwrap(), &leaf_1);
-            assert_eq!(set.get(2).unwrap(), &node_5);
-            assert_eq!(set.get(3).unwrap(), &node_11);
+            assert_eq!(set[0], leaf_0);
+            assert_eq!(set[1], leaf_1);
+            assert_eq!(set[2], node_5);
+            assert_eq!(set[3], node_11);
         }
         {
             let proof = tree.prove(1).unwrap();
@@ -573,10 +573,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_1);
-            assert_eq!(set.get(1).unwrap(), &leaf_0);
-            assert_eq!(set.get(2).unwrap(), &node_5);
-            assert_eq!(set.get(3).unwrap(), &node_11);
+            assert_eq!(set[0], leaf_1);
+            assert_eq!(set[1], leaf_0);
+            assert_eq!(set[2], node_5);
+            assert_eq!(set[3], node_11);
         }
         {
             let proof = tree.prove(2).unwrap();
@@ -584,10 +584,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_2);
-            assert_eq!(set.get(1).unwrap(), &leaf_3);
-            assert_eq!(set.get(2).unwrap(), &node_1);
-            assert_eq!(set.get(3).unwrap(), &node_11);
+            assert_eq!(set[0], leaf_2);
+            assert_eq!(set[1], leaf_3);
+            assert_eq!(set[2], node_1);
+            assert_eq!(set[3], node_11);
         }
         {
             let proof = tree.prove(3).unwrap();
@@ -595,10 +595,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_3);
-            assert_eq!(set.get(1).unwrap(), &leaf_2);
-            assert_eq!(set.get(2).unwrap(), &node_1);
-            assert_eq!(set.get(3).unwrap(), &node_11);
+            assert_eq!(set[0], leaf_3);
+            assert_eq!(set[1], leaf_2);
+            assert_eq!(set[2], node_1);
+            assert_eq!(set[3], node_11);
         }
         {
             let proof = tree.prove(4).unwrap();
@@ -606,10 +606,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_4);
-            assert_eq!(set.get(1).unwrap(), &leaf_5);
-            assert_eq!(set.get(2).unwrap(), &leaf_6);
-            assert_eq!(set.get(3).unwrap(), &node_3);
+            assert_eq!(set[0], leaf_4);
+            assert_eq!(set[1], leaf_5);
+            assert_eq!(set[2], leaf_6);
+            assert_eq!(set[3], node_3);
         }
         {
             let proof = tree.prove(5).unwrap();
@@ -617,10 +617,10 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_5);
-            assert_eq!(set.get(1).unwrap(), &leaf_4);
-            assert_eq!(set.get(2).unwrap(), &leaf_6);
-            assert_eq!(set.get(3).unwrap(), &node_3);
+            assert_eq!(set[0], leaf_5);
+            assert_eq!(set[1], leaf_4);
+            assert_eq!(set[2], leaf_6);
+            assert_eq!(set[3], node_3);
         }
         {
             let proof = tree.prove(6).unwrap();
@@ -628,9 +628,9 @@ mod test {
             let set = proof.1;
 
             assert_eq!(root, node_7);
-            assert_eq!(set.get(0).unwrap(), &leaf_6);
-            assert_eq!(set.get(1).unwrap(), &node_9);
-            assert_eq!(set.get(2).unwrap(), &node_3);
+            assert_eq!(set[0], leaf_6);
+            assert_eq!(set[1], node_9);
+            assert_eq!(set[2], node_3);
         }
     }
 }
