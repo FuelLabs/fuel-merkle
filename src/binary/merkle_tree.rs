@@ -9,7 +9,7 @@ pub enum MerkleTreeError {
     InvalidProofIndex(u64),
 }
 
-type DataNode = Node<Data>;
+pub type DataNode = Node<Data>;
 type ProofSet = Vec<Data>;
 
 pub struct MerkleTree<'storage, StorageError> {
