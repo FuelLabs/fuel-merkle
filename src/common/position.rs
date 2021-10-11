@@ -111,10 +111,15 @@ impl Position {
         self.parent().sibling()
     }
 
+
+    /// The position of the left child.
+    /// See [child](child).
     pub fn left_child(self) -> Self {
         self.child(-1)
     }
 
+    /// The position of the right child.
+    /// See [child](child).
     pub fn right_child(self) -> Self {
         self.child(1)
     }
@@ -148,7 +153,15 @@ impl Position {
 
     // PRIVATE
 
-    pub fn child(self, direction: i64) -> Self {
+    /// The child position of the current position given by the direction.
+    /// A direction of `-1` denotes the left child. A direction of `+1` denotes the right child. A
+    /// child position has a height less 1 than the current position.
+    ///
+    /// A child position is calculated as function of the current position's index and height, and
+    /// the supplied direction. The left child position has the in-order index arriving before the
+    /// current index; the right child position has the in-order index arriving after the current
+    /// index.
+    fn child(self, direction: i64) -> Self {
         assert!(!self.is_leaf());
         let shift = 1 << self.height() - 1;
         let index = self.in_order_index() as i64 + shift * direction;
