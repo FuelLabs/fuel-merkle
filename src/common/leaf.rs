@@ -11,7 +11,8 @@ use std::fmt::Debug;
 /// its underlying integer type.
 ///
 /// For example, imagine an integer type `u3` that comprises 3 bits. The complete binary tree
-/// represented by this type is the following:
+/// represented by this type is the following (indices in this tree are calculated using in-order
+/// traversal; see [`Position`]):
 ///
 /// ```text
 ///               07
@@ -40,22 +41,24 @@ use std::fmt::Debug;
 /// "descend left" and a 1 bit means "descend right". By following the `x` bits composing the index,
 /// starting at the root, descending to the left child at each `0`, descending to the right child at
 /// each `1`, we arrive at the leaf position, having touched every node position along the path
-/// formed by this index.
+/// formed by this index. Note that this algorithm does not prescribe how to descend from one node
+/// to the next; it describes merely the direction in which to descend at each step.
 ///
 /// Alternatively, this can be interpreted as reading the index's most significant bit (MSB) at an
 /// offset `n`: read the `n`th bit to the right of the MSB. Here, `n` is a given step in the tree
-/// traversal, starting at 0, and incrementing by 1 at each depth until the leaf is reached.
-/// The traversal path is then the list of nodes calculated by traversing the tree using the
-/// instruction (`0` or `1`) indicated at `x`<sub>`n`</sub>, where `x` is the index in binary
-/// representation, and `n` is the offset for each digit in `x` from the MSB.
+/// traversal, starting at 0, and incrementing by 1 at each depth until the leaf is reached. The
+/// traversal path is then the list of nodes calculated by traversing the tree using the instruction
+/// (`0` or `1`) indicated at `x`<sub>`n`</sub>, where `x` is the index in binary representation,
+/// and `n` is the offset for each digit in `x` from the MSB.
 ///
 /// Reversing this path gives us the path from the leaf to the root.
 ///
 /// For example, imagine again our integer type `u3` underpinning our tree indices, and a given
-/// leaf with leaf index `6`. In the above diagram, this is the seventh leaf in the leaf layer. A
-/// priori, we can see that the path from the root to this leaf is represented by the following list
-/// of in-order indices: `07, 11, 13, 12` (N.B. the leaf index that corresponds to the in-order
-/// index `12` is `6`).
+/// leaf with leaf index `6`. In the above diagram, this is the seventh leaf in the leaf layer.
+/// Indices in this tree are calculated using in-order traversal. In-order indexing provides a
+/// deterministic way to descend from one node to the next. A priori, we can see that the path from
+/// the root to this leaf is represented by the following list of in-order indices: `07, 11, 13, 12`
+/// (N.B. the leaf index that corresponds to the in-order index `12` is  `6`).
 ///
 /// ```text
 /// 0d6: u3 = 0b110
@@ -63,7 +66,8 @@ use std::fmt::Debug;
 /// ```
 ///
 /// Starting at the tree's root at index `07`, we can follow the instructions encoded by the binary
-/// representation of leaf `06` (`0b110`):
+/// representation of leaf `06` (`0b110`). In combination with our in-order index rules for
+/// descending nodes, we evaluate the following:
 /// 1. The first bit is `1`; move right from `07` to `11`.
 /// 2. The next bit is `1`; move right from `11` to `13`.
 /// 3. The next and final bit is `0`; move left from `13` to `12`.
