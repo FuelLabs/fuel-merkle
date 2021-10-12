@@ -111,7 +111,6 @@ impl Position {
         self.parent().sibling()
     }
 
-
     /// The position of the left child.
     /// See [child](child).
     pub fn left_child(self) -> Self {

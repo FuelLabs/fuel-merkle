@@ -1,3 +1,4 @@
+use crate::common::Position;
 use std::fmt::Debug;
 
 /// #Leaf
@@ -35,11 +36,11 @@ use std::fmt::Debug;
 ///
 /// A naturally arising property of complete binary trees is that a leaf index encodes the unique
 /// path needed to traverse from the root of the tree to that leaf. The index's binary
-/// representation can be read as a sequence of traversal instructions: a 0 bit means "descend left"
-/// and a 1 bit means "descend right". By following the `x` bits composing the index, starting at
-/// the root, descending to the left child at each `0`, descending to the right child at each `1`,
-/// we arrive at the leaf position, having touched every node position along the path formed by
-/// this index.
+/// representation can be read left to right as a sequence of traversal instructions: a 0 bit means
+/// "descend left" and a 1 bit means "descend right". By following the `x` bits composing the index,
+/// starting at the root, descending to the left child at each `0`, descending to the right child at
+/// each `1`, we arrive at the leaf position, having touched every node position along the path
+/// formed by this index.
 ///
 /// Alternatively, this can be interpreted as reading the index's most significant bit (MSB) at an
 /// offset `n`: read the `n`th bit to the right of the MSB. Here, `n` is a given step in the tree
@@ -69,11 +70,11 @@ use std::fmt::Debug;
 /// We have arrived at the desired leaf position with in-order index `12` and leaf index `06`.
 ///
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Leaf(u64);
+pub struct Leaf(Position);
 
 impl Leaf {
     fn as_u64(self) -> u64 {
-        self.0
+        self
     }
 }
 
