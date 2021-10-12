@@ -42,10 +42,11 @@ use std::fmt::Debug;
 /// this index.
 ///
 /// Alternatively, this can be interpreted as reading the index's most significant bit (MSB) at an
-/// offset `n`; read the bit `n` digits to the right of the MSB. Here, `n` is a given step in the
-/// tree traversal starting `n` at 0, and incrementing by 1 at each depth until the leaf is reached.
+/// offset `n`: read the `n`th bit to the right of the MSB. Here, `n` is a given step in the tree
+/// traversal, starting at 0, and incrementing by 1 at each depth until the leaf is reached.
 /// The traversal path is then the list of nodes calculated by traversing the tree using the
-/// instruction indicated at the index's MSB, offset by `n`.
+/// instruction (`0` or `1`) indicated at `x`<sub>`n`</sub>, where `x` is the index in binary
+/// representation, and `n` is the offset for each digit in `x` from the MSB.
 ///
 /// Reversing this path gives us the path from the leaf to the root.
 ///
@@ -66,7 +67,7 @@ use std::fmt::Debug;
 /// 3. The next and final bit is `0`; move left from `13` to `12`.
 ///
 /// We have arrived at the desired leaf position with in-order index `12` and leaf index `06`.
-/// 
+///
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Leaf(u64);
 
