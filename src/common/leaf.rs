@@ -52,9 +52,10 @@ use std::fmt::Debug;
 /// Reversing this path gives us the path from the leaf to the root.
 ///
 /// For example, imagine again our integer type `u3` underpinning our tree indices, and a given
-/// leaf with leaf index `6`. In the above diagram, this is the seventh leaf in the leaf layer. The
-/// path from the root to this leaf is represented by the following list of indices: `07, 11, 13,
-/// 06`.
+/// leaf with leaf index `6`. In the above diagram, this is the seventh leaf in the leaf layer. A
+/// priori, we can see that the path from the root to this leaf is represented by the following list
+/// of in-order indices: `07, 11, 13, 12` (N.B. the leaf index that corresponds to the in-order
+/// index `12` is `6`).
 ///
 /// ```text
 /// 0d6: u3 = 0b110
@@ -62,45 +63,115 @@ use std::fmt::Debug;
 /// ```
 ///
 /// Starting at the tree's root at index `07`, we can follow the instructions encoded by the binary
-/// representation of leaf `06`:
+/// representation of leaf `06` (`0b110`):
 /// 1. The first bit is `1`; move right from `07` to `11`.
 /// 2. The next bit is `1`; move right from `11` to `13`.
 /// 3. The next and final bit is `0`; move left from `13` to `12`.
 ///
 /// We have arrived at the desired leaf position with in-order index `12` and leaf index `06`.
+/// Indeed, following the instructions at each bit has produced the same list of positional indices
+/// that we observed earlier: `07, 11, 13, 12`.
 ///
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Leaf(Position);
 
 impl Leaf {
-    fn as_u64(self) -> u64 {
-        self
+    pub fn from_leaf_index(index: u64) -> Self {
+        Self {
+            0: Position::from_leaf_index(index),
+        }
+    }
+
+    pub fn path_iterator(&self, root: Position) -> PathIterator {
+        PathIterator::new(self.0, root)
+    }
+}
+
+pub struct PathIterator {
+    leaf: Position,
+    current: Option<Position>,
+}
+
+impl PathIterator {
+    pub fn new(leaf: Position, root: Position) -> Self {
+        assert!(root.is_ancestor_of(leaf));
+        Self {
+            leaf,
+            current: Some(root),
+        }
+    }
+}
+
+impl Iterator for PathIterator {
+    type Item = Position;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let value = self.current;
+
+        if let Some(current) = self.current {
+            let height = current.height();
+            if height > 0 {
+                let shift = 1 << height;
+                let n = (self.leaf.in_order_index() & shift != 0) as u8;
+                if n == 0 {
+                    self.current = Some(current.left_child());
+                } else {
+                    self.current = Some(current.right_child());
+                }
+            } else {
+                self.current = None;
+            }
+        }
+
+        value
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::common::utils::msb_index_from_right;
+    use crate::common::leaf::Leaf;
     use crate::common::Position;
 
     #[test]
-    fn test_path() {
-        let mut path = Vec::<Position>::default();
+    fn test_path_iterator_returns_path_from_root_to_leaf() {
+        let root = Position::from_in_order_index(7);
 
-        let mut p = Position::from_in_order_index(7);
-        let leaf = 3u64;
+        let leaf = Leaf::from_leaf_index(4);
+        let iter = leaf.path_iterator(root);
+        let path: Vec<Position> = iter.collect();
 
-        for i in (0..p.height()).rev() {
-            let shift = 1 << i;
-            let n = (leaf & shift != 0) as u8;
-            if n == 0 {
-                p = p.left_child();
-            } else {
-                p = p.right_child();
-            }
-            path.push(p);
-        }
+        let expected_path = vec![
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(11),
+            Position::from_in_order_index(9),
+            Position::from_in_order_index(8),
+        ];
+        assert_eq!(path, expected_path)
+    }
 
-        println!("{:?}", path);
+    #[test]
+    fn test_path_iterator_returns_path_from_root_to_leaf_in_subtree() {
+        let root = Position::from_in_order_index(11);
+
+        let leaf = Leaf::from_leaf_index(4);
+        let iter = leaf.path_iterator(root);
+        let path: Vec<Position> = iter.collect();
+
+        let expected_path = vec![
+            Position::from_in_order_index(11),
+            Position::from_in_order_index(9),
+            Position::from_in_order_index(8),
+        ];
+        assert_eq!(path, expected_path)
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_path_iterator_panics_if_leaf_is_not_a_descendent_of_root() {
+        let root = Position::from_in_order_index(11);
+
+        let leaf = Leaf::from_leaf_index(3);
+        // This call should panic because `leaf` is not a descendent of `root`
+        leaf.path_iterator(root);
     }
 }

@@ -112,13 +112,13 @@ impl Position {
     }
 
     /// The position of the left child.
-    /// See [child](child).
+    /// See [child](Position::child).
     pub fn left_child(self) -> Self {
         self.child(-1)
     }
 
     /// The position of the right child.
-    /// See [child](child).
+    /// See [child](Position::child).
     pub fn right_child(self) -> Self {
         self.child(1)
     }
@@ -146,8 +146,23 @@ impl Position {
         (!self.in_order_index()).trailing_zeros()
     }
 
+    /// Whether or not this position represents a leaf node.
+    /// Returns `true` if the position is a leaf node.
+    /// Returns `false` if the position is an internal node.
+    ///
+    /// A position is a leaf node if and only if its in order index is even. A position is an
+    /// internal node if and only if its in order index is odd.
     pub fn is_leaf(self) -> bool {
         self.in_order_index() % 2 == 0
+    }
+
+    /// Whether or not this position is an ancestor of the given candidate descendent.
+    /// Returns `true` if the candidate is a descendent of this position.
+    /// Returns `false` if the candidate is not a descendent of this position.
+    pub fn is_ancestor_of(self, descendent: Position) -> bool {
+        let difference = (1 << self.height()) - 1;
+        let range = (self.in_order_index() - difference)..=(self.in_order_index() + difference);
+        range.contains(&descendent.in_order_index())
     }
 
     // PRIVATE
@@ -156,7 +171,7 @@ impl Position {
     /// A direction of `-1` denotes the left child. A direction of `+1` denotes the right child. A
     /// child position has a height less 1 than the current position.
     ///
-    /// A child position is calculated as function of the current position's index and height, and
+    /// A child position is calculated as a function of the current position's index and height, and
     /// the supplied direction. The left child position has the in-order index arriving before the
     /// current index; the right child position has the in-order index arriving after the current
     /// index.
@@ -303,5 +318,44 @@ mod test {
         assert_eq!(Position(1).right_child(), Position(2));
         assert_eq!(Position(11).right_child(), Position(13));
         assert_eq!(Position(9).right_child(), Position(10));
+    }
+
+    #[test]
+    fn test_is_leaf() {
+        assert_eq!(Position(0).is_leaf(), true);
+        assert_eq!(Position(2).is_leaf(), true);
+        assert_eq!(Position(4).is_leaf(), true);
+        assert_eq!(Position(6).is_leaf(), true);
+
+        assert_eq!(Position(1).is_leaf(), false);
+        assert_eq!(Position(5).is_leaf(), false);
+        assert_eq!(Position(9).is_leaf(), false);
+        assert_eq!(Position(13).is_leaf(), false);
+    }
+
+    #[test]
+    fn test_is_ancestor_of() {
+        let root = Position(11);
+
+        // All positions with indices inside [8, 14] (11 -/+ 3) are descendents of root 11
+        assert_eq!(root.is_ancestor_of(Position(8)), true);
+        assert_eq!(root.is_ancestor_of(Position(9)), true);
+        assert_eq!(root.is_ancestor_of(Position(10)), true);
+        assert_eq!(root.is_ancestor_of(Position(11)), true);
+        assert_eq!(root.is_ancestor_of(Position(12)), true);
+        assert_eq!(root.is_ancestor_of(Position(13)), true);
+        assert_eq!(root.is_ancestor_of(Position(14)), true);
+
+        // All positions with indices outside [8, 14] (11 -/+ 3) are not descendents of root 11
+        assert_eq!(root.is_ancestor_of(Position(0)), false);
+        assert_eq!(root.is_ancestor_of(Position(1)), false);
+        assert_eq!(root.is_ancestor_of(Position(2)), false);
+        assert_eq!(root.is_ancestor_of(Position(3)), false);
+        assert_eq!(root.is_ancestor_of(Position(4)), false);
+        assert_eq!(root.is_ancestor_of(Position(5)), false);
+        assert_eq!(root.is_ancestor_of(Position(6)), false);
+        assert_eq!(root.is_ancestor_of(Position(7)), false);
+        assert_eq!(root.is_ancestor_of(Position(15)), false);
+        assert_eq!(root.is_ancestor_of(Position(16)), false);
     }
 }
