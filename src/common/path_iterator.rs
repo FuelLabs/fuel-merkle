@@ -81,8 +81,8 @@ pub struct PathIterator<T> {
 }
 
 impl<T> PathIterator<T>
-    where
-        T: ParentNode + Copy,
+where
+    T: ParentNode + Copy,
 {
     pub fn new(leaf: T, root: T) -> Self {
         assert!(root.is_ancestor_of(&leaf));
@@ -94,8 +94,8 @@ impl<T> PathIterator<T>
 }
 
 impl<T> Iterator for PathIterator<T>
-    where
-        T: ParentNode + Copy,
+where
+    T: ParentNode + Copy,
 {
     type Item = T;
 
