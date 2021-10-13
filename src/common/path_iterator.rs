@@ -1,7 +1,6 @@
-use crate::common::Position;
-use std::fmt::Debug;
+use crate::common::node::ParentNode;
 
-/// #Leaf
+/// #Path Iterator
 ///
 /// For a given integer type `ux`, where `x` is the number of bits that compose this integer type,
 /// the balanced binary tree that can be represented by indices of type `ux` will have a maximum
@@ -12,7 +11,7 @@ use std::fmt::Debug;
 ///
 /// For example, imagine an integer type `u3` that comprises 3 bits. The complete binary tree
 /// represented by this type is the following (indices in this tree are calculated using in-order
-/// traversal; see [`Position`]):
+/// traversal; see [`Position`](crate::common::Position)):
 ///
 /// ```text
 ///               07
@@ -58,7 +57,7 @@ use std::fmt::Debug;
 /// Indices in this tree are calculated using in-order traversal. In-order indexing provides a
 /// deterministic way to descend from one node to the next. A priori, we can see that the path from
 /// the root to this leaf is represented by the following list of in-order indices: `07, 11, 13, 12`
-/// (N.B. the leaf index that corresponds to the in-order index `12` is  `6`).
+/// (N.B. the leaf index that corresponds to the in-order index `12` is `6`).
 ///
 /// ```text
 /// 0d6: u3 = 0b110
@@ -76,29 +75,17 @@ use std::fmt::Debug;
 /// Indeed, following the instructions at each bit has produced the same list of positional indices
 /// that we observed earlier: `07, 11, 13, 12`.
 ///
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Leaf(Position);
-
-impl Leaf {
-    pub fn from_leaf_index(index: u64) -> Self {
-        Self {
-            0: Position::from_leaf_index(index),
-        }
-    }
-
-    pub fn path_iterator(&self, root: Position) -> PathIterator {
-        PathIterator::new(self.0, root)
-    }
+pub struct PathIterator<T> {
+    leaf: T,
+    current: Option<T>,
 }
 
-pub struct PathIterator {
-    leaf: Position,
-    current: Option<Position>,
-}
-
-impl PathIterator {
-    pub fn new(leaf: Position, root: Position) -> Self {
-        assert!(root.is_ancestor_of(leaf));
+impl<T> PathIterator<T>
+    where
+        T: ParentNode + Copy,
+{
+    pub fn new(leaf: T, root: T) -> Self {
+        assert!(root.is_ancestor_of(&leaf));
         Self {
             leaf,
             current: Some(root),
@@ -106,8 +93,11 @@ impl PathIterator {
     }
 }
 
-impl Iterator for PathIterator {
-    type Item = Position;
+impl<T> Iterator for PathIterator<T>
+    where
+        T: ParentNode + Copy,
+{
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         let value = self.current;
@@ -116,7 +106,7 @@ impl Iterator for PathIterator {
             let height = current.height();
             if height > 0 {
                 let shift = 1 << height;
-                let n = (self.leaf.in_order_index() & shift != 0) as u8;
+                let n = (self.leaf.index() & shift != 0) as u8;
                 if n == 0 {
                     self.current = Some(current.left_child());
                 } else {
@@ -133,14 +123,13 @@ impl Iterator for PathIterator {
 
 #[cfg(test)]
 mod test {
-    use crate::common::leaf::Leaf;
     use crate::common::Position;
 
     #[test]
     fn test_path_iterator_returns_path_from_root_to_leaf() {
         let root = Position::from_in_order_index(7);
 
-        let leaf = Leaf::from_leaf_index(4);
+        let leaf = Position::from_leaf_index(4);
         let iter = leaf.path_iterator(root);
         let path: Vec<Position> = iter.collect();
 
@@ -157,7 +146,7 @@ mod test {
     fn test_path_iterator_returns_path_from_root_to_leaf_in_subtree() {
         let root = Position::from_in_order_index(11);
 
-        let leaf = Leaf::from_leaf_index(4);
+        let leaf = Position::from_leaf_index(4);
         let iter = leaf.path_iterator(root);
         let path: Vec<Position> = iter.collect();
 
@@ -174,7 +163,7 @@ mod test {
     fn test_path_iterator_panics_if_leaf_is_not_a_descendent_of_root() {
         let root = Position::from_in_order_index(11);
 
-        let leaf = Leaf::from_leaf_index(3);
+        let leaf = Position::from_leaf_index(3);
         // This call should panic because `leaf` is not a descendent of `root`
         leaf.path_iterator(root);
     }

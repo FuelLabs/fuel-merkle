@@ -1,3 +1,6 @@
+use crate::common::node::{Node, ParentNode};
+use crate::common::path_iterator::PathIterator;
+
 /// #Position
 ///
 /// A `Position` represents a node's position in a binary tree by encapsulating the node's index
@@ -111,17 +114,6 @@ impl Position {
         self.parent().sibling()
     }
 
-    /// The position of the left child.
-    /// See [child](Position::child).
-    pub fn left_child(self) -> Self {
-        self.child(-1)
-    }
-
-    /// The position of the right child.
-    /// See [child](Position::child).
-    pub fn right_child(self) -> Self {
-        self.child(1)
-    }
 
     /// The height of the index in a binary tree.
     /// Leaf nodes represent height 0. A leaf's parent represents height 1.
@@ -163,6 +155,10 @@ impl Position {
         let difference = (1 << self.height()) - 1;
         let range = (self.in_order_index() - difference)..=(self.in_order_index() + difference);
         range.contains(&descendent.in_order_index())
+    }
+
+    pub fn path_iterator(&self, root: Position) -> PathIterator<Position> {
+        PathIterator::new(*self, root)
     }
 
     // PRIVATE
@@ -212,6 +208,34 @@ impl Position {
     fn direction(self) -> i64 {
         let scale = self.orientation() as i64 * 2 - 1; // Scale [0, 1] to [-1, 1];
         -scale
+    }
+}
+
+impl Node for Position {
+    fn index(&self) -> u64 {
+        Position::in_order_index(*self)
+    }
+
+    fn height(&self) -> u32 {
+        Position::height(*self)
+    }
+}
+
+impl ParentNode for Position {
+    fn is_ancestor_of(&self, descendent: &Self) -> bool {
+        Position::is_ancestor_of(*self, *descendent)
+    }
+
+    /// The position of the left child.
+    /// See [child](Position::child).
+    fn left_child(&self) -> Self {
+        Position::child(*self, -1)
+    }
+
+    /// The position of the right child.
+    /// See [child](Position::child).
+    fn right_child(&self) -> Self {
+        Position::child(*self, 1)
     }
 }
 
