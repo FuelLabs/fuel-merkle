@@ -1,3 +1,4 @@
+use crate::common::get_bit_at_index_from_msb_u64;
 use crate::common::node::ParentNode;
 
 /// #Path Iterator
@@ -75,14 +76,14 @@ use crate::common::node::ParentNode;
 /// Indeed, following the instructions at each bit has produced the same list of positional indices
 /// that we observed earlier: `07, 11, 13, 12`.
 ///
-pub struct PathIterator<T> {
+pub struct PathIter<T> {
     leaf: T,
     current: Option<T>,
 }
 
-impl<T> PathIterator<T>
+impl<T> PathIter<T>
 where
-    T: ParentNode + Copy,
+    T: ParentNode + Clone,
 {
     pub fn new(leaf: T, root: T) -> Self {
         assert!(root.is_ancestor_of(&leaf));
@@ -93,20 +94,19 @@ where
     }
 }
 
-impl<T> Iterator for PathIterator<T>
+impl<T> Iterator for PathIter<T>
 where
-    T: ParentNode + Copy,
+    T: ParentNode + Clone,
 {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let value = self.current;
+        let value = self.current.clone();
 
-        if let Some(current) = self.current {
+        if let Some(ref current) = self.current {
             let height = current.height();
             if height > 0 {
-                let shift = 1 << height;
-                let n = (self.leaf.index() & shift != 0) as u8;
+                let n = get_bit_at_index_from_msb_u64(self.leaf.index(), height);
                 if n == 0 {
                     self.current = Some(current.left_child());
                 } else {
@@ -121,16 +121,29 @@ where
     }
 }
 
+pub trait IntoPathIterator<T> {
+    fn into_path_iter(self, root: &Self) -> PathIter<T>;
+}
+
+impl<T> IntoPathIterator<T> for T
+where
+    T: ParentNode + Clone,
+{
+    fn into_path_iter(self, root: &Self) -> PathIter<T> {
+        PathIter::new(self, root.clone())
+    }
+}
+
 #[cfg(test)]
 mod test {
+    use crate::common::path_iterator::IntoPathIterator;
     use crate::common::Position;
 
     #[test]
     fn test_path_iterator_returns_path_from_root_to_leaf() {
         let root = Position::from_in_order_index(7);
-
         let leaf = Position::from_leaf_index(4);
-        let iter = leaf.path_iterator(root);
+        let iter = leaf.into_path_iter(&root);
         let path: Vec<Position> = iter.collect();
 
         let expected_path = vec![
@@ -145,9 +158,8 @@ mod test {
     #[test]
     fn test_path_iterator_returns_path_from_root_to_leaf_in_subtree() {
         let root = Position::from_in_order_index(11);
-
         let leaf = Position::from_leaf_index(4);
-        let iter = leaf.path_iterator(root);
+        let iter = leaf.into_path_iter(&root);
         let path: Vec<Position> = iter.collect();
 
         let expected_path = vec![
@@ -162,9 +174,8 @@ mod test {
     #[should_panic]
     fn test_path_iterator_panics_if_leaf_is_not_a_descendent_of_root() {
         let root = Position::from_in_order_index(11);
-
         let leaf = Position::from_leaf_index(3);
         // This call should panic because `leaf` is not a descendent of `root`
-        leaf.path_iterator(root);
+        leaf.into_path_iter(&root);
     }
 }

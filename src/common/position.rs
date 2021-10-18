@@ -1,5 +1,4 @@
 use crate::common::node::{Node, ParentNode};
-use crate::common::path_iterator::PathIterator;
 
 /// #Position
 ///
@@ -72,7 +71,7 @@ use crate::common::path_iterator::PathIterator;
 /// using methods to retrieve a `Position's` sibling, parent, or uncle `Position`. However, in such
 /// cases, the corresponding sibling or uncle nodes are not guaranteed to exist in the tree.
 ///
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Position(u64);
 
 impl Position {
@@ -154,10 +153,6 @@ impl Position {
         let difference = (1 << self.height()) - 1;
         let range = (self.in_order_index() - difference)..=(self.in_order_index() + difference);
         range.contains(&descendent.in_order_index())
-    }
-
-    pub fn path_iterator(&self, root: Position) -> PathIterator<Position> {
-        PathIterator::new(*self, root)
     }
 
     // PRIVATE
