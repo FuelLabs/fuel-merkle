@@ -20,11 +20,8 @@ impl<'storage, StorageError> MerkleTree<'storage, StorageError>
 where
     StorageError: std::error::Error + 'static,
 {
-    pub fn new(storage: &'storage mut dyn Storage<Data, Data, Error = StorageError>,
-    ) -> Self {
-        Self {
-            storage,
-        }
+    pub fn new(storage: &'storage mut dyn Storage<Data, Data, Error = StorageError>) -> Self {
+        Self { storage }
     }
 
     pub fn update() {}
@@ -49,7 +46,5 @@ where
 
 #[cfg(test)]
 mod test {
-    fn test_init() {
-
-    }
+    fn test_init() {}
 }

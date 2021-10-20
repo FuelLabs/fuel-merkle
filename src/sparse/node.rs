@@ -1,90 +1,194 @@
-use std::cell::Cell;
+use digest::Digest;
 use fuel_storage::Storage;
+use std::cell::Cell;
+use std::convert::TryInto;
+use std::mem::size_of;
+use std::ops::Range;
 
-use crate::common::{ParentNode, Position};
+use crate::common::{ParentNode, Position, StorageError};
+
+use sha2::Sha256 as HasBh;
+
+const NODE: u8 = 0x01;
+const LEAF: u8 = 0x00;
+
+// For a node:
+// 00 - 01: Prefix (0x01)
+// 01 - 33: Key
+// 33 - 65: hash(Data)
+//
+// For a leaf:
+// 00 - 01: Prefix (0x00)
+// 01 - 32: Left child key
+// 33 - 65: Right child key
+//
+type Bytes32 = [u8; 32];
+type Buffer = [u8; 1 + size_of::<Bytes32>() + size_of::<Bytes32>()];
 
 #[derive(Clone)]
-pub struct Node<Key> {
-    position: Position,
-    key: Key,
+pub struct Node {
+    buffer: [u8; 65]
 }
 
-impl<Key> Node<Key>
-    where
-        Key: Clone,
-{
-    pub fn new(
-        position: Position,
-        key: Key,
-    ) -> Self {
-        let n = Self {
-            position,
-            key,
-        };
-        n
+impl Node {
+    pub fn create_leaf(key: &Bytes32, data: &Bytes32) -> Self {
+        let mut buffer = [0u8; Self::buffer_size()];
+        let mut node = Self { buffer };
+        node.bytes_prefix_mut().clone_from_slice(&[LEAF]);
+        node.bytes_lo_mut().clone_from_slice(key);
+        node.bytes_hi_mut().clone_from_slice(data);
+        node
     }
 
-    pub fn key(&self) -> Key {
-        self.key.clone()
+    pub fn create_node(left_child_key: &Bytes32, right_child_key: &Bytes32) -> Self {
+        let mut buffer = [0u8; Self::buffer_size()];
+        let mut node = Self { buffer };
+        node.bytes_prefix_mut().clone_from_slice(&[NODE]);
+        node.bytes_lo_mut().clone_from_slice(left_child_key);
+        node.bytes_hi_mut().clone_from_slice(right_child_key);
+        node
+    }
+
+    pub fn from_buffer(buffer: &Buffer) -> Self {
+        let node = Self { buffer: buffer.clone() };
+        assert!(node.is_leaf() || node.is_node());
+        node
+    }
+
+    pub fn prefix(&self) -> u8 {
+        self.bytes_prefix()[0]
+    }
+
+    pub fn key(&self) -> &Bytes32 {
+        assert!(self.is_leaf());
+        self.bytes_lo().try_into().unwrap()
+    }
+
+    pub fn data(&self) -> &Bytes32 {
+        assert!(self.is_leaf());
+        self.bytes_hi().try_into().unwrap()
+    }
+
+    pub fn left_child_key(&self) -> &Bytes32 {
+        assert!(self.is_node());
+        self.bytes_lo().try_into().unwrap()
+    }
+
+    pub fn right_child_key(&self) -> &Bytes32 {
+        assert!(self.is_node());
+        self.bytes_hi().try_into().unwrap()
+    }
+
+    pub fn value(&self) -> &Buffer {
+        self.buffer().try_into().unwrap()
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.prefix() == LEAF
+    }
+
+    pub fn is_node(&self) -> bool {
+        self.prefix() == NODE
+    }
+
+    // PRIVATE
+
+    const fn prefix_offset() -> usize {
+        0
+    }
+
+    const fn prefix_size() -> usize {
+        size_of::<u8>()
+    }
+
+    const fn prefix_range() -> Range<usize> {
+        Self::prefix_offset()..(Self::prefix_offset() + Self::prefix_size())
+    }
+
+    const fn bytes_lo_offset() -> usize {
+        Self::prefix_offset() + Self::prefix_size()
+    }
+
+    const fn bytes_lo_size() -> usize {
+        size_of::<Bytes32>()
+    }
+
+    const fn bytes_lo_range() -> Range<usize> {
+        Self::bytes_lo_offset()..(Self::bytes_lo_offset() + Self::bytes_lo_size())
+    }
+
+    const fn bytes_hi_offset() -> usize {
+        Self::bytes_lo_offset() + Self::bytes_lo_size()
+    }
+
+    const fn bytes_hi_size() -> usize {
+        size_of::<Bytes32>()
+    }
+
+    const fn bytes_hi_range() -> Range<usize> {
+        Self::bytes_hi_offset()..(Self::bytes_hi_offset() + Self::bytes_hi_size())
+    }
+
+    const fn buffer_size() -> usize {
+        Self::prefix_size() + Self::bytes_lo_size() + Self::bytes_hi_size()
+    }
+
+    // PRIVATE
+
+    fn buffer_mut(&mut self) -> &mut [u8] {
+        &mut self.buffer
+    }
+
+    fn buffer(&self) -> &[u8] {
+        &self.buffer
+    }
+
+    fn bytes_prefix_mut(&mut self) -> &mut [u8] {
+        let range = Self::prefix_range();
+        &mut self.buffer_mut()[range]
+    }
+
+    fn bytes_prefix(&self) -> &[u8] {
+        let range = Self::prefix_range();
+        &self.buffer()[range]
+    }
+
+    fn bytes_lo_mut(&mut self) -> &mut [u8] {
+        let range = Self::bytes_lo_range();
+        &mut self.buffer_mut()[range]
+    }
+
+    fn bytes_lo(&self) -> &[u8] {
+        let range = Self::bytes_lo_range();
+        &self.buffer()[range]
+    }
+
+    fn bytes_hi_mut(&mut self) -> &mut [u8] {
+        let range = Self::bytes_hi_range();
+        &mut self.buffer_mut()[range]
+    }
+
+    fn bytes_hi(&self) -> &[u8] {
+        let range = Self::bytes_hi_range();
+        &self.buffer()[range]
     }
 }
 
 #[cfg(test)]
 mod test {
-    use std::borrow::Borrow;
-    use fuel_storage::Storage;
-    use crate::common::{IntoPathIterator, Position, StorageError, StorageMap};
-    use crate::sparse::Node;
+    use std::mem::size_of;
+    use super::*;
 
     #[test]
-    fn test_it() {
-        let mut s = StorageMap::<Position, Node::<u32>>::new();
+    fn test() {
+        let n = Node::create_node(&[0u8; 32], &[1u8; 32]);
+        let prefix = n.prefix();
+        println!("{:?}", prefix);
+        let left = n.left_child_key();
+        println!("{:?}", left);
+        let right = n.right_child_key();
+        println!("{:?}", right);
 
-        //       03
-        //      /  \
-        //     /    \
-        //   01      05
-        //  /  \    /  \
-        // 00  02  04  06
-        // 00  01  02  03
-
-        let p0 = Position::from_in_order_index(0);
-        let n0 = Node::<u32>::new(p0, 0);
-        s.insert(&p0, &n0);
-
-        let p1 = Position::from_in_order_index(1);
-        let n1 = Node::<u32>::new(p1, 1);
-        s.insert(&p1, &n1);
-
-        let p2 = Position::from_in_order_index(2);
-        let n2 = Node::<u32>::new(p2, 2);
-        s.insert(&p2, &n2);
-
-        let p3 = Position::from_in_order_index(3);
-        let n3 = Node::<u32>::new(p3, 3);
-        s.insert(&p3, &n3);
-
-        let p4 = Position::from_in_order_index(4);
-        let n4 = Node::<u32>::new(p4, 4);
-        s.insert(&p4, &n4);
-
-        let p5 = Position::from_in_order_index(5);
-        let n5 = Node::<u32>::new(p5, 5);
-        s.insert(&p5, &n5);
-
-        let p6 = Position::from_in_order_index(6);
-        let n6 = Node::<u32>::new(p6, 6);
-        s.insert(&p6, &n6);
-
-        let leaf = Position::from_leaf_index(1);
-        let root = s.get(&Position::from_in_order_index(3)).unwrap().unwrap();
-        let iter = leaf.into_path_iter(&root.as_ref().position);
-
-        let mut hashes = Vec::<u32>::new();
-        for p in iter {
-            let h = s.get(&p).unwrap().unwrap();
-            hashes.push(h.key())
-        }
-        println!("{:?}", hashes);
     }
+
 }
