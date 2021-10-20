@@ -1,6 +1,8 @@
 pub trait Node {
     fn index(&self) -> u64;
     fn height(&self) -> u32;
+    fn is_leaf(&self) -> bool;
+    fn sibling(&self) -> Self;
 }
 
 pub trait ParentNode: Node {

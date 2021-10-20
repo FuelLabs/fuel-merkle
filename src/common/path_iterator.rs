@@ -104,9 +104,10 @@ where
         let value = self.current.clone();
 
         if let Some(ref current) = self.current {
-            let height = current.height();
-            if height > 0 {
-                let n = get_bit_at_index_from_msb_u64(self.leaf.index(), height);
+            if !current.is_leaf() {
+                let index = self.leaf.index();
+                let height = current.height();
+                let n = get_bit_at_index_from_msb_u64(index, height);
                 if n == 0 {
                     self.current = Some(current.left_child());
                 } else {

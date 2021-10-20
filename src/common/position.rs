@@ -213,6 +213,14 @@ impl Node for Position {
     fn height(&self) -> u32 {
         Position::height(*self)
     }
+
+    fn is_leaf(&self) -> bool {
+        Position::is_leaf(*self)
+    }
+
+    fn sibling(&self) -> Self {
+        Position::sibling(*self)
+    }
 }
 
 impl ParentNode for Position {
