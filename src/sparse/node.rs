@@ -7,7 +7,7 @@ use std::ops::Range;
 
 use crate::common::{ParentNode, Position, StorageError};
 
-use sha2::Sha256 as HasBh;
+use sha2::Sha256 as Hash;
 
 const NODE: u8 = 0x01;
 const LEAF: u8 = 0x00;
@@ -23,11 +23,13 @@ const LEAF: u8 = 0x00;
 // 33 - 65: Right child key
 //
 type Bytes32 = [u8; 32];
-type Buffer = [u8; 1 + size_of::<Bytes32>() + size_of::<Bytes32>()];
+
+const BUFFER_SZ: usize = 1 + size_of::<Bytes32>() + size_of::<Bytes32>();
+type Buffer = [u8; BUFFER_SZ];
 
 #[derive(Clone)]
 pub struct Node {
-    buffer: [u8; 65]
+    buffer: Buffer,
 }
 
 impl Node {
@@ -50,7 +52,9 @@ impl Node {
     }
 
     pub fn from_buffer(buffer: &Buffer) -> Self {
-        let node = Self { buffer: buffer.clone() };
+        let node = Self {
+            buffer: buffer.clone(),
+        };
         assert!(node.is_leaf() || node.is_node());
         node
     }
@@ -79,16 +83,18 @@ impl Node {
         self.bytes_hi().try_into().unwrap()
     }
 
-    pub fn value(&self) -> &Buffer {
-        self.buffer().try_into().unwrap()
-    }
-
     pub fn is_leaf(&self) -> bool {
         self.prefix() == LEAF
     }
 
     pub fn is_node(&self) -> bool {
         self.prefix() == NODE
+    }
+
+    pub fn value(&self) -> Bytes32 {
+        let mut hash = Hash::new();
+        hash.update(self.buffer());
+        hash.finalize().try_into().unwrap()
     }
 
     // PRIVATE
@@ -176,8 +182,8 @@ impl Node {
 
 #[cfg(test)]
 mod test {
-    use std::mem::size_of;
     use super::*;
+    use std::mem::size_of;
 
     #[test]
     fn test() {
@@ -188,7 +194,6 @@ mod test {
         println!("{:?}", left);
         let right = n.right_child_key();
         println!("{:?}", right);
-
+        println!("{:?}", n.value());
     }
-
 }
