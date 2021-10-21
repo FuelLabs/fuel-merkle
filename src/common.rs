@@ -8,6 +8,9 @@ pub use path_iterator::IntoPathIterator;
 pub use position::Position;
 pub use storage_map::{StorageError, StorageMap};
 
+pub const NODE: u8 = 0x01;
+pub const LEAF: u8 = 0x00;
+
 pub type Bytes1 = [u8; 1];
 pub type Bytes2 = [u8; 2];
 pub type Bytes4 = [u8; 4];
@@ -50,8 +53,7 @@ impl_msb_for!(Bytes32);
 
 #[cfg(test)]
 mod test {
-    use super::{Bytes32, MSB};
-    use crate::common::{Bytes1, Bytes2, Bytes4, Bytes8};
+    use crate::common::{Bytes1, Bytes2, Bytes4, Bytes8, MSB};
     use std::mem::size_of;
 
     #[test]

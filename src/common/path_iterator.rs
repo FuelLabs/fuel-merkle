@@ -1,6 +1,6 @@
-use std::mem::size_of;
 use crate::common::node::ParentNode;
 use crate::common::{Bytes32, MSB};
+use std::mem::size_of;
 
 /// #Path Iterator
 ///
@@ -80,7 +80,7 @@ use crate::common::{Bytes32, MSB};
 pub struct PathIter<T> {
     leaf: T,
     current: Option<T>,
-    current_height: usize
+    current_height: usize,
 }
 
 impl<T> PathIter<T>
@@ -92,7 +92,7 @@ where
         Self {
             leaf,
             current: Some(root),
-            current_height: size_of::<Bytes32>() - 1
+            current_height: size_of::<Bytes32>() - 1,
         }
     }
 }

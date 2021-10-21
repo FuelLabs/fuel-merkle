@@ -1,7 +1,7 @@
+use crate::common::Bytes32;
 use fuel_storage::Storage;
 
-use crate::common::Position;
-use crate::sparse::{empty_sum, leaf_sum, node_sum, zero_sum, Data, Node, Subtree};
+use crate::sparse::{empty_sum, leaf_sum, node_sum, zero_sum, Node, Subtree};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -9,18 +9,15 @@ pub enum MerkleTreeError {
     Error(),
 }
 
-// type DataNode<'storage> = Node<'storage, Data, MerkleTreeError>;
-type ProofSet = Vec<Data>;
-
 pub struct MerkleTree<'storage, StorageError> {
-    storage: &'storage mut dyn Storage<Data, Data, Error = StorageError>,
+    storage: &'storage mut dyn Storage<Bytes32, Bytes32, Error = StorageError>,
 }
 
 impl<'storage, StorageError> MerkleTree<'storage, StorageError>
 where
     StorageError: std::error::Error + 'static,
 {
-    pub fn new(storage: &'storage mut dyn Storage<Data, Data, Error = StorageError>) -> Self {
+    pub fn new(storage: &'storage mut dyn Storage<Bytes32, Bytes32, Error = StorageError>) -> Self {
         Self { storage }
     }
 

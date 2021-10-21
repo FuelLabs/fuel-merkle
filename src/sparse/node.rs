@@ -1,30 +1,22 @@
-use digest::Digest;
 use fuel_storage::Storage;
 use std::convert::TryInto;
 use std::mem::size_of;
 use std::ops::Range;
 
-use crate::common::{Bytes32, ParentNode, Position, StorageError};
-
-use sha2::Sha256 as Hash;
+use crate::common::{Bytes32, LEAF, NODE};
 use crate::sparse::hash::sum;
 
-const NODE: u8 = 0x01;
-const LEAF: u8 = 0x00;
-
 // For a leaf:
-// 00 - 01: Prefix (1 byte) (0x01)
-// 01 - 33: Key (32 bytes)
+// 00 - 01: Prefix (1 byte, 0x00)
+// 01 - 33: hash(Key) (32 bytes)
 // 33 - 65: hash(Data) (32 bytes)
 //
 // For a node:
-// 00 - 01: Prefix (0x00)
-// 01 - 32: Left child key
-// 33 - 65: Right child key
+// 00 - 01: Prefix (1 byte, 0x01)
+// 01 - 32: Left child key (32 bytes)
+// 33 - 65: Right child key (32 bytes)
 //
-const BUFFER_SZ: usize = size_of::<u8>()
-    + size_of::<Bytes32>()
-    + size_of::<Bytes32>();
+const BUFFER_SZ: usize = size_of::<u8>() + size_of::<Bytes32>() + size_of::<Bytes32>();
 type Buffer = [u8; BUFFER_SZ];
 
 #[derive(Clone, Debug)]
@@ -33,12 +25,12 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn create_leaf(key: &[u8], data: &Bytes32) -> Self {
+    pub fn create_leaf(key: &[u8], data: &[u8]) -> Self {
         let buffer = [0u8; Self::buffer_size()];
         let mut node = Self { buffer };
         node.set_bytes_prefix(&[LEAF]);
         node.set_bytes_lo(&sum(key));
-        node.set_bytes_hi(data);
+        node.set_bytes_hi(&sum(data));
         node
     }
 
@@ -63,12 +55,12 @@ impl Node {
         self.bytes_prefix()[0]
     }
 
-    pub fn key(&self) -> &Bytes32 {
+    pub fn leaf_key(&self) -> &Bytes32 {
         assert!(self.is_leaf());
         self.bytes_lo().try_into().unwrap()
     }
 
-    pub fn data(&self) -> &Bytes32 {
+    pub fn leaf_data(&self) -> &Bytes32 {
         assert!(self.is_leaf());
         self.bytes_hi().try_into().unwrap()
     }
@@ -96,9 +88,7 @@ impl Node {
     }
 
     pub fn value(&self) -> Bytes32 {
-        let mut hash = Hash::new();
-        hash.update(self.buffer());
-        hash.finalize().try_into().unwrap()
+        sum(self.buffer())
     }
 
     // PRIVATE
@@ -148,9 +138,7 @@ impl Node {
     // BUFFER
 
     const fn buffer_size() -> usize {
-        Self::prefix_size()
-            + Self::bytes_lo_size()
-            + Self::bytes_hi_size()
+        Self::prefix_size() + Self::bytes_lo_size() + Self::bytes_hi_size()
     }
 
     // PRIVATE
@@ -206,16 +194,19 @@ impl Node {
     }
 }
 
-type NodeStorage = dyn Storage<Bytes32, Buffer, Error = StorageError>;
+type NodeStorage<StorageError> = dyn Storage<Bytes32, Buffer, Error = StorageError>;
 
 #[derive(Clone)]
-struct StorageNode<'storage> {
-    storage: &'storage NodeStorage,
+struct StorageNode<'storage, StorageError> {
+    storage: &'storage NodeStorage<StorageError>,
     node: Node,
 }
 
-impl<'a, 'storage> StorageNode<'storage> {
-    pub fn new(storage: &'storage NodeStorage, node: Node) -> Self {
+impl<'a, 'storage, StorageError> StorageNode<'storage, StorageError>
+where
+    StorageError: std::error::Error + Clone,
+{
+    pub fn new(storage: &'storage NodeStorage<StorageError>, node: Node) -> Self {
         Self { node, storage }
     }
 
@@ -252,7 +243,10 @@ impl<'a, 'storage> StorageNode<'storage> {
     }
 }
 
-impl<'storage> crate::common::Node for StorageNode<'storage> {
+impl<'storage, StorageError> crate::common::Node for StorageNode<'storage, StorageError>
+where
+    StorageError: std::error::Error + Clone,
+{
     fn key(&self) -> Bytes32 {
         StorageNode::value(self)
     }
@@ -261,8 +255,11 @@ impl<'storage> crate::common::Node for StorageNode<'storage> {
         StorageNode::is_leaf(self)
     }
 }
-//
-impl<'storage> ParentNode for StorageNode<'storage> {
+
+impl<'storage, StorageError> crate::common::ParentNode for StorageNode<'storage, StorageError>
+where
+    StorageError: std::error::Error + Clone,
+{
     fn left_child(&self) -> Self {
         StorageNode::left_child(self).unwrap()
     }
@@ -275,63 +272,32 @@ impl<'storage> ParentNode for StorageNode<'storage> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::common::{IntoPathIterator, StorageMap};
+    use crate::common::{IntoPathIterator, StorageError, StorageMap};
 
     #[test]
     fn test() {
         let n = Node::create_node(&[0u8; 32], &[1u8; 32]);
         let prefix = n.prefix();
-        println!("{:?}", prefix);
         let left = n.left_child_key();
-        println!("{:?}", left);
         let right = n.right_child_key();
-        println!("{:?}", right);
-        println!("{:?}", n.value());
     }
 
     #[test]
     fn test_storage() {
         let mut s = StorageMap::<Bytes32, Buffer>::new();
 
-        let data = [255u8; 32];
+        let leaf_0 = Node::create_leaf("Hello World".as_bytes(), &[0u8; 32]);
+        s.insert(&leaf_0.value(), leaf_0.as_buffer());
 
-        let leaf1 = Node::create_leaf(&[0u8; 32], &data);
-        s.insert(&leaf1.value(), leaf1.as_buffer());
+        let leaf_1 = Node::create_leaf("Something else".as_bytes(), &[1u8; 32]);
+        s.insert(&leaf_1.value(), leaf_1.as_buffer());
 
-        let leaf2 = Node::create_leaf(&[1u8; 32], &data);
-        s.insert(&leaf2.value(), leaf2.as_buffer());
+        let node_0 = Node::create_node(&leaf_0.value(), &leaf_1.value());
+        s.insert(&node_0.value(), node_0.as_buffer());
 
-        let nn = Node::create_node(&leaf1.value(), &leaf2.value());
-        s.insert(&nn.value(), nn.as_buffer());
-
-        let sn = StorageNode::new(&mut s, nn);
-
-        let r = sn.right_child().unwrap();
+        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let r = storage_node.right_child().unwrap();
 
         println!("{:?}", r.node);
-    }
-
-    #[test]
-    fn test_iter() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
-
-        let data = [255u8; 32];
-
-        let leaf1 = Node::create_leaf("Hello World".as_bytes(), &data);
-        s.insert(&leaf1.value(), leaf1.as_buffer());
-
-        let leaf2 = Node::create_leaf("Something else".as_bytes(), &data);
-        s.insert(&leaf2.value(), leaf2.as_buffer());
-
-        let nn = Node::create_node(&leaf1.value(), &leaf2.value());
-        s.insert(&nn.value(), nn.as_buffer());
-
-        let leaf = StorageNode::new(&s, leaf1);
-        let sn = StorageNode::new(&s, nn);
-
-        let iter = leaf.into_path_iter(&sn);
-        for n in iter {
-            println!("{:?}", n.node);
-        }
     }
 }
