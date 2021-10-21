@@ -35,7 +35,7 @@ macro_rules! impl_msb_for {
 
                 // The bit within the byte
                 let byte_bit_index = index % 8;
-                let shift = 1 << (8 - 1 - byte_bit_index);
+                let shift = 1 << (7 - byte_bit_index);
                 let bit = (byte & shift) != 0;
 
                 bit as u8
