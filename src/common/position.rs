@@ -218,15 +218,15 @@ impl Node for Position {
         Position::is_leaf(*self)
     }
 
-    fn sibling(&self) -> Self {
-        Position::sibling(*self)
-    }
+    // fn sibling(&self) -> Self {
+    //     Position::sibling(*self)
+    // }
 }
 
 impl ParentNode for Position {
-    fn is_ancestor_of(&self, descendent: &Self) -> bool {
-        Position::is_ancestor_of(*self, *descendent)
-    }
+    // fn is_ancestor_of(&self, descendent: &Self) -> bool {
+    //     Position::is_ancestor_of(*self, *descendent)
+    // }
 
     /// The position of the left child.
     /// See [child](Position::child).

@@ -86,7 +86,7 @@ where
     T: ParentNode + Clone,
 {
     pub fn new(leaf: T, root: T) -> Self {
-        assert!(root.is_ancestor_of(&leaf));
+        // assert!(root.is_ancestor_of(&leaf));
         Self {
             leaf,
             current: Some(root),
