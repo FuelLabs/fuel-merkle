@@ -247,7 +247,9 @@ impl<'storage, StorageError> crate::common::Node for StorageNode<'storage, Stora
 where
     StorageError: std::error::Error + Clone,
 {
-    fn key(&self) -> Bytes32 {
+    type Key = Bytes32;
+
+    fn key(&self) -> Self::Key {
         StorageNode::value(self)
     }
 

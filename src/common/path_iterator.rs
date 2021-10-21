@@ -1,5 +1,5 @@
 use crate::common::node::ParentNode;
-use crate::common::{Bytes32, MSB};
+use crate::common::MSB;
 use std::mem::size_of;
 
 /// #Path Iterator
@@ -88,18 +88,18 @@ where
     T: ParentNode + Clone,
 {
     pub fn new(leaf: T, root: T) -> Self {
-        // assert!(root.is_ancestor_of(&leaf));
         Self {
             leaf,
             current: Some(root),
-            current_height: size_of::<Bytes32>() - 1,
+            current_height: size_of::<T::Key>() - 1,
         }
     }
 }
 
-impl<T> Iterator for PathIter<T>
+impl<T, K> Iterator for PathIter<T>
 where
-    T: ParentNode + Clone,
+    T: ParentNode<Key = K> + Clone,
+    K: MSB,
 {
     type Item = T;
 

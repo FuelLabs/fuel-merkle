@@ -1,5 +1,5 @@
 use crate::common::node::{Node, ParentNode};
-use crate::common::Bytes32;
+use crate::common::{Bytes32, Bytes8};
 
 /// #Position
 ///
@@ -207,31 +207,18 @@ impl Position {
 }
 
 impl Node for Position {
-    fn key(&self) -> Bytes32 {
-        let pos_bytes = Position::in_order_index(*self).to_be_bytes();
-        let mut key = [0u8; 32];
-        key[24..].clone_from_slice(&pos_bytes);
-        key
-    }
+    type Key = Bytes8;
 
-    // fn height(&self) -> u32 {
-    //     Position::height(*self)
-    // }
+    fn key(&self) -> Bytes8 {
+        Position::in_order_index(*self).to_be_bytes()
+    }
 
     fn is_leaf(&self) -> bool {
         Position::is_leaf(*self)
     }
-
-    // fn sibling(&self) -> Self {
-    //     Position::sibling(*self)
-    // }
 }
 
 impl ParentNode for Position {
-    // fn is_ancestor_of(&self, descendent: &Self) -> bool {
-    //     Position::is_ancestor_of(*self, *descendent)
-    // }
-
     /// The position of the left child.
     /// See [child](Position::child).
     fn left_child(&self) -> Self {
