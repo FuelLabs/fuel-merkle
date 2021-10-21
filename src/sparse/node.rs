@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use std::mem::size_of;
 use std::ops::Range;
 
-use crate::common::{Bytes32, LEAF, NODE};
+use crate::common::{Bytes1, Bytes32, LEAF, NODE};
 use crate::sparse::hash::sum;
 
 // For a leaf:
@@ -16,7 +16,7 @@ use crate::sparse::hash::sum;
 // 01 - 32: Left child key (32 bytes)
 // 33 - 65: Right child key (32 bytes)
 //
-const BUFFER_SZ: usize = size_of::<u8>() + size_of::<Bytes32>() + size_of::<Bytes32>();
+const BUFFER_SZ: usize = size_of::<Bytes1>() + size_of::<Bytes32>() + size_of::<Bytes32>();
 type Buffer = [u8; BUFFER_SZ];
 
 #[derive(Clone, Debug)]
@@ -43,10 +43,8 @@ impl Node {
         node
     }
 
-    pub fn from_buffer(buffer: &Buffer) -> Self {
-        let node = Self {
-            buffer: buffer.clone(),
-        };
+    pub fn from_buffer(buffer: Buffer) -> Self {
+        let node = Self { buffer };
         assert!(node.is_leaf() || node.is_node());
         node
     }
@@ -161,7 +159,7 @@ impl Node {
         &self.buffer()[range]
     }
 
-    fn set_bytes_prefix(&mut self, bytes: &[u8; 1]) {
+    fn set_bytes_prefix(&mut self, bytes: &Bytes1) {
         self.bytes_prefix_mut().clone_from_slice(bytes);
     }
 
@@ -222,7 +220,7 @@ where
         if self.node.is_node() {
             let key = self.node.left_child_key();
             let buffer = self.storage.get(key).unwrap().unwrap();
-            let node = Node::from_buffer(buffer.as_ref());
+            let node = Node::from_buffer(*buffer);
             let storage_node = Self::new(self.storage, node);
             Some(storage_node)
         } else {
@@ -234,7 +232,7 @@ where
         if self.node.is_node() {
             let key = self.node.right_child_key();
             let buffer = self.storage.get(key).unwrap().unwrap();
-            let node = Node::from_buffer(buffer.as_ref());
+            let node = Node::from_buffer(*buffer);
             let storage_node = Self::new(self.storage, node);
             Some(storage_node)
         } else {

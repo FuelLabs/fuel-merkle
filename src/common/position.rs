@@ -1,5 +1,5 @@
 use crate::common::node::{Node, ParentNode};
-use crate::common::{Bytes32, Bytes8};
+use crate::common::Bytes8;
 
 /// #Position
 ///
@@ -168,7 +168,7 @@ impl Position {
     /// index.
     fn child(self, direction: i64) -> Self {
         assert!(!self.is_leaf());
-        let shift = 1 << self.height() - 1;
+        let shift = 1 << (self.height() - 1);
         let index = self.in_order_index() as i64 + shift * direction;
         Self::from_in_order_index(index as u64)
     }
