@@ -24,6 +24,12 @@ pub fn zero_sum() -> &'static Data {
     &*ZERO_SUM
 }
 
+pub fn sum(data: &[u8]) -> Data {
+    let mut hash = Hash::new();
+    hash.update(&data);
+    hash.finalize().try_into().unwrap()
+}
+
 // Merkle tree hash of an n-element list D[n]
 // MTH(D[n]) = Hash(0x01 || MTH(D[0:k]) || MTH(D[k:n])
 pub fn node_sum(lhs_data: &[u8], rhs_data: &[u8]) -> Data {

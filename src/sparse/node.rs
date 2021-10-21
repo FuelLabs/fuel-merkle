@@ -4,34 +4,27 @@ use std::convert::TryInto;
 use std::mem::size_of;
 use std::ops::Range;
 
-use crate::common::{ParentNode, Position, StorageError};
+use crate::common::{Bytes32, ParentNode, Position, StorageError};
 
 use sha2::Sha256 as Hash;
+use crate::sparse::hash::sum;
 
 const NODE: u8 = 0x01;
 const LEAF: u8 = 0x00;
 
-// For a node:
+// For a leaf:
 // 00 - 01: Prefix (1 byte) (0x01)
 // 01 - 33: Key (32 bytes)
 // 33 - 65: hash(Data) (32 bytes)
-// 65 - 73: Index (8 bytes)
-// 73 - 77: Height (4 bytes)
 //
-// For a leaf:
+// For a node:
 // 00 - 01: Prefix (0x00)
 // 01 - 32: Left child key
 // 33 - 65: Right child key
-// 65 - 73: Index (8 bytes)
-// 73 - 77: Height (4 bytes)
 //
-type Bytes32 = [u8; 32];
-
 const BUFFER_SZ: usize = size_of::<u8>()
     + size_of::<Bytes32>()
-    + size_of::<Bytes32>()
-    + size_of::<u64>()
-    + size_of::<u32>();
+    + size_of::<Bytes32>();
 type Buffer = [u8; BUFFER_SZ];
 
 #[derive(Clone, Debug)]
@@ -40,27 +33,21 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn create_leaf(key: &Bytes32, data: &Bytes32, index: u64) -> Self {
+    pub fn create_leaf(key: &[u8], data: &Bytes32) -> Self {
         let buffer = [0u8; Self::buffer_size()];
         let mut node = Self { buffer };
-        let position = Position::from_in_order_index(index);
-        node.bytes_prefix_mut().clone_from_slice(&[LEAF]);
-        node.bytes_lo_mut().clone_from_slice(key);
-        node.bytes_hi_mut().clone_from_slice(data);
-        node.bytes_index_mut().clone_from_slice(&index.to_be_bytes());
-        node.bytes_height_mut().clone_from_slice(&position.height().to_be_bytes());
+        node.set_bytes_prefix(&[LEAF]);
+        node.set_bytes_lo(&sum(key));
+        node.set_bytes_hi(data);
         node
     }
 
-    pub fn create_node(left_child_key: &Bytes32, right_child_key: &Bytes32, index: u64) -> Self {
+    pub fn create_node(left_child_key: &Bytes32, right_child_key: &Bytes32) -> Self {
         let buffer = [0u8; Self::buffer_size()];
         let mut node = Self { buffer };
-        let position = Position::from_in_order_index(index);
-        node.bytes_prefix_mut().clone_from_slice(&[NODE]);
-        node.bytes_lo_mut().clone_from_slice(left_child_key);
-        node.bytes_hi_mut().clone_from_slice(right_child_key);
-        node.bytes_index_mut().clone_from_slice(&index.to_be_bytes());
-        node.bytes_height_mut().clone_from_slice(&position.height().to_be_bytes());
+        node.set_bytes_prefix(&[NODE]);
+        node.set_bytes_lo(left_child_key);
+        node.set_bytes_hi(right_child_key);
         node
     }
 
@@ -94,16 +81,6 @@ impl Node {
     pub fn right_child_key(&self) -> &Bytes32 {
         assert!(self.is_node());
         self.bytes_hi().try_into().unwrap()
-    }
-
-    pub fn index(&self) -> u64 {
-        let buffer: [u8; 8] = self.bytes_index().try_into().unwrap();
-        u64::from_be_bytes(buffer)
-    }
-
-    pub fn height(&self) -> u32 {
-        let buffer: [u8; 4] = self.bytes_height().try_into().unwrap();
-        u32::from_be_bytes(buffer)
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -168,42 +145,12 @@ impl Node {
         Self::bytes_hi_offset()..(Self::bytes_hi_offset() + Self::bytes_hi_size())
     }
 
-    // BYTES INDEX
-
-    const fn bytes_index_offset() -> usize {
-        Self::bytes_hi_offset() + Self::bytes_hi_size()
-    }
-
-    const fn bytes_index_size() -> usize {
-        size_of::<u64>()
-    }
-
-    const fn bytes_index_range() -> Range<usize> {
-        Self::bytes_index_offset()..(Self::bytes_index_offset() + Self::bytes_index_size())
-    }
-
-    // BYTES HEIGHT
-
-    const fn bytes_height_offset() -> usize {
-        Self::bytes_index_offset() + Self::bytes_index_size()
-    }
-
-    const fn bytes_height_size() -> usize {
-        size_of::<u32>()
-    }
-
-    const fn bytes_height_range() -> Range<usize> {
-        Self::bytes_height_offset()..(Self::bytes_height_offset() + Self::bytes_height_size())
-    }
-
     // BUFFER
 
     const fn buffer_size() -> usize {
         Self::prefix_size()
             + Self::bytes_lo_size()
             + Self::bytes_hi_size()
-            + Self::bytes_index_size()
-            + Self::bytes_height_size()
     }
 
     // PRIVATE
@@ -226,6 +173,10 @@ impl Node {
         &self.buffer()[range]
     }
 
+    fn set_bytes_prefix(&mut self, bytes: &[u8; 1]) {
+        self.bytes_prefix_mut().clone_from_slice(bytes);
+    }
+
     fn bytes_lo_mut(&mut self) -> &mut [u8] {
         let range = Self::bytes_lo_range();
         &mut self.buffer_mut()[range]
@@ -234,6 +185,10 @@ impl Node {
     fn bytes_lo(&self) -> &[u8] {
         let range = Self::bytes_lo_range();
         &self.buffer()[range]
+    }
+
+    fn set_bytes_lo(&mut self, bytes: &Bytes32) {
+        self.bytes_lo_mut().clone_from_slice(bytes);
     }
 
     fn bytes_hi_mut(&mut self) -> &mut [u8] {
@@ -246,24 +201,8 @@ impl Node {
         &self.buffer()[range]
     }
 
-    fn bytes_index_mut(&mut self) -> &mut [u8] {
-        let range = Self::bytes_index_range();
-        &mut self.buffer_mut()[range]
-    }
-
-    fn bytes_index(&self) -> &[u8] {
-        let range = Self::bytes_index_range();
-        &self.buffer()[range]
-    }
-
-    fn bytes_height_mut(&mut self) -> &mut [u8] {
-        let range = Self::bytes_height_range();
-        &mut self.buffer_mut()[range]
-    }
-
-    fn bytes_height(&self) -> &[u8] {
-        let range = Self::bytes_height_range();
-        &self.buffer()[range]
+    fn set_bytes_hi(&mut self, bytes: &Bytes32) {
+        self.bytes_hi_mut().clone_from_slice(bytes);
     }
 }
 
@@ -280,12 +219,8 @@ impl<'a, 'storage> StorageNode<'storage> {
         Self { node, storage }
     }
 
-    pub fn index(&self) -> u64 {
-        self.node.index()
-    }
-
-    pub fn height(&self) -> u32 {
-        self.node.height()
+    pub fn value(&self) -> Bytes32 {
+        self.node.value()
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -297,10 +232,7 @@ impl<'a, 'storage> StorageNode<'storage> {
             let key = self.node.left_child_key();
             let buffer = self.storage.get(key).unwrap().unwrap();
             let node = Node::from_buffer(buffer.as_ref());
-            let storage_node = Self {
-                storage: self.storage,
-                node,
-            };
+            let storage_node = Self::new(self.storage, node);
             Some(storage_node)
         } else {
             None
@@ -312,10 +244,7 @@ impl<'a, 'storage> StorageNode<'storage> {
             let key = self.node.right_child_key();
             let buffer = self.storage.get(key).unwrap().unwrap();
             let node = Node::from_buffer(buffer.as_ref());
-            let storage_node = Self {
-                storage: self.storage,
-                node,
-            };
+            let storage_node = Self::new(self.storage, node);
             Some(storage_node)
         } else {
             None
@@ -324,12 +253,8 @@ impl<'a, 'storage> StorageNode<'storage> {
 }
 
 impl<'storage> crate::common::Node for StorageNode<'storage> {
-    fn index(&self) -> u64 {
-        StorageNode::index(self)
-    }
-
-    fn height(&self) -> u32 {
-        StorageNode::height(self)
+    fn key(&self) -> Bytes32 {
+        StorageNode::value(self)
     }
 
     fn is_leaf(&self) -> bool {
@@ -354,7 +279,7 @@ mod test {
 
     #[test]
     fn test() {
-        let n = Node::create_node(&[0u8; 32], &[1u8; 32], 1);
+        let n = Node::create_node(&[0u8; 32], &[1u8; 32]);
         let prefix = n.prefix();
         println!("{:?}", prefix);
         let left = n.left_child_key();
@@ -370,26 +295,20 @@ mod test {
 
         let data = [255u8; 32];
 
-        let leaf1 = Node::create_leaf(&[0u8; 32], &data, 0);
+        let leaf1 = Node::create_leaf(&[0u8; 32], &data);
         s.insert(&leaf1.value(), leaf1.as_buffer());
 
-        let leaf2 = Node::create_leaf(&[1u8; 32], &data, 2);
+        let leaf2 = Node::create_leaf(&[1u8; 32], &data);
         s.insert(&leaf2.value(), leaf2.as_buffer());
 
-        let nn = Node::create_node(&leaf1.value(), &leaf2.value(), 1);
+        let nn = Node::create_node(&leaf1.value(), &leaf2.value());
         s.insert(&nn.value(), nn.as_buffer());
 
         let sn = StorageNode::new(&mut s, nn);
 
-        println!("index {:?}", sn.index());
-        println!("height {:?}", sn.height());
-
         let r = sn.right_child().unwrap();
 
         println!("{:?}", r.node);
-        println!("index {:?}", r.index());
-        println!("height {:?}", r.height());
-
     }
 
     #[test]
@@ -398,13 +317,13 @@ mod test {
 
         let data = [255u8; 32];
 
-        let leaf1 = Node::create_leaf(&[0u8; 32], &data, 0);
+        let leaf1 = Node::create_leaf("Hello World".as_bytes(), &data);
         s.insert(&leaf1.value(), leaf1.as_buffer());
 
-        let leaf2 = Node::create_leaf(&[1u8; 32], &data, 2);
+        let leaf2 = Node::create_leaf("Something else".as_bytes(), &data);
         s.insert(&leaf2.value(), leaf2.as_buffer());
 
-        let nn = Node::create_node(&leaf1.value(), &leaf2.value(), 1);
+        let nn = Node::create_node(&leaf1.value(), &leaf2.value());
         s.insert(&nn.value(), nn.as_buffer());
 
         let leaf = StorageNode::new(&s, leaf1);

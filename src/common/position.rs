@@ -1,4 +1,6 @@
 use crate::common::node::{Node, ParentNode};
+use crate::common::Bytes32;
+use std::convert::TryInto;
 
 /// #Position
 ///
@@ -206,13 +208,16 @@ impl Position {
 }
 
 impl Node for Position {
-    fn index(&self) -> u64 {
-        Position::in_order_index(*self)
+    fn key(&self) -> Bytes32 {
+        let pos_bytes = Position::in_order_index(*self).to_be_bytes();
+        let mut key = [0u8; 32];
+        key[24..].clone_from_slice(&pos_bytes);
+        key
     }
 
-    fn height(&self) -> u32 {
-        Position::height(*self)
-    }
+    // fn height(&self) -> u32 {
+    //     Position::height(*self)
+    // }
 
     fn is_leaf(&self) -> bool {
         Position::is_leaf(*self)

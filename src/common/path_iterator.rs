@@ -1,5 +1,6 @@
-use crate::common::get_bit_at_index_from_msb_u64;
+use std::mem::size_of;
 use crate::common::node::ParentNode;
+use crate::common::{Bytes32, MSB};
 
 /// #Path Iterator
 ///
@@ -79,6 +80,7 @@ use crate::common::node::ParentNode;
 pub struct PathIter<T> {
     leaf: T,
     current: Option<T>,
+    current_height: usize
 }
 
 impl<T> PathIter<T>
@@ -90,6 +92,7 @@ where
         Self {
             leaf,
             current: Some(root),
+            current_height: size_of::<Bytes32>() - 1
         }
     }
 }
@@ -105,14 +108,14 @@ where
 
         if let Some(ref current) = self.current {
             if !current.is_leaf() {
-                let index = self.leaf.index();
-                let height = current.height();
-                let n = get_bit_at_index_from_msb_u64(index, height);
-                if n == 0 {
+                let key = self.leaf.key();
+                let instruction = key.get_bit_at_index_from_msb(self.current_height);
+                if instruction == 0 {
                     self.current = Some(current.left_child());
                 } else {
                     self.current = Some(current.right_child());
                 }
+                self.current_height -= 1;
             } else {
                 self.current = None;
             }
@@ -132,51 +135,5 @@ where
 {
     fn into_path_iter(self, root: &Self) -> PathIter<T> {
         PathIter::new(self, root.clone())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use crate::common::path_iterator::IntoPathIterator;
-    use crate::common::Position;
-
-    #[test]
-    fn test_path_iterator_returns_path_from_root_to_leaf() {
-        let root = Position::from_in_order_index(7);
-        let leaf = Position::from_leaf_index(4);
-        let iter = leaf.into_path_iter(&root);
-        let path: Vec<Position> = iter.collect();
-
-        let expected_path = vec![
-            Position::from_in_order_index(7),
-            Position::from_in_order_index(11),
-            Position::from_in_order_index(9),
-            Position::from_in_order_index(8),
-        ];
-        assert_eq!(path, expected_path)
-    }
-
-    #[test]
-    fn test_path_iterator_returns_path_from_root_to_leaf_in_subtree() {
-        let root = Position::from_in_order_index(11);
-        let leaf = Position::from_leaf_index(4);
-        let iter = leaf.into_path_iter(&root);
-        let path: Vec<Position> = iter.collect();
-
-        let expected_path = vec![
-            Position::from_in_order_index(11),
-            Position::from_in_order_index(9),
-            Position::from_in_order_index(8),
-        ];
-        assert_eq!(path, expected_path)
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_path_iterator_panics_if_leaf_is_not_a_descendent_of_root() {
-        let root = Position::from_in_order_index(11);
-        let leaf = Position::from_leaf_index(3);
-        // This call should panic because `leaf` is not a descendent of `root`
-        leaf.into_path_iter(&root);
     }
 }
