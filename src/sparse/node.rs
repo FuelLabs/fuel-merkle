@@ -272,7 +272,7 @@ where
 #[cfg(test)]
 mod test_node {
     use crate::common::{LEAF, NODE};
-    use crate::sparse::hash::{sum};
+    use crate::sparse::hash::sum;
     use crate::sparse::Node;
 
     #[test]
@@ -402,10 +402,10 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
-    use fuel_storage::Storage;
     use crate::common::{Bytes32, StorageError, StorageMap};
-    use crate::sparse::{Node, StorageNode};
     use crate::sparse::node::Buffer;
+    use crate::sparse::{Node, StorageNode};
+    use fuel_storage::Storage;
 
     #[test]
     fn test_node_left_child_returns_the_left_child() {
