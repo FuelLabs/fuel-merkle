@@ -1,4 +1,5 @@
-use digest::Digest;
+pub(crate) use digest::Digest;
+
 use lazy_static::lazy_static;
 use sha2::Sha256;
 use std::convert::TryInto;
