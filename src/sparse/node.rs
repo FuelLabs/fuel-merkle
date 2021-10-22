@@ -98,7 +98,7 @@ impl Node {
     }
 
     const fn prefix_size() -> usize {
-        size_of::<u8>()
+        size_of::<Bytes1>()
     }
 
     const fn prefix_range() -> Range<usize> {
