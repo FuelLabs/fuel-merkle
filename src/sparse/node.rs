@@ -272,14 +272,24 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::common::{IntoPathIterator, StorageError, StorageMap};
+    use crate::common::{StorageError, StorageMap};
 
     #[test]
-    fn test() {
-        let n = Node::create_node(&[0u8; 32], &[1u8; 32]);
-        let prefix = n.prefix();
-        let left = n.left_child_key();
-        let right = n.right_child_key();
+    fn test_create_leaf_returns_a_valid_leaf() {
+        let leaf = Node::create_leaf(&[0u8; 32], &[1u8; 32]);
+        assert_eq!(leaf.is_leaf(), true);
+        assert_eq!(leaf.prefix(), LEAF);
+        assert_eq!(leaf.leaf_key(), &sum(&[0u8; 32]));
+        assert_eq!(leaf.leaf_data(), &sum(&[1u8; 32]));
+    }
+
+    #[test]
+    fn test_create_node_returns_a_valid_node() {
+        let node = Node::create_node(&[0u8; 32], &[1u8; 32]);
+        assert_eq!(node.is_leaf(), false);
+        assert_eq!(node.prefix(), NODE);
+        assert_eq!(node.left_child_key(), &[0u8; 32]);
+        assert_eq!(node.right_child_key(), &[1u8; 32]);
     }
 
     #[test]

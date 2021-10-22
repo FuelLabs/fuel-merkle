@@ -130,8 +130,6 @@ mod test {
     #[test]
     #[should_panic]
     fn test_get_bit_at_index_from_msb_panics_for_index_out_of_bounds() {
-        const NUM_BITS: usize = size_of::<Bytes4>() * 8;
-
         let bytes: Bytes4 = [0b10101010, 0b10101010, 0b10101010, 0b10101010];
 
         // Should panic; acceptable inputs for Bytes4 are in [0, 31]
