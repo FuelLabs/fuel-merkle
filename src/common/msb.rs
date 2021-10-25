@@ -1,11 +1,10 @@
 use crate::common::{Bytes1, Bytes2, Bytes4, Bytes8};
 use crate::common::{Bytes16, Bytes32};
+use std::mem::size_of;
 
 pub trait MSB {
     fn get_bit_at_index_from_msb(&self, index: usize) -> u8;
 }
-
-use std::mem::size_of;
 
 macro_rules! impl_msb_for {
     ($t: ty) => {

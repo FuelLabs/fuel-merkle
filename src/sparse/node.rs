@@ -3,21 +3,8 @@ use std::convert::TryInto;
 use std::mem::size_of;
 use std::ops::Range;
 
-use crate::common::{Bytes1, Bytes32, LEAF, NODE};
+use crate::common::{Buffer, Bytes1, Bytes32, LEAF, NODE};
 use crate::sparse::hash::sum;
-
-// For a leaf:
-// 00 - 01: Prefix (1 byte, 0x00)
-// 01 - 33: hash(Key) (32 bytes)
-// 33 - 65: hash(Data) (32 bytes)
-//
-// For a node:
-// 00 - 01: Prefix (1 byte, 0x01)
-// 01 - 32: Left child key (32 bytes)
-// 33 - 65: Right child key (32 bytes)
-//
-const BUFFER_SZ: usize = size_of::<Bytes1>() + size_of::<Bytes32>() + size_of::<Bytes32>();
-type Buffer = [u8; BUFFER_SZ];
 
 #[derive(Clone, Debug)]
 pub(crate) struct Node {
@@ -192,11 +179,11 @@ impl Node {
     }
 }
 
-type NodeStorage<StorageError> = dyn Storage<Bytes32, Buffer, Error = StorageError>;
+type NodeStorage<'storage, StorageError> = dyn 'storage + Storage<Bytes32, Buffer, Error = StorageError>;
 
 #[derive(Clone)]
 pub(crate) struct StorageNode<'storage, StorageError> {
-    storage: &'storage NodeStorage<StorageError>,
+    storage: &'storage NodeStorage<'storage, StorageError>,
     node: Node,
 }
 

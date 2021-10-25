@@ -79,7 +79,7 @@ use std::mem::size_of;
 ///
 pub struct PathIter<T> {
     leaf: T,
-    current: Option<T>,
+    current: Option<(T, T)>,
     current_height: usize,
 }
 
@@ -90,7 +90,7 @@ where
     pub fn new(leaf: T, root: T) -> Self {
         Self {
             leaf,
-            current: Some(root),
+            current: Some((root.clone(), root.clone())),
             current_height: size_of::<T::Key>() - 1,
         }
     }
@@ -101,19 +101,22 @@ where
     T: ParentNode<Key = K> + Clone,
     K: MSB,
 {
-    type Item = T;
+    type Item = (T, T);
 
     fn next(&mut self) -> Option<Self::Item> {
         let value = self.current.clone();
 
-        if let Some(ref current) = self.current {
+        if let Some(ref pair) = self.current {
+            let current = &pair.0;
             if !current.is_leaf() {
                 let key = self.leaf.key();
                 let instruction = key.get_bit_at_index_from_msb(self.current_height);
                 if instruction == 0 {
-                    self.current = Some(current.left_child());
+                    let t = (current.left_child(), current.right_child());
+                    self.current = Some(t);
                 } else {
-                    self.current = Some(current.right_child());
+                    let t = (current.right_child(), current.left_child());
+                    self.current = Some(t);
                 }
                 self.current_height -= 1;
             } else {
