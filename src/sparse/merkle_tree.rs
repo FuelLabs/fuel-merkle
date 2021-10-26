@@ -9,8 +9,7 @@ pub enum MerkleTreeError {
     Error(),
 }
 
-pub struct MerkleTree<'storage, StorageError>
-{
+pub struct MerkleTree<'storage, StorageError> {
     root: Bytes32,
     storage: &'storage mut dyn Storage<Bytes32, Buffer, Error = StorageError>,
 }
@@ -22,32 +21,27 @@ where
     pub fn new(storage: &'storage mut dyn Storage<Bytes32, Buffer, Error = StorageError>) -> Self {
         Self {
             root: *zero_sum(),
-            storage
+            storage,
         }
     }
 
     pub fn update(&'a mut self, key: &Bytes32, data: &Bytes32) {
-        let root = self.update_for_root(key, data);
-        self.root = root;
+        self.root = self.update_for_root(key, data);
     }
 
     // PRIVATE
 
     fn update_for_root(&'a self, key: &Bytes32, _data: &Bytes32) -> Bytes32 {
-        let col = self.side_nodes_for_root(key, &self.root);
-
-        let mut path = vec!();
-        let mut side_nodes = vec!();
-        for (node, side_node) in col {
-            path.push(node);
-            side_nodes.push(side_node);
-        }
-
-        let root = self.update_with_side_nodes(path, side_nodes);
+        let col = self.path_set_for_root(key, &self.root);
+        let root = self.update_with_path_set(col.as_slice());
         root
     }
 
-    fn side_nodes_for_root(&'a self, leaf_key: &Bytes32, root: &Bytes32) -> Vec<(StorageNode<StorageError>, StorageNode<StorageError>)> {
+    fn path_set_for_root(
+        &'a self,
+        leaf_key: &Bytes32,
+        root: &Bytes32,
+    ) -> Vec<(StorageNode<StorageError>, StorageNode<StorageError>)> {
         let leaf_buffer = self.storage.get(leaf_key).unwrap().unwrap();
         let leaf_node = Node::from_buffer(leaf_buffer.into_owned());
         let leaf_storage = StorageNode::<StorageError>::new(self.storage, leaf_node);
@@ -62,11 +56,23 @@ where
         path
     }
 
-    fn update_with_side_nodes(&'a self, _path: Vec<StorageNode<StorageError>>, _side_nodes: Vec<StorageNode<StorageError>>) -> Bytes32 {
+    fn update_with_path_set(
+        &'a self,
+        path_set: &[(StorageNode<StorageError>, StorageNode<StorageError>)]
+    ) -> Bytes32 {
         todo!()
+
+        // 1. Set the leaf node in storage (i.e. path[0])
+        // 1. Check the common prefix: the right-most bits that both the old path nad new path have in common
+        // 2. For each pair of node and side node, hash them together to form the parent node, until
+        //    we reach the new root
+        // 3. Return the new root
     }
 
-    fn delete_with_side_nodes(&'a self, _path: Vec<StorageNode<StorageError>>, _side_nodes: Vec<StorageNode<StorageError>>) -> Bytes32 {
+    fn delete_with_path_set(
+        &'a self,
+        path_set: &[(StorageNode<StorageError>, StorageNode<StorageError>)]
+    ) -> Bytes32 {
         todo!()
     }
 }
