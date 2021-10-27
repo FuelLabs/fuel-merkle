@@ -1,6 +1,5 @@
 use crate::common::node::{Node, ParentNode};
 use crate::common::Bytes8;
-use std::mem::size_of;
 
 /// #Position
 ///
@@ -209,10 +208,6 @@ impl Position {
 
 impl Node for Position {
     type Key = Bytes8;
-
-    fn max_height() -> usize {
-        size_of::<Self::Key>() - 1
-    }
 
     fn key(&self) -> Bytes8 {
         Position::in_order_index(*self).to_be_bytes()
