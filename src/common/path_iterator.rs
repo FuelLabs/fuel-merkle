@@ -382,9 +382,9 @@ mod test {
             let path: Vec<Node> = iter.collect();
             let expected_path = vec![
                 Node::from_in_order_index(7),
-                Node::from_in_order_index(11),
-                Node::from_in_order_index(5),
-                Node::from_in_order_index(2),
+                Node::from_in_order_index(11),  // Sibling node of 3
+                Node::from_in_order_index(5),   // Sibling node of 1
+                Node::from_in_order_index(2),   // Sibling node of 0
             ];
             assert_eq!(path, expected_path);
         }
@@ -395,9 +395,9 @@ mod test {
             let path: Vec<Node> = iter.collect();
             let expected_path = vec![
                 Node::from_in_order_index(7),
-                Node::from_in_order_index(11),
-                Node::from_in_order_index(5),
-                Node::from_in_order_index(0),
+                Node::from_in_order_index(11),  // Sibling node of 3
+                Node::from_in_order_index(5),   // Sibling node of 1
+                Node::from_in_order_index(0),   // Sibling node of 2
             ];
             assert_eq!(path, expected_path);
         }
@@ -408,9 +408,9 @@ mod test {
             let path: Vec<Node> = iter.collect();
             let expected_path = vec![
                 Node::from_in_order_index(7),
-                Node::from_in_order_index(11),
-                Node::from_in_order_index(1),
-                Node::from_in_order_index(6),
+                Node::from_in_order_index(11),  // Sibling node of 3
+                Node::from_in_order_index(1),   // Sibling node of 5
+                Node::from_in_order_index(6),   // Sibling node of 4
             ];
             assert_eq!(path, expected_path);
         }
@@ -421,9 +421,9 @@ mod test {
             let path: Vec<Node> = iter.collect();
             let expected_path = vec![
                 Node::from_in_order_index(7),
-                Node::from_in_order_index(11),
-                Node::from_in_order_index(1),
-                Node::from_in_order_index(4),
+                Node::from_in_order_index(11),  // Sibling node of 3
+                Node::from_in_order_index(1),   // Sibling node of 5
+                Node::from_in_order_index(4),   // Sibling node of 6
             ];
             assert_eq!(path, expected_path);
         }
@@ -434,9 +434,9 @@ mod test {
             let path: Vec<Node> = iter.collect();
             let expected_path = vec![
                 Node::from_in_order_index(7),
-                Node::from_in_order_index(3),
-                Node::from_in_order_index(13),
-                Node::from_in_order_index(10),
+                Node::from_in_order_index(3),   // Sibling node of 11
+                Node::from_in_order_index(13),  // Sibling node of 9
+                Node::from_in_order_index(10),  // Sibling node of 8
             ];
             assert_eq!(path, expected_path);
         }
@@ -447,9 +447,9 @@ mod test {
             let path: Vec<Node> = iter.collect();
             let expected_path = vec![
                 Node::from_in_order_index(7),
-                Node::from_in_order_index(3),
-                Node::from_in_order_index(13),
-                Node::from_in_order_index(8),
+                Node::from_in_order_index(3),   // Sibling node of 11
+                Node::from_in_order_index(13),  // Sibling node of 9
+                Node::from_in_order_index(8),   // Sibling node of 10
             ];
             assert_eq!(path, expected_path);
         }
@@ -460,9 +460,9 @@ mod test {
             let path: Vec<Node> = iter.collect();
             let expected_path = vec![
                 Node::from_in_order_index(7),
-                Node::from_in_order_index(3),
-                Node::from_in_order_index(9),
-                Node::from_in_order_index(14),
+                Node::from_in_order_index(3),   // Sibling node of 11
+                Node::from_in_order_index(9),   // Sibling node of 3
+                Node::from_in_order_index(14),  // Sibling node of 12
             ];
             assert_eq!(path, expected_path);
         }
@@ -473,9 +473,9 @@ mod test {
             let path: Vec<Node> = iter.collect();
             let expected_path = vec![
                 Node::from_in_order_index(7),
-                Node::from_in_order_index(3),
-                Node::from_in_order_index(9),
-                Node::from_in_order_index(12),
+                Node::from_in_order_index(3),   // Sibling node of 11
+                Node::from_in_order_index(9),   // Sibling node of 3
+                Node::from_in_order_index(12),  // Sibling node of 14
             ];
             assert_eq!(path, expected_path);
         }
