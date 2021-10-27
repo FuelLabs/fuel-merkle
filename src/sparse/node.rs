@@ -1,5 +1,6 @@
 use fuel_storage::Storage;
 use std::convert::TryInto;
+use std::fmt::Debug;
 use std::mem::size_of;
 use std::ops::Range;
 
@@ -240,6 +241,10 @@ where
     StorageError: std::error::Error + Clone,
 {
     type Key = Bytes32;
+
+    fn max_height() -> usize {
+        size_of::<Self::Key>() - 1
+    }
 
     fn key(&self) -> Self::Key {
         StorageNode::value(self)

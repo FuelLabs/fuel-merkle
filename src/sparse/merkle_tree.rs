@@ -1,4 +1,4 @@
-use crate::common::{Buffer, Bytes32, IntoPathIterator};
+use crate::common::{AsPathIterator, Buffer, Bytes32};
 use fuel_storage::Storage;
 
 use crate::sparse::{zero_sum, Node, StorageNode};
@@ -50,7 +50,7 @@ where
         let root_node = Node::from_buffer(root_buffer.into_owned());
         let root_storage = StorageNode::<StorageError>::new(self.storage, root_node);
 
-        let iter = leaf_storage.into_path_iter(&root_storage);
+        let iter = leaf_storage.as_path_iter(&root_storage);
         let mut path: Vec<(StorageNode<StorageError>, StorageNode<StorageError>)> = iter.collect();
         path.reverse();
         path
@@ -58,7 +58,7 @@ where
 
     fn update_with_path_set(
         &'a self,
-        path_set: &[(StorageNode<StorageError>, StorageNode<StorageError>)]
+        path_set: &[(StorageNode<StorageError>, StorageNode<StorageError>)],
     ) -> Bytes32 {
         todo!()
 
@@ -71,7 +71,7 @@ where
 
     fn delete_with_path_set(
         &'a self,
-        path_set: &[(StorageNode<StorageError>, StorageNode<StorageError>)]
+        path_set: &[(StorageNode<StorageError>, StorageNode<StorageError>)],
     ) -> Bytes32 {
         todo!()
     }

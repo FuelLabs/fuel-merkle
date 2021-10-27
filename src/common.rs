@@ -8,7 +8,7 @@ mod storage_map;
 
 pub use msb::MSB;
 pub use node::{Node, ParentNode};
-pub use path_iterator::IntoPathIterator;
+pub use path_iterator::AsPathIterator;
 pub use position::Position;
 pub use storage_map::{StorageError, StorageMap};
 

@@ -1,6 +1,5 @@
 use crate::common::node::ParentNode;
 use crate::common::MSB;
-use std::mem::size_of;
 
 /// #Path Iterator
 ///
@@ -80,45 +79,66 @@ use std::mem::size_of;
 pub struct PathIter<T> {
     leaf: T,
     current: Option<(T, T)>,
-    current_height: usize,
+    current_offset: usize,
 }
 
+// Height Depth
+// 7      0
+//                                /
+// ...                          ...
+//                              /
+// 3      4                    07
+//                            /  \
+//                           /    \
+//                          /      \
+//                         /        \
+//                        /          \
+//                       /            \
+// 2      5            03              11
+//                    /  \            /  \
+//                   /    \          /    \
+// 1      6        01      05      09      13
+//                /  \    /  \    /  \    /  \
+// 0      7      00  02  04  06  08  10  12  14
+//               00  01  02  03  04  05  06  07
 impl<T> PathIter<T>
 where
     T: ParentNode + Clone,
 {
-    pub fn new(leaf: T, root: T) -> Self {
+    pub fn new(root: T, leaf: T) -> Self {
+        let initial = (root.clone(), root.clone());
+        let initial_offset = T::key_size_in_bits() - T::max_height();
         Self {
             leaf,
-            current: Some((root.clone(), root.clone())),
-            current_height: size_of::<T::Key>() - 1,
+            current: Some(initial),
+            current_offset: initial_offset,
         }
     }
 }
 
-impl<T, K> Iterator for PathIter<T>
+impl<T> Iterator for PathIter<T>
 where
-    T: ParentNode<Key = K> + Clone,
-    K: MSB,
+    T: ParentNode + Clone,
+    T::Key: MSB,
 {
     type Item = (T, T);
 
     fn next(&mut self) -> Option<Self::Item> {
         let value = self.current.clone();
 
-        if let Some(ref pair) = self.current {
-            let current = &pair.0;
-            if !current.is_leaf() {
+        if let Some(ref path_node_side_node) = self.current {
+            let path_node = &path_node_side_node.0;
+            if !path_node.is_leaf() {
                 let key = self.leaf.key();
-                let instruction = key.get_bit_at_index_from_msb(self.current_height);
+                let instruction = key.get_bit_at_index_from_msb(self.current_offset);
                 if instruction == 0 {
-                    let t = (current.left_child(), current.right_child());
-                    self.current = Some(t);
+                    let next = (path_node.left_child(), path_node.right_child());
+                    self.current = Some(next);
                 } else {
-                    let t = (current.right_child(), current.left_child());
-                    self.current = Some(t);
+                    let next = (path_node.right_child(), path_node.left_child());
+                    self.current = Some(next);
                 }
-                self.current_height -= 1;
+                self.current_offset += 1;
             } else {
                 self.current = None;
             }
@@ -128,15 +148,386 @@ where
     }
 }
 
-pub trait IntoPathIterator<T> {
-    fn into_path_iter(self, root: &Self) -> PathIter<T>;
+pub trait AsPathIterator<T> {
+    fn as_path_iter(&self, leaf: &Self) -> PathIter<T>;
 }
 
-impl<T> IntoPathIterator<T> for T
+impl<T> AsPathIterator<T> for T
 where
     T: ParentNode + Clone,
 {
-    fn into_path_iter(self, root: &Self) -> PathIter<T> {
-        PathIter::new(self, root.clone())
+    fn as_path_iter(&self, leaf: &Self) -> PathIter<T> {
+        PathIter::new(self.clone(), leaf.clone())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::common::{AsPathIterator, Bytes1, Node, ParentNode};
+
+    #[derive(Debug, Clone, PartialEq)]
+    struct TestNode<const MAX_HEIGHT: usize> {
+        value: u8,
+    }
+
+    impl<const MAX_HEIGHT: usize> TestNode<MAX_HEIGHT> {
+        pub fn in_order_index(&self) -> u8 {
+            self.value
+        }
+
+        pub fn leaf_index(&self) -> u8 {
+            assert!(self.is_leaf());
+            self.value / 2
+        }
+
+        pub fn from_in_order_index(index: u8) -> Self {
+            Self { value: index }
+        }
+        pub fn from_leaf_index(index: u8) -> Self {
+            Self { value: index * 2 }
+        }
+
+        pub fn height(&self) -> u32 {
+            (!self.in_order_index()).trailing_zeros()
+        }
+
+        pub fn is_leaf(&self) -> bool {
+            self.in_order_index() % 2 == 0
+        }
+
+        fn child(&self, direction: i8) -> Self {
+            assert!(!self.is_leaf());
+            let shift = 1 << (self.height() - 1);
+            let index = self.in_order_index() as i8 + shift * direction;
+            Self::from_in_order_index(index as u8)
+        }
+    }
+
+    impl<const MAX_HEIGHT: usize> Node for TestNode<MAX_HEIGHT> {
+        type Key = Bytes1;
+
+        fn max_height() -> usize {
+            MAX_HEIGHT
+        }
+
+        fn key(&self) -> Self::Key {
+            TestNode::leaf_index(self).to_be_bytes()
+        }
+
+        fn is_leaf(&self) -> bool {
+            TestNode::is_leaf(self)
+        }
+    }
+
+    impl<const MAX_HEIGHT: usize> ParentNode for TestNode<MAX_HEIGHT> {
+        fn left_child(&self) -> Self {
+            TestNode::child(self, -1)
+        }
+
+        fn right_child(&self) -> Self {
+            TestNode::child(self, 1)
+        }
+    }
+
+    #[test]
+    fn test_path_iter_returns_path() {
+        //
+        //               07
+        //              /  \
+        //             /    \
+        //            /      \
+        //           /        \
+        //          /          \
+        //         /            \
+        //       03              11
+        //      /  \            /  \
+        //     /    \          /    \
+        //   01      05      09      13
+        //  /  \    /  \    /  \    /  \
+        // 00  02  04  06  08  10  12  14
+        // 00  01  02  03  04  05  06  07
+        //
+        type Node = TestNode<3>;
+        let root = Node::from_in_order_index(7);
+
+        {
+            let leaf = Node::from_leaf_index(0);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(3),
+                Node::from_in_order_index(1),
+                Node::from_in_order_index(0),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(1);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(3),
+                Node::from_in_order_index(1),
+                Node::from_in_order_index(2),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(2);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(3),
+                Node::from_in_order_index(5),
+                Node::from_in_order_index(4),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(3);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(3),
+                Node::from_in_order_index(5),
+                Node::from_in_order_index(6),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(4);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(11),
+                Node::from_in_order_index(9),
+                Node::from_in_order_index(8),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(5);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(11),
+                Node::from_in_order_index(9),
+                Node::from_in_order_index(10),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(6);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(11),
+                Node::from_in_order_index(13),
+                Node::from_in_order_index(12),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(7);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(11),
+                Node::from_in_order_index(13),
+                Node::from_in_order_index(14),
+            ];
+            assert_eq!(path, expected_path);
+        }
+    }
+
+    #[test]
+    fn test_path_iter_returns_side_nodes() {
+        //
+        //               07
+        //              /  \
+        //             /    \
+        //            /      \
+        //           /        \
+        //          /          \
+        //         /            \
+        //       03              11
+        //      /  \            /  \
+        //     /    \          /    \
+        //   01      05      09      13
+        //  /  \    /  \    /  \    /  \
+        // 00  02  04  06  08  10  12  14
+        // 00  01  02  03  04  05  06  07
+        //
+        type Node = TestNode<3>;
+        let root = Node::from_in_order_index(7);
+
+        {
+            let leaf = Node::from_leaf_index(0);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.1);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(11),
+                Node::from_in_order_index(5),
+                Node::from_in_order_index(2),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(1);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.1);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(11),
+                Node::from_in_order_index(5),
+                Node::from_in_order_index(0),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(2);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.1);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(11),
+                Node::from_in_order_index(1),
+                Node::from_in_order_index(6),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(3);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.1);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(11),
+                Node::from_in_order_index(1),
+                Node::from_in_order_index(4),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(4);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.1);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(3),
+                Node::from_in_order_index(13),
+                Node::from_in_order_index(10),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(5);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.1);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(3),
+                Node::from_in_order_index(13),
+                Node::from_in_order_index(8),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(6);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.1);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(3),
+                Node::from_in_order_index(9),
+                Node::from_in_order_index(14),
+            ];
+            assert_eq!(path, expected_path);
+        }
+
+        {
+            let leaf = Node::from_leaf_index(7);
+            let iter = root.as_path_iter(&leaf).map(|pair| pair.1);
+            let path: Vec<Node> = iter.collect();
+            let expected_path = vec![
+                Node::from_in_order_index(7),
+                Node::from_in_order_index(3),
+                Node::from_in_order_index(9),
+                Node::from_in_order_index(12),
+            ];
+            assert_eq!(path, expected_path);
+        }
+    }
+
+    #[test]
+    fn test_path_iter_height_4() {
+        //
+        //                               15
+        //                              /  \
+        //                             /    \
+        //                            /      \
+        //                           /        \
+        //                          /          \
+        //                         /            \
+        //                        /              \
+        //                       /                \
+        //                      /                  \
+        //                     /                    \
+        //                    /                      \
+        //                   /                        \
+        //                  /                          \
+        //                 /                            \
+        //               07                              23
+        //              /  \                            /  \
+        //             /    \                          /    \
+        //            /      \                        /      \
+        //           /        \                      /        \
+        //          /          \                    /          \
+        //         /            \                  /            \
+        //       03              11              19              27
+        //      /  \            /  \            /  \            /  \
+        //     /    \          /    \          /    \          /    \
+        //   01      05      09      13      17      21      25      29
+        //  /  \    /  \    /  \    /  \    /  \    /  \    /  \    /  \
+        // 00  02  04  06  08  10  12  14  16  18  20  22  24  26  28  30
+        // 00  01  02  03  04  05  06  07  08  09  10  11  12  13  14  15
+        //
+        type Node = TestNode<4>;
+        let root = Node::from_in_order_index(15);
+        let leaf = Node::from_leaf_index(4);
+
+        let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+        let path: Vec<Node> = iter.collect();
+
+        let expected_path = vec![
+            Node::from_in_order_index(15),
+            Node::from_in_order_index(7),
+            Node::from_in_order_index(11),
+            Node::from_in_order_index(9),
+            Node::from_in_order_index(8),
+        ];
+        assert_eq!(path, expected_path);
     }
 }
