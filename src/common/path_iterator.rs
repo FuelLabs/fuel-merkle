@@ -461,7 +461,7 @@ mod test {
             let expected_path = vec![
                 Node::from_in_order_index(7),
                 Node::from_in_order_index(3), // Sibling of node 11
-                Node::from_in_order_index(9), // Sibling of node 3
+                Node::from_in_order_index(9), // Sibling of node 13
                 Node::from_leaf_index(7),     // Sibling of leaf 6
             ];
             assert_eq!(path, expected_path);
@@ -474,7 +474,7 @@ mod test {
             let expected_path = vec![
                 Node::from_in_order_index(7),
                 Node::from_in_order_index(3), // Sibling of node 11
-                Node::from_in_order_index(9), // Sibling of node 3
+                Node::from_in_order_index(9), // Sibling of node 13
                 Node::from_leaf_index(6),     // Sibling of leaf 7
             ];
             assert_eq!(path, expected_path);
