@@ -82,34 +82,44 @@ pub struct PathIter<T> {
     current_offset: usize,
 }
 
-// Height Depth
-// 7      0
-//                                /
-// ...                          ...
-//                              /
-// 3      4                    07
-//                            /  \
-//                           /    \
-//                          /      \
-//                         /        \
-//                        /          \
-//                       /            \
-// 2      5            03              11
-//                    /  \            /  \
-//                   /    \          /    \
-// 1      6        01      05      09      13
-//                /  \    /  \    /  \    /  \
-// 0      7      00  02  04  06  08  10  12  14
-//               00  01  02  03  04  05  06  07
 impl<T> PathIter<T>
 where
     T: ParentNode + Clone,
 {
-    pub fn new(root: T, leaf: T) -> Self {
+    pub fn new(root: &T, leaf: &T) -> Self {
         let initial = (root.clone(), root.clone());
+
+        // The initial offset from the MSB.
+        //
+        // In the case that the maximum height of the tree is less than the number of bits in the
+        // key, the initial offset from the MSB must be augmented to accommodate the height.
+        //
+        // E.g,
+        // With an 8-bit key:
+        //
+        // Height Depth
+        // 7      0                       255            Max height: 7 --> 8 bits - 7 = bit 1
+        //                                / \
+        // ...                          ... ...
+        //                              /
+        // 3      4                    07                Max height: 3 --> 8 bits - 3 = bit 5
+        //                            /  \
+        //                           /    \
+        //                          /      \
+        //                         /        \
+        //                        /          \
+        //                       /            \
+        // 2      5            03              11        Max height: 2 --> 8 bits - 2 = bit 6
+        //                    /  \            /  \
+        //                   /    \          /    \
+        // 1      6        01      05      09      13
+        //                /  \    /  \    /  \    /  \
+        // 0      7      00  02  04  06  08  10  12  14  Max height: 1 --> 8 bits - 1 = bit 7
+        //               00  01  02  03  04  05  06  07
+        //
         let initial_offset = T::key_size_in_bits() - T::max_height();
         Self {
-            leaf,
+            leaf: leaf.clone(),
             current: Some(initial),
             current_offset: initial_offset,
         }
@@ -157,33 +167,33 @@ where
     T: ParentNode + Clone,
 {
     fn as_path_iter(&self, leaf: &Self) -> PathIter<T> {
-        PathIter::new(self.clone(), leaf.clone())
+        PathIter::new(self, leaf)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::common::{AsPathIterator, Bytes1, Node, ParentNode};
+    use crate::common::{AsPathIterator, Bytes8, Node, ParentNode};
 
     #[derive(Debug, Clone, PartialEq)]
     struct TestNode<const MAX_HEIGHT: usize> {
-        value: u8,
+        value: u64,
     }
 
     impl<const MAX_HEIGHT: usize> TestNode<MAX_HEIGHT> {
-        pub fn in_order_index(&self) -> u8 {
+        pub fn in_order_index(&self) -> u64 {
             self.value
         }
 
-        pub fn leaf_index(&self) -> u8 {
+        pub fn leaf_index(&self) -> u64 {
             assert!(self.is_leaf());
             self.value / 2
         }
 
-        pub fn from_in_order_index(index: u8) -> Self {
+        pub fn from_in_order_index(index: u64) -> Self {
             Self { value: index }
         }
-        pub fn from_leaf_index(index: u8) -> Self {
+        pub fn from_leaf_index(index: u64) -> Self {
             Self { value: index * 2 }
         }
 
@@ -195,16 +205,16 @@ mod test {
             self.in_order_index() % 2 == 0
         }
 
-        fn child(&self, direction: i8) -> Self {
+        fn child(&self, direction: i64) -> Self {
             assert!(!self.is_leaf());
             let shift = 1 << (self.height() - 1);
-            let index = self.in_order_index() as i8 + shift * direction;
-            Self::from_in_order_index(index as u8)
+            let index = self.in_order_index()  as i64 + shift * direction;
+            Self::from_in_order_index(index as u64)
         }
     }
 
     impl<const MAX_HEIGHT: usize> Node for TestNode<MAX_HEIGHT> {
-        type Key = Bytes1;
+        type Key = Bytes8;
 
         fn max_height() -> usize {
             MAX_HEIGHT
@@ -374,7 +384,7 @@ mod test {
         // 00  01  02  03  04  05  06  07
         //
         type Node = TestNode<3>;
-        let root = Node::from_in_order_index(7);
+        let root = Node::from_in_order_index(7); // 2^3 - 1
 
         {
             let leaf = Node::from_leaf_index(0);
@@ -483,40 +493,9 @@ mod test {
 
     #[test]
     fn test_path_iter_height_4() {
-        //
-        //                               15
-        //                              /  \
-        //                             /    \
-        //                            /      \
-        //                           /        \
-        //                          /          \
-        //                         /            \
-        //                        /              \
-        //                       /                \
-        //                      /                  \
-        //                     /                    \
-        //                    /                      \
-        //                   /                        \
-        //                  /                          \
-        //                 /                            \
-        //               07                              23
-        //              /  \                            /  \
-        //             /    \                          /    \
-        //            /      \                        /      \
-        //           /        \                      /        \
-        //          /          \                    /          \
-        //         /            \                  /            \
-        //       03              11              19              27
-        //      /  \            /  \            /  \            /  \
-        //     /    \          /    \          /    \          /    \
-        //   01      05      09      13      17      21      25      29
-        //  /  \    /  \    /  \    /  \    /  \    /  \    /  \    /  \
-        // 00  02  04  06  08  10  12  14  16  18  20  22  24  26  28  30
-        // 00  01  02  03  04  05  06  07  08  09  10  11  12  13  14  15
-        //
         type Node = TestNode<4>;
-        let root = Node::from_in_order_index(15);
-        let leaf = Node::from_leaf_index(4);
+        let root = Node::from_in_order_index(15); // 2^4 - 1
+        let leaf = Node::from_leaf_index(4); // 0b00000100
 
         let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
         let path: Vec<Node> = iter.collect();
@@ -527,6 +506,29 @@ mod test {
             Node::from_in_order_index(11),
             Node::from_in_order_index(9),
             Node::from_in_order_index(8),
+        ];
+        assert_eq!(path, expected_path);
+    }
+
+    #[test]
+    fn test_path_iter_height_8() {
+        type Node = TestNode<8>;
+        let root = Node::from_in_order_index(255); // 2^8 - 1
+        let leaf = Node::from_leaf_index(61); // 0b00111101
+
+        let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
+        let path: Vec<Node> = iter.collect();
+
+        let expected_path = vec![
+            Node::from_in_order_index(255),
+            Node::from_in_order_index(127),
+            Node::from_in_order_index(63),
+            Node::from_in_order_index(95),
+            Node::from_in_order_index(111),
+            Node::from_in_order_index(119),
+            Node::from_in_order_index(123),
+            Node::from_in_order_index(121),
+            Node::from_leaf_index(61),
         ];
         assert_eq!(path, expected_path);
     }
