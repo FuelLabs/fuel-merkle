@@ -32,6 +32,12 @@ impl Node {
         node
     }
 
+    pub fn create_placeholder() -> Self
+    {
+        let buffer = [0u8; Self::buffer_size()];
+        Self { buffer }
+    }
+
     pub fn from_buffer(buffer: Buffer) -> Self {
         let node = Self { buffer };
         assert!(node.is_leaf() || node.is_node());
@@ -68,6 +74,10 @@ impl Node {
 
     pub fn is_node(&self) -> bool {
         self.prefix() == NODE
+    }
+
+    pub fn is_placeholder(&self) -> bool {
+        self.bytes_lo() == zero_sum()
     }
 
     pub fn as_buffer(&self) -> &Buffer {
@@ -179,10 +189,17 @@ impl Node {
     fn set_bytes_hi(&mut self, bytes: &Bytes32) {
         self.bytes_hi_mut().clone_from_slice(bytes);
     }
+}
 
-    // Is this node a placeholder?
-    fn is_placeholder(&self) -> bool {
-        self.bytes_lo() == zero_sum()
+impl crate::common::Node for Node {
+    type Key = Bytes32;
+
+    fn key(&self) -> Self::Key {
+        Node::value(self)
+    }
+
+    fn is_leaf(&self) -> bool {
+        Node::is_leaf(self)
     }
 }
 
@@ -234,6 +251,10 @@ where
             Self::new(self.storage, node)
         })
     }
+
+    pub fn into_node(self) -> Node {
+        self.node
+    }
 }
 
 impl<'storage, StorageError> crate::common::Node for StorageNode<'storage, StorageError>
@@ -241,10 +262,6 @@ where
     StorageError: std::error::Error + Clone,
 {
     type Key = Bytes32;
-
-    fn max_height() -> usize {
-        size_of::<Self::Key>() - 1
-    }
 
     fn key(&self) -> Self::Key {
         StorageNode::value(self)
