@@ -208,7 +208,7 @@ mod test {
         fn child(&self, direction: i64) -> Self {
             assert!(!self.is_leaf());
             let shift = 1 << (self.height() - 1);
-            let index = self.in_order_index()  as i64 + shift * direction;
+            let index = self.in_order_index() as i64 + shift * direction;
             Self::from_in_order_index(index as u64)
         }
     }
@@ -529,6 +529,21 @@ mod test {
             Node::from_in_order_index(123),
             Node::from_in_order_index(121),
             Node::from_leaf_index(61),
+        ];
+        assert_eq!(path, expected_path);
+    }
+
+    #[test]
+    fn test_path_iter_returns_root_root_when_root_is_leaf() {
+        type Node = TestNode<1>;
+        let root = Node::from_in_order_index(0);
+        let leaf = Node::from_leaf_index(0);
+
+        let iter = root.as_path_iter(&leaf);
+        let path: Vec<(Node, Node)> = iter.collect();
+
+        let expected_path = vec![
+            (Node::from_in_order_index(0), Node::from_in_order_index(0))
         ];
         assert_eq!(path, expected_path);
     }
