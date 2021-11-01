@@ -83,7 +83,7 @@ impl Node {
         self.buffer().try_into().unwrap()
     }
 
-    pub fn value(&self) -> Bytes32 {
+    pub fn hash(&self) -> Bytes32 {
         if self.is_placeholder() {
             *empty_sum()
         } else {
@@ -202,7 +202,7 @@ impl crate::common::Node for Node {
     type Key = Bytes32;
 
     fn key(&self) -> Self::Key {
-        Node::value(self)
+        Node::hash(self)
     }
 
     fn is_leaf(&self) -> bool {
@@ -228,7 +228,7 @@ where
     }
 
     pub fn value(&self) -> Bytes32 {
-        self.node.value()
+        self.node.hash()
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -322,7 +322,7 @@ mod test_node {
     fn test_create_placeholder_returns_a_placeholder_node() {
         let node = Node::create_placeholder();
         assert_eq!(node.is_placeholder(), true);
-        assert_eq!(node.value(), *empty_sum());
+        assert_eq!(node.hash(), *empty_sum());
     }
 
     #[test]
@@ -368,7 +368,7 @@ mod test_node {
     }
 
     /// For leaf node `node` of leaf data `d` with key `k`:
-    /// ```node.buffer = (0x00, k, h(serialize(d)))``
+    /// ```node.buffer = (0x00, k, h(serialize(d)))```
     #[test]
     fn test_leaf_buffer_returns_expected_buffer() {
         let mut expected_buffer = [0u8; 65];
@@ -398,9 +398,9 @@ mod test_node {
     }
 
     /// For leaf node `node` of leaf data `d` with key `k`:
-    /// ```node.value = h(0x00, k, h(serialize(d)))```
+    /// ```node.v = h(0x00, k, h(serialize(d)))```
     #[test]
-    fn test_leaf_value_returns_expected_hash_value() {
+    fn test_leaf_hash_returns_expected_hash_value() {
         let mut expected_buffer = [0u8; 65];
         expected_buffer[0..1].clone_from_slice(&[LEAF]);
         expected_buffer[1..33].clone_from_slice(&sum(&[1u8; 32]));
@@ -408,15 +408,15 @@ mod test_node {
         let expected_value = sum(&expected_buffer);
 
         let node = Node::create_leaf(&[1u8; 32], &[1u8; 32]);
-        let value = node.value();
+        let value = node.hash();
 
         assert_eq!(value, expected_value);
     }
 
     /// For internal node `node` with children `l` and `r`:
-    /// ```node.value = h(0x01, l.v, r.v)```
+    /// ```node.v = h(0x01, l.v, r.v)```
     #[test]
-    fn test_node_value_returns_expected_hash_value() {
+    fn test_node_hash_returns_expected_hash_value() {
         let mut expected_buffer = [0u8; 65];
         expected_buffer[0..1].clone_from_slice(&[NODE]);
         expected_buffer[1..33].clone_from_slice(&[1u8; 32]);
@@ -424,7 +424,7 @@ mod test_node {
         let expected_value = sum(&expected_buffer);
 
         let node = Node::create_node(&[1u8; 32], &[1u8; 32]);
-        let value = node.value();
+        let value = node.hash();
 
         assert_eq!(value, expected_value);
     }
@@ -442,18 +442,18 @@ mod test_storage_node {
         let mut s = StorageMap::<Bytes32, Buffer>::new();
 
         let leaf_0 = Node::create_leaf("Hello World".as_bytes(), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.value(), leaf_0.as_buffer());
+        let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
 
         let leaf_1 = Node::create_leaf("Goodbye World".as_bytes(), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.value(), leaf_1.as_buffer());
+        let _ = s.insert(&leaf_1.hash(), leaf_1.as_buffer());
 
-        let node_0 = Node::create_node(&leaf_0.value(), &leaf_1.value());
-        let _ = s.insert(&node_0.value(), node_0.as_buffer());
+        let node_0 = Node::create_node(&leaf_0.hash(), &leaf_1.hash());
+        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
         let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
         let child = storage_node.left_child().unwrap();
 
-        assert_eq!(child.value(), leaf_0.value());
+        assert_eq!(child.value(), leaf_0.hash());
     }
 
     #[test]
@@ -461,17 +461,17 @@ mod test_storage_node {
         let mut s = StorageMap::<Bytes32, Buffer>::new();
 
         let leaf_0 = Node::create_leaf("Hello World".as_bytes(), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.value(), leaf_0.as_buffer());
+        let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
 
         let leaf_1 = Node::create_leaf("Goodbye World".as_bytes(), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.value(), leaf_1.as_buffer());
+        let _ = s.insert(&leaf_1.hash(), leaf_1.as_buffer());
 
-        let node_0 = Node::create_node(&leaf_0.value(), &leaf_1.value());
-        let _ = s.insert(&node_0.value(), node_0.as_buffer());
+        let node_0 = Node::create_node(&leaf_0.hash(), &leaf_1.hash());
+        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
         let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
         let child = storage_node.right_child().unwrap();
 
-        assert_eq!(child.value(), leaf_1.value());
+        assert_eq!(child.value(), leaf_1.hash());
     }
 }
