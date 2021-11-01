@@ -3,10 +3,15 @@ use std::convert::TryInto;
 use std::fmt::Debug;
 use std::mem::size_of;
 use std::ops::Range;
+use digest::Digest;
+use sha2::Sha256;
+
+pub(crate) type Hash = Sha256;
+
 
 use crate::common::{Buffer, Bytes1, Bytes32, LEAF, NODE};
 use crate::sparse::hash::sum;
-use crate::sparse::zero_sum;
+use crate::sparse::{empty_sum, zero_sum};
 
 #[derive(Clone, Debug)]
 pub(crate) struct Node {
@@ -15,7 +20,7 @@ pub(crate) struct Node {
 
 impl Node {
     pub fn create_leaf(key: &[u8], data: &[u8]) -> Self {
-        let buffer = [0u8; Self::buffer_size()];
+        let buffer = Self::default_buffer();
         let mut node = Self { buffer };
         node.set_bytes_prefix(&[LEAF]);
         node.set_bytes_lo(&sum(key));
@@ -24,7 +29,7 @@ impl Node {
     }
 
     pub fn create_node(left_child_key: &Bytes32, right_child_key: &Bytes32) -> Self {
-        let buffer = [0u8; Self::buffer_size()];
+        let buffer = Self::default_buffer();
         let mut node = Self { buffer };
         node.set_bytes_prefix(&[NODE]);
         node.set_bytes_lo(left_child_key);
@@ -32,9 +37,8 @@ impl Node {
         node
     }
 
-    pub fn create_placeholder() -> Self
-    {
-        let buffer = [0u8; Self::buffer_size()];
+    pub fn create_placeholder() -> Self {
+        let buffer = Self::default_buffer();
         Self { buffer }
     }
 
@@ -85,12 +89,20 @@ impl Node {
     }
 
     pub fn value(&self) -> Bytes32 {
-        sum(self.buffer())
+        if self.is_placeholder() {
+            *empty_sum()
+        } else {
+            sum(self.buffer())
+        }
     }
 
     // PRIVATE
 
     // PREFIX
+
+    const fn default_buffer() -> Buffer {
+        ['\0' as u8; Self::buffer_size()]
+    }
 
     const fn prefix_offset() -> usize {
         0
@@ -289,7 +301,7 @@ where
 mod test_node {
     use crate::common::{LEAF, NODE};
     use crate::sparse::hash::sum;
-    use crate::sparse::Node;
+    use crate::sparse::{empty_sum, Node};
 
     #[test]
     fn test_create_leaf_returns_a_valid_leaf() {
@@ -309,6 +321,13 @@ mod test_node {
         assert_eq!(node.prefix(), NODE);
         assert_eq!(node.left_child_key(), &[1u8; 32]);
         assert_eq!(node.right_child_key(), &[1u8; 32]);
+    }
+
+    #[test]
+    fn test_create_placeholder_returns_a_placeholder_node() {
+        let node = Node::create_placeholder();
+        assert_eq!(node.is_placeholder(), true);
+        assert_eq!(node.value(), *empty_sum());
     }
 
     #[test]

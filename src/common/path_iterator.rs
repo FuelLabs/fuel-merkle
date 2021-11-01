@@ -542,9 +542,33 @@ mod test {
         let iter = root.as_path_iter(&leaf);
         let path: Vec<(Node, Node)> = iter.collect();
 
-        let expected_path = vec![
-            (Node::from_in_order_index(0), Node::from_in_order_index(0))
-        ];
+        let expected_path = vec![(Node::from_in_order_index(0), Node::from_in_order_index(0))];
         assert_eq!(path, expected_path);
+    }
+
+    #[test]
+    fn test_path_iter_into_path_nodes_and_side_nodes() {
+        type Node = TestNode<3>;
+        let root = Node::from_in_order_index(7);
+        let leaf = Node::from_leaf_index(0);
+        let iter = root.as_path_iter(&leaf);
+        let path_set: Vec<(Node, Node)> = iter.collect();
+        let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = path_set.iter().cloned().unzip();
+
+        let expected_path_nodes = vec![
+            Node::from_in_order_index(7),
+            Node::from_in_order_index(3),
+            Node::from_in_order_index(1),
+            Node::from_leaf_index(0),
+        ];
+        assert_eq!(path_nodes, expected_path_nodes);
+
+        let expected_side_nodes = vec![
+            Node::from_in_order_index(7),
+            Node::from_in_order_index(11), // Sibling of node 3
+            Node::from_in_order_index(5),  // Sibling of node 1
+            Node::from_leaf_index(1),      // Sibling of leaf 0
+        ];
+        assert_eq!(side_nodes, expected_side_nodes);
     }
 }
