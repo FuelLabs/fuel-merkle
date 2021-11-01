@@ -3,11 +3,6 @@ use std::convert::TryInto;
 use std::fmt::Debug;
 use std::mem::size_of;
 use std::ops::Range;
-use digest::Digest;
-use sha2::Sha256;
-
-pub(crate) type Hash = Sha256;
-
 
 use crate::common::{Buffer, Bytes1, Bytes32, LEAF, NODE};
 use crate::sparse::hash::sum;

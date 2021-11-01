@@ -552,8 +552,7 @@ mod test {
         let root = Node::from_in_order_index(7);
         let leaf = Node::from_leaf_index(0);
         let iter = root.as_path_iter(&leaf);
-        let path_set: Vec<(Node, Node)> = iter.collect();
-        let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = path_set.iter().cloned().unzip();
+        let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = iter.unzip();
 
         let expected_path_nodes = vec![
             Node::from_in_order_index(7),
