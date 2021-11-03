@@ -103,26 +103,26 @@ where
         // key, the initial offset from the MSB must be augmented to accommodate the height.
         //
         // E.g,
-        // With an 8-bit key:
+        // With an 8-bit key and maximum heights 1 through 7:
         //
         // Height Depth
-        // 7      0                       255            Max height: 7 --> 8 bits - 7 = bit 1
+        // 7      0                       255            Offset = bits - max height = 8 - 7 = 1
         //                                / \
         // ...                          ... ...
         //                              /
-        // 3      4                    07                Max height: 3 --> 8 bits - 3 = bit 5
+        // 3      4                    07                Offset = bits - max height = 8 - 3 = 5
         //                            /  \
         //                           /    \
         //                          /      \
         //                         /        \
         //                        /          \
         //                       /            \
-        // 2      5            03              11        Max height: 2 --> 8 bits - 2 = bit 6
+        // 2      5            03              11        Offset = bits - max height = 8 - 2 = 6
         //                    /  \            /  \
         //                   /    \          /    \
-        // 1      6        01      05      09      13
+        // 1      6        01      05      09      13    Offset = bits - max height = 8 - 1 = 7
         //                /  \    /  \    /  \    /  \
-        // 0      7      00  02  04  06  08  10  12  14  Max height: 1 --> 8 bits - 1 = bit 7
+        // 0      7      00  02  04  06  08  10  12  14
         //               00  01  02  03  04  05  06  07
         //
         let initial_offset = T::key_size_in_bits() - T::max_height();
