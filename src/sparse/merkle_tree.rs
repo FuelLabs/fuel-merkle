@@ -26,7 +26,6 @@ where
     }
 
     pub fn update(&'a mut self, key: &[u8], data: &[u8]) {
-        println!();
         let leaf_node = Node::create_leaf(key, data);
         self.update_for_root(leaf_node);
     }
@@ -191,9 +190,9 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
-        let data = "DATA".as_bytes();
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
+            let data = "DATA".as_bytes();
             tree.update(&key, data);
         }
 
@@ -207,9 +206,9 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
-        let data = "DATA".as_bytes();
         for i in 0_u32..3 {
             let key = i.to_be_bytes();
+            let data = "DATA".as_bytes();
             tree.update(&key, data);
         }
 
@@ -223,9 +222,9 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
-        let data = "DATA".as_bytes();
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
+            let data = "DATA".as_bytes();
             tree.update(&key, data);
         }
 
@@ -239,9 +238,9 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
-        let data = "DATA".as_bytes();
         for i in 0_u32..100 {
             let key = i.to_be_bytes();
+            let data = "DATA".as_bytes();
             tree.update(&key, data);
         }
 

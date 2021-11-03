@@ -1,6 +1,7 @@
 use fuel_storage::Storage;
 use std::convert::TryInto;
 use std::fmt;
+use std::fmt::Formatter;
 use std::mem::size_of;
 use std::ops::Range;
 
