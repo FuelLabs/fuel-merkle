@@ -106,7 +106,7 @@ where
         // With an 8-bit key and maximum heights 1 through 7:
         //
         // Height Depth
-        // 7      0                       255            Offset = bits - max height = 8 - 7 = 1
+        // 7      0                       127            Offset = bits - max height = 8 - 7 = 1
         //                                / \
         // ...                          ... ...
         //                              /
