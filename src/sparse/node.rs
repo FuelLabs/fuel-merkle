@@ -245,14 +245,6 @@ where
         Self { node, storage }
     }
 
-    pub fn leaf_key(&self) -> &Bytes32 {
-        self.node.leaf_key()
-    }
-
-    pub fn value(&self) -> Bytes32 {
-        self.node.hash()
-    }
-
     pub fn is_leaf(&self) -> bool {
         self.node.is_leaf()
     }
@@ -261,7 +253,15 @@ where
         self.node.is_node()
     }
 
-    pub fn left_child(&'a self) -> Option<Self> {
+    pub fn leaf_key(&self) -> &Bytes32 {
+        self.node.leaf_key()
+    }
+
+    pub fn hash(&self) -> Bytes32 {
+        self.node.hash()
+    }
+
+    pub fn left_child(&self) -> Option<Self> {
         assert!(self.is_node());
         let key = self.node.left_child_key();
         let buffer = self.storage.get(key).unwrap();
@@ -271,9 +271,9 @@ where
         })
     }
 
-    pub fn right_child(&'a self) -> Option<Self> {
-        assert!(self.is_node());
-        let key = self.node.right_child_key();
+    pub fn right_child(&self) -> Option<Self> {
+        assert!(self.node.is_node());
+        let key = self.right_child_key();
         let buffer = self.storage.get(key).unwrap();
         buffer.map(|b| {
             let node = Node::from_buffer(*b);
@@ -493,7 +493,7 @@ mod test_storage_node {
         let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
         let child = storage_node.left_child().unwrap();
 
-        assert_eq!(child.value(), leaf_0.hash());
+        assert_eq!(child.hash(), leaf_0.hash());
     }
 
     #[test]
@@ -512,6 +512,6 @@ mod test_storage_node {
         let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
         let child = storage_node.right_child().unwrap();
 
-        assert_eq!(child.value(), leaf_1.hash());
+        assert_eq!(child.hash(), leaf_1.hash());
     }
 }
