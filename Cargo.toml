@@ -17,3 +17,4 @@ thiserror = "1.0.28"
 
 [dev-dependencies]
 fuel-merkle-test-helpers = { path = "test-helpers" }
+hex="~0.4.3"

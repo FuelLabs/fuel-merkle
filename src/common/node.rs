@@ -7,10 +7,10 @@ pub trait Node {
         size_of::<Self::Key>() * 8
     }
     fn max_height() -> usize {
-        Self::key_size_in_bits() - 1
+        Self::key_size_in_bits()
     }
 
-    fn key(&self) -> Self::Key;
+    fn leaf_key(&self) -> Self::Key;
     fn is_leaf(&self) -> bool;
 }
 

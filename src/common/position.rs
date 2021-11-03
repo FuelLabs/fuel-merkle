@@ -215,7 +215,7 @@ impl Node for Position {
         (1 << (SIZE - 1)) - 1
     }
 
-    fn key(&self) -> Bytes8 {
+    fn leaf_key(&self) -> Bytes8 {
         Position::in_order_index(*self).to_be_bytes()
     }
 

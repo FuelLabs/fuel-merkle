@@ -1,5 +1,6 @@
 use crate::common::node::ParentNode;
 use crate::common::MSB;
+use std::fmt::Debug;
 
 /// #Path Iterator
 ///
@@ -139,8 +140,8 @@ where
         if let Some(ref path_node_side_node) = self.current {
             let path_node = &path_node_side_node.0;
             if !path_node.is_leaf() {
-                let key = self.leaf.key();
-                let instruction = key.get_bit_at_index_from_msb(self.current_offset);
+                let path = self.leaf.leaf_key();
+                let instruction = path.get_bit_at_index_from_msb(self.current_offset);
                 if instruction == 0 {
                     let next = (path_node.left_child(), path_node.right_child());
                     self.current = Some(next);
@@ -164,7 +165,7 @@ pub trait AsPathIterator<T> {
 
 impl<T> AsPathIterator<T> for T
 where
-    T: ParentNode + Clone,
+    T: ParentNode + Clone + Debug,
 {
     fn as_path_iter(&self, leaf: &Self) -> PathIter<T> {
         PathIter::new(self, leaf)
@@ -176,17 +177,17 @@ mod test {
     use crate::common::{AsPathIterator, Bytes8, Node, ParentNode};
 
     #[derive(Debug, Clone, PartialEq)]
-    struct TestNode<const MAX_HEIGHT: usize> {
+    struct TestNode<const LEAF_BITS: usize> {
         value: u64,
     }
 
-    impl<const MAX_HEIGHT: usize> TestNode<MAX_HEIGHT> {
+    impl<const LEAF_BITS: usize> TestNode<LEAF_BITS> {
         pub fn in_order_index(&self) -> u64 {
             self.value
         }
 
         pub fn leaf_index(&self) -> u64 {
-            assert!(self.is_leaf());
+            // assert!(self.is_leaf());
             self.value / 2
         }
 
@@ -213,14 +214,14 @@ mod test {
         }
     }
 
-    impl<const MAX_HEIGHT: usize> Node for TestNode<MAX_HEIGHT> {
+    impl<const LEAF_BITS: usize> Node for TestNode<LEAF_BITS> {
         type Key = Bytes8;
 
         fn max_height() -> usize {
-            MAX_HEIGHT
+            LEAF_BITS
         }
 
-        fn key(&self) -> Self::Key {
+        fn leaf_key(&self) -> Self::Key {
             TestNode::leaf_index(self).to_be_bytes()
         }
 
@@ -229,7 +230,7 @@ mod test {
         }
     }
 
-    impl<const MAX_HEIGHT: usize> ParentNode for TestNode<MAX_HEIGHT> {
+    impl<const LEAF_BITS: usize> ParentNode for TestNode<LEAF_BITS> {
         fn left_child(&self) -> Self {
             TestNode::child(self, -1)
         }

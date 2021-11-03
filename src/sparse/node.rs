@@ -1,14 +1,14 @@
 use fuel_storage::Storage;
 use std::convert::TryInto;
-use std::fmt::Debug;
+use std::fmt;
 use std::mem::size_of;
 use std::ops::Range;
 
 use crate::common::{Buffer, Bytes1, Bytes32, LEAF, NODE};
 use crate::sparse::hash::sum;
-use crate::sparse::{empty_sum, zero_sum};
+use crate::sparse::zero_sum;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub(crate) struct Node {
     buffer: Buffer,
 }
@@ -76,7 +76,7 @@ impl Node {
     }
 
     pub fn is_placeholder(&self) -> bool {
-        self.bytes_lo() == zero_sum()
+        self.bytes_lo() == zero_sum() && self.bytes_hi() == zero_sum()
     }
 
     pub fn as_buffer(&self) -> &Buffer {
@@ -85,7 +85,7 @@ impl Node {
 
     pub fn hash(&self) -> Bytes32 {
         if self.is_placeholder() {
-            *empty_sum()
+            *zero_sum()
         } else {
             sum(self.buffer())
         }
@@ -201,12 +201,30 @@ impl Node {
 impl crate::common::Node for Node {
     type Key = Bytes32;
 
-    fn key(&self) -> Self::Key {
-        Node::hash(self)
+    fn leaf_key(&self) -> Self::Key {
+        *Node::leaf_key(self)
     }
 
     fn is_leaf(&self) -> bool {
         Node::is_leaf(self)
+    }
+}
+
+impl fmt::Debug for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_node() {
+            f.debug_struct("Node (Internal)")
+                .field("Left child key", &self.left_child_key())
+                .field("Right child key", &self.right_child_key())
+                .field("Hash", &self.hash())
+                .finish()
+        } else {
+            f.debug_struct("Node (Leaf)")
+                .field("Leaf key", &self.leaf_key())
+                .field("Leaf data", self.leaf_data())
+                .field("Hash", &self.hash())
+                .finish()
+        }
     }
 }
 
@@ -225,6 +243,10 @@ where
 {
     pub fn new(storage: &'storage NodeStorage<'storage, StorageError>, node: Node) -> Self {
         Self { node, storage }
+    }
+
+    pub fn leaf_key(&self) -> &Bytes32 {
+        self.node.leaf_key()
     }
 
     pub fn value(&self) -> Bytes32 {
@@ -270,8 +292,8 @@ where
 {
     type Key = Bytes32;
 
-    fn key(&self) -> Self::Key {
-        StorageNode::value(self)
+    fn leaf_key(&self) -> Self::Key {
+        *StorageNode::leaf_key(self)
     }
 
     fn is_leaf(&self) -> bool {
@@ -292,11 +314,29 @@ where
     }
 }
 
+impl<'storage, StorageError> fmt::Debug for StorageNode<'storage, StorageError> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.node.is_node() {
+            f.debug_struct("StorageNode (Internal)")
+                .field("Left child key", &self.node.left_child_key())
+                .field("Right child key", &self.node.right_child_key())
+                .field("Hash", &self.node.hash())
+                .finish()
+        } else {
+            f.debug_struct("StorageNode (Leaf)")
+                .field("Leaf key", &self.node.leaf_key())
+                .field("Leaf data", self.node.leaf_data())
+                .field("Hash", &self.node.hash())
+                .finish()
+        }
+    }
+}
+
 #[cfg(test)]
 mod test_node {
     use crate::common::{LEAF, NODE};
     use crate::sparse::hash::sum;
-    use crate::sparse::{empty_sum, Node};
+    use crate::sparse::{zero_sum, Node};
 
     #[test]
     fn test_create_leaf_returns_a_valid_leaf() {
@@ -322,7 +362,7 @@ mod test_node {
     fn test_create_placeholder_returns_a_placeholder_node() {
         let node = Node::create_placeholder();
         assert_eq!(node.is_placeholder(), true);
-        assert_eq!(node.hash(), *empty_sum());
+        assert_eq!(node.hash(), *zero_sum());
     }
 
     #[test]
