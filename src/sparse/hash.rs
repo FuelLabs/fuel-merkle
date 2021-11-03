@@ -10,7 +10,7 @@ pub(crate) type Hash = Sha256;
 
 lazy_static! {
     static ref EMPTY_SUM: Bytes32 = Hash::new().finalize().try_into().unwrap();
-    static ref ZERO_SUM: Bytes32 = ['\0' as u8; 32];
+    static ref ZERO_SUM: Bytes32 = [0; 32];
 }
 
 // Merkle Tree hash of an empty list

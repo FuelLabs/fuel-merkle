@@ -97,7 +97,7 @@ impl Node {
     // PREFIX
 
     const fn default_buffer() -> Buffer {
-        ['\0' as u8; Self::buffer_size()]
+        [0; Self::buffer_size()]
     }
 
     const fn prefix_offset() -> usize {
