@@ -194,7 +194,7 @@ mod test {
         }
 
         pub fn leaf_index(&self) -> u64 {
-            // assert!(self.is_leaf());
+            assert!(self.is_leaf());
             self.value / 2
         }
 
