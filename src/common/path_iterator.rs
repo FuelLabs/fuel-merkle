@@ -496,7 +496,7 @@ mod test {
     fn test_path_iter_height_4() {
         type Node = TestNode<4>;
         let root = Node::from_in_order_index(15); // 2^4 - 1
-        let leaf = Node::from_leaf_index(4); // 0b00000100
+        let leaf = Node::from_leaf_index(4); // 0b0100
 
         let iter = root.as_path_iter(&leaf).map(|pair| pair.0);
         let path: Vec<Node> = iter.collect();
