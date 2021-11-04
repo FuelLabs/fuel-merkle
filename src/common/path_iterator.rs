@@ -94,13 +94,17 @@ where
         //
         // The offset from the MSB indicates which bit to read when deducing the path from the root
         // to the leaf. As we descend down the tree, increasing the traversal depth, we increment
-        // this offset and read the corresponding bit to get the next traversal instruction. In the
-        // general case, we start by reading the first bit (at offset 0) of the key; this means the
-        // initial offset from the MSB will be 0. This occurs when the key size (in bits) is equal
-        // to the maximum height of the tree.
+        // this offset and read the corresponding bit to get the next traversal instruction.
         //
-        // In the case that the maximum height of the tree is less than the number of bits in the
-        // key, the initial offset from the MSB must be augmented to accommodate the height.
+        // In the general case, we start by reading the first bit of the path at offset 0. This
+        // happens when the path fills its allocated memory; e.g., a path of 32 instructions is
+        // contained within a 32 bit allocation for the leaf key. This also means that the key size
+        // in bits is equal to the maximum height of the tree.
+        //
+        // In the case that the length of the path is less than the number of bits in the key, the
+        // initial offset from the MSB must be augmented to accommodate the shortened path. This
+        // occurs when the key is allocated with a larger address space to reduce address
+        // collisions of internal nodes.
         //
         // E.g,
         // With an 8-bit key and maximum heights 1 through 7:
