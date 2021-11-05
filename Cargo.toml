@@ -11,10 +11,10 @@ bytes = "~1.0.1"
 digest = "~0.9.0"
 fuel-storage = { git = "ssh://git@github.com/FuelLabs/fuel-storage.git" }
 generic-array = "~0.14.4"
+hex="~0.4.3"
 lazy_static = "~1.4.0"
 sha2 = "~0.9.5"
 thiserror = "1.0.28"
 
 [dev-dependencies]
 fuel-merkle-test-helpers = { path = "test-helpers" }
-hex="~0.4.3"
