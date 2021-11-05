@@ -2,7 +2,7 @@ use crate::common::{AsPathIterator, Buffer, Bytes32, Node as NodeTrait, MSB};
 use fuel_storage::Storage;
 
 use crate::sparse::hash::sum;
-use crate::sparse::{zero_sum, Node, StorageNode};
+use crate::sparse::{Node, StorageNode};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -118,25 +118,25 @@ where
 
         let offset_side_nodes = self.depth() - side_nodes.len();
         for i in 0..self.depth() {
-            let side_node_hash = {
+            let side_node = {
                 if i < offset_side_nodes {
                     if common_prefix_count != self.depth()
                         && common_prefix_count > self.depth() - 1 - i
                     {
-                        *zero_sum()
+                        Node::create_placeholder()
                     } else {
                         continue;
                     }
                 } else {
-                    side_nodes[i - offset_side_nodes].hash()
+                    side_nodes[i - offset_side_nodes].clone()
                 }
             };
 
             let requested_leaf_key = requested_leaf_node.leaf_key();
             if requested_leaf_key.get_bit_at_index_from_msb(self.depth() - 1 - i) == 1 {
-                current_node = Node::create_node(&side_node_hash, &current_node.hash());
+                current_node = Node::create_node(&side_node.hash(), &current_node.hash());
             } else {
-                current_node = Node::create_node(&current_node.hash(), &side_node_hash);
+                current_node = Node::create_node(&current_node.hash(), &side_node.hash());
             }
             self.insert(&current_node);
         }
