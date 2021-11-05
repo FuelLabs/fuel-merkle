@@ -1,7 +1,8 @@
 use crate::common::{AsPathIterator, Buffer, Bytes32, Node as NodeTrait, MSB};
 use fuel_storage::Storage;
 
-use crate::sparse::{empty_sum, Node, StorageNode};
+use crate::sparse::hash::sum;
+use crate::sparse::{zero_sum, Node, StorageNode};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -27,15 +28,24 @@ where
 
     pub fn update(&'a mut self, key: &[u8], data: &[u8]) {
         let leaf_node = Node::create_leaf(key, data);
-        self.update_for_root(leaf_node);
+        self.storage
+            .insert(&leaf_node.leaf_key(), leaf_node.as_buffer());
+        self.storage
+            .insert(&leaf_node.hash(), leaf_node.as_buffer());
+        let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+        self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
+    }
+
+    pub fn delete(&'a mut self, key: &[u8]) {
+        let leaf_key = sum(key);
+        let buffer = self.storage.get(&leaf_key).unwrap().unwrap();
+        let leaf_node = Node::from_buffer(*buffer);
+        let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+        self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
     }
 
     pub fn root(&self) -> Bytes32 {
-        if self.root_node.is_placeholder() {
-            *empty_sum()
-        } else {
-            self.root_node().hash()
-        }
+        self.root_node().hash()
     }
 
     // PRIVATE
@@ -52,18 +62,19 @@ where
         let _ = self.storage.insert(&node.hash(), node.as_buffer());
     }
 
-    fn update_for_root(&mut self, leaf_node: Node) {
-        let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
-        if leaf_node.is_placeholder() {
-            self.delete_with_path_set(path_nodes.as_slice(), side_nodes.as_slice());
-        } else {
-            self.insert(&leaf_node);
-            self.update_with_path_set(leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
-        }
-    }
+    // fn update_for_root(&mut self, leaf_node: Node) {
+    //     let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+    //     if leaf_node.is_placeholder() {
+    //         self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
+    //     } else {
+    //         self.storage.insert(&leaf_node.leaf_key(), leaf_node.as_buffer());
+    //         self.insert(&leaf_node);
+    //         self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
+    //     }
+    // }
 
     fn path_set(&self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
-        let root_node = self.root_node.clone();
+        let root_node = self.root_node().clone();
         let root_storage_node = StorageNode::<StorageError>::new(self.storage, root_node);
         let leaf_storage_node = StorageNode::<StorageError>::new(self.storage, leaf_node);
         let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = root_storage_node
@@ -79,11 +90,11 @@ where
 
     fn update_with_path_set(
         &'a mut self,
-        requested_leaf_node: Node,
+        requested_leaf_node: &Node,
         path_nodes: &[Node],
         side_nodes: &[Node],
     ) {
-        let actual_leaf_node = path_nodes[0].clone();
+        let actual_leaf_node = &path_nodes[0];
         let mut current_node = requested_leaf_node.clone();
 
         let common_prefix_count = {
@@ -107,19 +118,73 @@ where
 
         let offset_side_nodes = self.depth() - side_nodes.len();
         for i in 0..self.depth() {
-            let side_node = {
+            let side_node_hash = {
                 if i < offset_side_nodes {
                     if common_prefix_count != self.depth()
                         && common_prefix_count > self.depth() - 1 - i
                     {
-                        Node::create_placeholder()
+                        *zero_sum()
                     } else {
                         continue;
                     }
                 } else {
-                    side_nodes[i - offset_side_nodes].clone()
+                    side_nodes[i - offset_side_nodes].hash()
                 }
             };
+
+            let requested_leaf_key = requested_leaf_node.leaf_key();
+            if requested_leaf_key.get_bit_at_index_from_msb(self.depth() - 1 - i) == 1 {
+                current_node = Node::create_node(&side_node_hash, &current_node.hash());
+            } else {
+                current_node = Node::create_node(&current_node.hash(), &side_node_hash);
+            }
+            self.insert(&current_node);
+        }
+
+        self.root_node = current_node;
+    }
+
+    fn delete_with_path_set(
+        &'a mut self,
+        requested_leaf_node: &Node,
+        path_nodes: &[Node],
+        side_nodes: &[Node],
+    ) {
+        let actual_leaf_node = &path_nodes[0];
+
+        if actual_leaf_node.is_placeholder() {
+            // Error
+            panic!("bad");
+        }
+
+        if requested_leaf_node.hash() != actual_leaf_node.hash() {
+            // Error
+            panic!("bad");
+        }
+
+        for node in path_nodes {
+            let _ = self.storage.remove(&node.hash());
+        }
+
+        let mut non_placeholder_reached = false;
+        let mut current_node = Node::create_placeholder();
+        let n = side_nodes.len();
+        for i in 0..n {
+            let side_node = &side_nodes[i];
+            if current_node.is_placeholder() {
+                if side_node.is_leaf() {
+                    current_node = side_node.clone();
+                    continue;
+                } else {
+                    non_placeholder_reached = true;
+                }
+            }
+
+            if !non_placeholder_reached && side_node.is_placeholder() {
+                continue;
+            } else if !non_placeholder_reached {
+                non_placeholder_reached = true;
+            }
 
             let requested_leaf_key = requested_leaf_node.leaf_key();
             if requested_leaf_key.get_bit_at_index_from_msb(self.depth() - 1 - i) == 1 {
@@ -132,16 +197,12 @@ where
 
         self.root_node = current_node;
     }
-
-    fn delete_with_path_set(&'a self, _path_nodes: &[Node], _side_nodes: &[Node]) -> Bytes32 {
-        todo!()
-    }
 }
 
 #[cfg(test)]
 mod test {
     use crate::common::{Buffer, Bytes32, StorageError, StorageMap};
-    use crate::sparse::{empty_sum, MerkleTree};
+    use crate::sparse::{zero_sum, MerkleTree};
     use hex;
 
     #[test]
@@ -149,7 +210,7 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let tree = MerkleTree::<StorageError>::new(&mut storage);
         let root = tree.root();
-        let expected_root = *empty_sum();
+        let expected_root = *zero_sum();
         assert_eq!(root, expected_root);
     }
 
@@ -172,7 +233,7 @@ mod test {
     ///              D   0
     /// ```
     #[test]
-    fn test_update_one() {
+    fn test_update_1() {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
@@ -182,6 +243,22 @@ mod test {
 
         let root = tree.root();
         let expected_root = "86e5b012af08f415d18599efead53c2714566ecd23f6c439908ab93ab1a0eb40";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_1_1() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
+
+        for i in 0_u32..1 {
+            let key = i.to_be_bytes();
+            let data = "DATA".as_bytes();
+            tree.update(&key, data);
+        }
+
+        let root = tree.root();
+        let expected_root = "39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b";
         assert_eq!(hex::encode(root), expected_root);
     }
 
@@ -246,6 +323,40 @@ mod test {
 
         let root = tree.root();
         let expected_root = "82bf747d455a55e2f7044a03536fc43f1f55d43b855e72c0110c986707a23e4d";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_delete_1() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
+
+        let key = 1_u32.to_be_bytes();
+        let data = "DATA".as_bytes();
+        tree.update(&key, data);
+        tree.delete(&key);
+
+        let root = tree.root();
+        let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_delete() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
+
+        for i in 0_u32..2 {
+            let key = i.to_be_bytes();
+            let data = "DATA".as_bytes();
+            tree.update(&key, data);
+        }
+
+        let key = 0_u32.to_be_bytes();
+        tree.delete(&key);
+
+        let root = tree.root();
+        let expected_root = "d7cb6616832899ac111a852ca8df2d63a1cdb36cb84651ffde72e264506a456f";
         assert_eq!(hex::encode(root), expected_root);
     }
 }
