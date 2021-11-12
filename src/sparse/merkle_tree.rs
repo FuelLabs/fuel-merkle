@@ -44,17 +44,17 @@ where
         self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
     }
 
-    pub fn root(&self) -> Bytes32 {
+    pub fn root(&'a self) -> Bytes32 {
         self.root_node().hash()
     }
 
     // PRIVATE
 
-    fn depth(&self) -> usize {
+    fn depth(&'a self) -> usize {
         Node::key_size_in_bits()
     }
 
-    fn root_node(&self) -> &Node {
+    fn root_node(&'a self) -> &Node {
         &self.root_node
     }
 
@@ -73,7 +73,7 @@ where
     //     }
     // }
 
-    fn path_set(&self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
+    fn path_set(&'a self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
         let root_node = self.root_node().clone();
         let root_storage_node = StorageNode::<StorageError>::new(self.storage, root_node);
         let leaf_storage_node = StorageNode::<StorageError>::new(self.storage, leaf_node);
@@ -153,13 +153,11 @@ where
         let actual_leaf_node = &path_nodes[0];
 
         if actual_leaf_node.is_placeholder() {
-            // Error
-            panic!("bad");
+            todo!()
         }
 
         if requested_leaf_node.hash() != actual_leaf_node.hash() {
-            // Error
-            panic!("bad");
+            todo!()
         }
 
         for node in path_nodes {
@@ -335,6 +333,22 @@ mod test {
         let data = "DATA".as_bytes();
         tree.update(&key, data);
         tree.delete(&key);
+
+        let root = tree.root();
+        let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_1_update_placeholder() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
+
+        let key = 1_u32.to_be_bytes();
+        let data = "DATA".as_bytes();
+        tree.update(&key, data);
+
+        tree.update(&key, &[0; 32]);
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";

@@ -4,46 +4,14 @@ use std::fmt::Debug;
 
 /// #Path Iterator
 ///
-/// For a given integer type `ux`, where `x` is the number of bits that compose this integer type,
-/// the balanced binary tree that can be represented by indices of type `ux` will have a maximum
-/// height of `x`. The maximum number of leaves that such a balanced binary tree will have is
-/// 2<sup>x</sup>. A Sparse Merkle Tree, where all leaves are necessarily present, represents a
-/// complete binary tree exhibiting the maximum height and maximum number of leaves permissible by
-/// its underlying integer type.
-///
-/// For example, imagine an integer type `u3` that comprises 3 bits. The complete binary tree
-/// represented by this type is the following (indices in this tree are calculated using in-order
-/// traversal; see [`Position`](crate::common::Position)):
-///
-/// ```text
-///               07
-///              /  \
-///             /    \
-///            /      \
-///           /        \
-///          /          \
-///         /            \
-///       03              11
-///      /  \            /  \
-///     /    \          /    \
-///   01      05      09      13
-///  /  \    /  \    /  \    /  \
-/// 00  02  04  06  08  10  12  14
-/// 00  01  02  03  04  05  06  07
-/// ```
-///
-/// This tree exhibits the following properties:
-/// - It has a height of 3 (N.B. leaves have a height 0)
-/// - It has 2<sup>3</sup> = 8 leaves
-///
-/// A naturally arising property of complete binary trees is that a leaf index encodes the unique
-/// path needed to traverse from the root of the tree to that leaf. The index's binary
-/// representation can be read left to right as a sequence of traversal instructions: a 0 bit means
-/// "descend left" and a 1 bit means "descend right". By following the `x` bits composing the index,
-/// starting at the root, descending to the left child at each `0`, descending to the right child at
-/// each `1`, we arrive at the leaf position, having touched every node position along the path
-/// formed by this index. Note that this algorithm does not prescribe how to descend from one node
-/// to the next; it describes merely the direction in which to descend at each step.
+/// A naturally arising property of binary trees is that a leaf index encodes the unique path needed
+/// to traverse from the root of the tree to that leaf. The index's binary representation can be
+/// read left to right as a sequence of traversal instructions: a 0 bit means "descend left" and a 1
+/// bit means "descend right". By following the `x` bits composing the index, starting at the root,
+/// descending to the left child at each `0`, descending to the right child at each `1`, we arrive
+/// at the leaf position, having touched every node position along the path formed by this index.
+/// Note that this algorithm does not prescribe how to descend from one node to the next; it
+/// describes merely the direction in which to descend at each step.
 ///
 /// Alternatively, this can be interpreted as reading the index's most significant bit (MSB) at an
 /// offset `n`: read the `n`th bit to the right of the MSB. Here, `n` is a given step in the tree
@@ -54,12 +22,33 @@ use std::fmt::Debug;
 ///
 /// Reversing this path gives us the path from the leaf to the root.
 ///
-/// For example, imagine again our integer type `u3` underpinning our tree indices, and a given
-/// leaf with leaf index `6`. In the above diagram, this is the seventh leaf in the leaf layer.
-/// Indices in this tree are calculated using in-order traversal. In-order indexing provides a
-/// deterministic way to descend from one node to the next. A priori, we can see that the path from
-/// the root to this leaf is represented by the following list of in-order indices: `07, 11, 13, 12`
-/// (N.B. the leaf index that corresponds to the in-order index `12` is `6`).
+/// Imagine a 3-bit integer type `u3` underpinning a tree's leaf indices. 3 bits give our tree a
+/// maximum height of 3, and a maximum number of leaf nodes 2<sup>3</sup> = 8. For demonstration,
+/// internal nodes are numbered using in-order indices (note that this would require an integer type
+/// with 4 bits or more). In-order indexing provides a deterministic way to descend from one node to
+/// the next.
+///
+/// ```text
+///                             07
+///                            /  \
+///                           /    \
+///                          /      \
+///                         /        \
+///                        /          \
+///                       /            \
+///                     03              11
+///                    /  \            /  \
+///                   /    \          /    \
+///                 01      05      09      13
+///                /  \    /  \    /  \    /  \
+/// In-order idx: 00  02  04  06  08  10  12  14
+///     Leaf idx:  0   1   2   3   4   5   6   7
+/// ```
+///
+/// Let us now find the path to leaf with index `6`. In the above diagram, this is the seventh leaf
+/// in the leaf layer. A priori, we can see that the path from the root to this leaf is represented
+/// by the following list of in-order indices: `07, 11, 13, 12` (N.B. the leaf index that
+/// corresponds to the in-order index `12` is `6`).
 ///
 /// ```text
 /// 0d6: u3 = 0b110
@@ -69,13 +58,13 @@ use std::fmt::Debug;
 /// Starting at the tree's root at index `07`, we can follow the instructions encoded by the binary
 /// representation of leaf `06` (`0b110`). In combination with our in-order index rules for
 /// descending nodes, we evaluate the following:
-/// 1. The first bit is `1`; move right from `07` to `11`.
+/// 1. The first bit is `1`; move right from `7` to `11`.
 /// 2. The next bit is `1`; move right from `11` to `13`.
 /// 3. The next and final bit is `0`; move left from `13` to `12`.
 ///
-/// We have arrived at the desired leaf position with in-order index `12` and leaf index `06`.
+/// We have arrived at the desired leaf position with in-order index `12` and leaf index `6`.
 /// Indeed, following the instructions at each bit has produced the same list of positional indices
-/// that we observed earlier: `07, 11, 13, 12`.
+/// that we observed earlier: `7, 11, 13, 12`.
 ///
 pub struct PathIter<T> {
     leaf: T,
@@ -97,37 +86,39 @@ where
         // this offset and read the corresponding bit to get the next traversal instruction.
         //
         // In the general case, we start by reading the first bit of the path at offset 0. This
-        // happens when the path fills its allocated memory; e.g., a path of 32 instructions is
-        // contained within a 32 bit allocation for the leaf key. This also means that the key size
+        // happens when the path fills its allocated memory; e.g., a path of 256 instructions is
+        // encoded within a 256 bit allocation for the leaf key. This also means that the key size
         // in bits is equal to the maximum height of the tree.
         //
         // In the case that the length of the path is less than the number of bits in the key, the
         // initial offset from the MSB must be augmented to accommodate the shortened path. This
-        // occurs when the key is allocated with a larger address space to reduce address
-        // collisions of internal nodes.
+        // occurs when the key is allocated with a larger address space to reduce collisions of
+        // node addresses.
         //
         // E.g,
-        // With an 8-bit key and maximum heights 1 through 7:
+        // With an 8-bit key and heights 1 through 7:
         //
         // Height Depth
-        // 7      0                       127            Offset = bits - max height = 8 - 7 = 1
-        //                                / \
-        // ...                          ... ...
-        //                              /
-        // 3      4                    07                Offset = bits - max height = 8 - 3 = 5
-        //                            /  \
-        //                           /    \
-        //                          /      \
-        //                         /        \
-        //                        /          \
-        //                       /            \
-        // 2      5            03              11        Offset = bits - max height = 8 - 2 = 6
-        //                    /  \            /  \
-        //                   /    \          /    \
-        // 1      6        01      05      09      13    Offset = bits - max height = 8 - 1 = 7
-        //                /  \    /  \    /  \    /  \
-        // 0      7      00  02  04  06  08  10  12  14
-        //               00  01  02  03  04  05  06  07
+        // 7      0                        127                    Offset = Bits - Height = 8 - 7 = 1
+        //                                 / \
+        //                                /   \
+        //                               /     \
+        // ...                         ...     ...
+        //                             /         \
+        // 3       4                  07         247              Offset = Bits - Height = 8 - 3 = 5
+        //                           /  \        / \
+        //                          /    \     ...  \
+        //                         /      \          \
+        //                        /        \          \
+        //                       /          \          \
+        //                      /            \          \
+        // 2       5          03              11        251       Offset = Bits - Height = 8 - 2 = 6
+        //                   /  \            /  \       / \
+        //                  /    \          /    \    ...  \
+        // 1       6      01      05      09      13       253    Offset = Bits - Height = 8 - 1 = 7
+        //               /  \    /  \    /  \    /  \      / \
+        // 0       7    00  02  04  06  08  10  12  14   252 254
+        //              00  01  02  03  04  05  06  07   126 127
         //
         let initial_offset = T::key_size_in_bits() - T::max_height();
         Self {
