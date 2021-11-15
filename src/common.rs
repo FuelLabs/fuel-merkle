@@ -32,5 +32,5 @@ pub type Bytes32 = [u8; 32];
 /// `01 - 32`: Left child key (32 bytes),
 /// `33 - 65`: Right child key (32 bytes)
 ///
-const BUFFER_SZ: usize = size_of::<Bytes1>() + size_of::<Bytes32>() + size_of::<Bytes32>();
-pub type Buffer = [u8; BUFFER_SZ];
+const BUFFER_SIZE: usize = size_of::<Bytes1>() + size_of::<Bytes32>() + size_of::<Bytes32>();
+pub type Buffer = [u8; BUFFER_SIZE];
