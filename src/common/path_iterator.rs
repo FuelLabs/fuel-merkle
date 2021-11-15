@@ -167,7 +167,7 @@ pub trait AsPathIterator<T> {
 
 impl<T> AsPathIterator<T> for T
 where
-    T: ParentNode + Clone + Debug,
+    T: ParentNode + Clone,
 {
     fn as_path_iter(&self, leaf: &Self) -> PathIter<T> {
         PathIter::new(self, leaf)
