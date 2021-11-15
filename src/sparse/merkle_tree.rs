@@ -339,21 +339,21 @@ mod test {
         assert_eq!(hex::encode(root), expected_root);
     }
 
-    #[test]
-    fn test_update_1_update_placeholder() {
-        let mut storage = StorageMap::<Bytes32, Buffer>::new();
-        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
-
-        let key = 1_u32.to_be_bytes();
-        let data = "DATA".as_bytes();
-        tree.update(&key, data);
-
-        tree.update(&key, &[0; 32]);
-
-        let root = tree.root();
-        let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
-        assert_eq!(hex::encode(root), expected_root);
-    }
+    // #[test]
+    // fn test_update_1_update_placeholder() {
+    //     let mut storage = StorageMap::<Bytes32, Buffer>::new();
+    //     let mut tree = MerkleTree::<StorageError>::new(&mut storage);
+    //
+    //     let key = 1_u32.to_be_bytes();
+    //     let data = "DATA".as_bytes();
+    //     tree.update(&key, data);
+    //
+    //     tree.update(&key, &[0; 32]);
+    //
+    //     let root = tree.root();
+    //     let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
+    //     assert_eq!(hex::encode(root), expected_root);
+    // }
 
     #[test]
     fn test_update_delete() {
