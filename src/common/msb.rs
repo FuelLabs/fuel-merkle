@@ -1,58 +1,41 @@
-use crate::common::{Bytes1, Bytes2, Bytes4, Bytes8};
-use crate::common::{Bytes16, Bytes32};
-use std::mem::size_of;
-
-pub trait MSB {
+pub trait Msb {
     fn get_bit_at_index_from_msb(&self, index: usize) -> u8;
     fn common_prefix_count(&self, other: &Self) -> usize;
 }
 
-macro_rules! impl_msb_for {
-    ($t: ty) => {
-        impl MSB for $t {
-            fn get_bit_at_index_from_msb(&self, index: usize) -> u8 {
-                // The byte that contains the requested bit
-                let byte_index = index / 8;
-                assert!(byte_index < size_of::<$t>());
-                let byte = self[byte_index];
+impl<const N: usize> Msb for [u8; N] {
+    fn get_bit_at_index_from_msb(&self, index: usize) -> u8 {
+        // The byte that contains the requested bit
+        let byte_index = index / 8;
+        assert!(byte_index < N);
+        let byte: u8 = self[byte_index];
 
-                // The bit within the byte
-                let byte_bit_index = index % 8;
-                let shift = 1 << (7 - byte_bit_index);
-                let bit = (byte & shift) != 0;
+        // The bit within the byte
+        let byte_bit_index = index % 8;
+        let shift = 1 << (7 - byte_bit_index);
+        let bit = (byte & shift) != 0;
 
-                bit as u8
-            }
+        bit as u8
+    }
 
-            fn common_prefix_count(&self, other: &Self) -> usize {
-                const SIZE_BITS: usize = size_of::<$t>() * 8;
-
-                let mut count = 0;
-                for i in 0..SIZE_BITS {
-                    let lhs_bit = self.get_bit_at_index_from_msb(i);
-                    let rhs_bit = other.get_bit_at_index_from_msb(i);
-                    if lhs_bit == rhs_bit {
-                        count += 1;
-                    } else {
-                        break;
-                    }
-                }
-                count
+    fn common_prefix_count(&self, other: &Self) -> usize {
+        let mut count = 0;
+        for i in 0..(N * 8) {
+            let lhs_bit = self.get_bit_at_index_from_msb(i);
+            let rhs_bit = other.get_bit_at_index_from_msb(i);
+            if lhs_bit == rhs_bit {
+                count += 1;
+            } else {
+                break;
             }
         }
-    };
+        count
+    }
 }
-
-impl_msb_for!(Bytes1);
-impl_msb_for!(Bytes2);
-impl_msb_for!(Bytes4);
-impl_msb_for!(Bytes8);
-impl_msb_for!(Bytes16);
-impl_msb_for!(Bytes32);
 
 #[cfg(test)]
 mod test {
-    use crate::common::{Bytes1, Bytes2, Bytes4, Bytes8, MSB};
+    use crate::common::{Bytes1, Bytes2, Bytes4, Bytes8, Msb};
     use std::mem::size_of;
 
     #[test]

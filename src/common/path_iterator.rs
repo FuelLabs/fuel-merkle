@@ -1,6 +1,5 @@
 use crate::common::node::ParentNode;
-use crate::common::MSB;
-use std::fmt::Debug;
+use crate::common::Msb;
 
 /// #Path Iterator
 ///
@@ -132,7 +131,7 @@ where
 impl<T> Iterator for PathIter<T>
 where
     T: ParentNode + Clone,
-    T::Key: MSB,
+    T::Key: Msb,
 {
     type Item = (T, T);
 

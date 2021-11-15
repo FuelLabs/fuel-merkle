@@ -6,7 +6,7 @@ mod path_iterator;
 mod position;
 mod storage_map;
 
-pub use msb::MSB;
+pub use msb::Msb;
 pub use node::{Node, ParentNode};
 pub use path_iterator::AsPathIterator;
 pub use position::Position;
