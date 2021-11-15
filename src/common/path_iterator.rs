@@ -25,8 +25,8 @@ use std::fmt::Debug;
 /// Imagine a 3-bit integer type `u3` underpinning a tree's leaf indices. 3 bits give our tree a
 /// maximum height of 3, and a maximum number of leaf nodes 2<sup>3</sup> = 8. For demonstration,
 /// internal nodes are numbered using in-order indices (note that this would require an integer type
-/// with 4 bits or more). In-order indexing provides a deterministic way to descend from one node to
-/// the next.
+/// with 4 bits or more in practice). In-order indexing provides a deterministic way to descend from
+/// one node to the next.
 ///
 /// ```text
 ///                             07
@@ -47,7 +47,7 @@ use std::fmt::Debug;
 ///
 /// Let us now find the path to leaf with index `6`. In the above diagram, this is the seventh leaf
 /// in the leaf layer. A priori, we can see that the path from the root to this leaf is represented
-/// by the following list of in-order indices: `07, 11, 13, 12` (N.B. the leaf index that
+/// by the following list of in-order indices: `07, 11, 13, 12` (note that the leaf index that
 /// corresponds to the in-order index `12` is `6`).
 ///
 /// ```text
@@ -58,13 +58,13 @@ use std::fmt::Debug;
 /// Starting at the tree's root at index `07`, we can follow the instructions encoded by the binary
 /// representation of leaf `06` (`0b110`). In combination with our in-order index rules for
 /// descending nodes, we evaluate the following:
-/// 1. The first bit is `1`; move right from `7` to `11`.
+/// 1. The first bit is `1`; move right from `07` to `11`.
 /// 2. The next bit is `1`; move right from `11` to `13`.
 /// 3. The next and final bit is `0`; move left from `13` to `12`.
 ///
 /// We have arrived at the desired leaf position with in-order index `12` and leaf index `6`.
 /// Indeed, following the instructions at each bit has produced the same list of positional indices
-/// that we observed earlier: `7, 11, 13, 12`.
+/// that we observed earlier: `07, 11, 13, 12`.
 ///
 pub struct PathIter<T> {
     leaf: T,
