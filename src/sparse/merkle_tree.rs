@@ -1,4 +1,4 @@
-use crate::common::{AsPathIterator, Buffer, Bytes32, Node as NodeTrait, Msb};
+use crate::common::{AsPathIterator, Buffer, Bytes32, Msb, Node as NodeTrait};
 use fuel_storage::Storage;
 
 use crate::sparse::hash::sum;
@@ -108,7 +108,11 @@ where
         };
         if common_prefix_count != self.depth() {
             let requested_leaf_key = requested_leaf_node.leaf_key();
-            if requested_leaf_key.get_bit_at_index_from_msb(common_prefix_count).unwrap() == 1 {
+            if requested_leaf_key
+                .get_bit_at_index_from_msb(common_prefix_count)
+                .unwrap()
+                == 1
+            {
                 current_node = Node::create_node(&actual_leaf_node.hash(), &current_node.hash());
             } else {
                 current_node = Node::create_node(&current_node.hash(), &actual_leaf_node.hash());
@@ -133,7 +137,11 @@ where
             };
 
             let requested_leaf_key = requested_leaf_node.leaf_key();
-            if requested_leaf_key.get_bit_at_index_from_msb(self.depth() - 1 - i).unwrap() == 1 {
+            if requested_leaf_key
+                .get_bit_at_index_from_msb(self.depth() - 1 - i)
+                .unwrap()
+                == 1
+            {
                 current_node = Node::create_node(&side_node.hash(), &current_node.hash());
             } else {
                 current_node = Node::create_node(&current_node.hash(), &side_node.hash());
@@ -185,7 +193,11 @@ where
             }
 
             let requested_leaf_key = requested_leaf_node.leaf_key();
-            if requested_leaf_key.get_bit_at_index_from_msb(self.depth() - 1 - i).unwrap() == 1 {
+            if requested_leaf_key
+                .get_bit_at_index_from_msb(self.depth() - 1 - i)
+                .unwrap()
+                == 1
+            {
                 current_node = Node::create_node(&side_node.hash(), &current_node.hash());
             } else {
                 current_node = Node::create_node(&current_node.hash(), &side_node.hash());
