@@ -1,28 +1,39 @@
+trait GetBit {
+    fn get_bit(&self, bit_index: usize) -> Option<u8>;
+}
+
+impl GetBit for u8 {
+    fn get_bit(&self, bit_index: usize) -> Option<u8> {
+        if bit_index < 8 {
+            let shift = 1 << (7 - bit_index);
+            let bit = (self & shift) != 0;
+            Some(bit as u8)
+        } else {
+            None
+        }
+    }
+}
+
 pub trait Msb {
-    fn get_bit_at_index_from_msb(&self, index: usize) -> u8;
+    fn get_bit_at_index_from_msb(&self, index: usize) -> Option<u8>;
     fn common_prefix_count(&self, other: &Self) -> usize;
 }
 
 impl<const N: usize> Msb for [u8; N] {
-    fn get_bit_at_index_from_msb(&self, index: usize) -> u8 {
-        // The byte that contains the requested bit
+    fn get_bit_at_index_from_msb(&self, index: usize) -> Option<u8> {
+        // The byte that contains the bit
         let byte_index = index / 8;
-        assert!(byte_index < N);
-        let byte: u8 = self[byte_index];
-
-        // The bit within the byte
+        // The bit within the containing byte
         let byte_bit_index = index % 8;
-        let shift = 1 << (7 - byte_bit_index);
-        let bit = (byte & shift) != 0;
-
-        bit as u8
+        self.get(byte_index)
+            .and_then(|byte| byte.get_bit(byte_bit_index))
     }
 
     fn common_prefix_count(&self, other: &Self) -> usize {
         let mut count = 0;
         for i in 0..(N * 8) {
-            let lhs_bit = self.get_bit_at_index_from_msb(i);
-            let rhs_bit = other.get_bit_at_index_from_msb(i);
+            let lhs_bit = self.get_bit_at_index_from_msb(i).unwrap();
+            let rhs_bit = other.get_bit_at_index_from_msb(i).unwrap();
             if lhs_bit == rhs_bit {
                 count += 1;
             } else {
@@ -47,7 +58,7 @@ mod test {
 
         let mut n = 0;
         for i in 0..NUM_BITS {
-            let bit = bytes.get_bit_at_index_from_msb(i);
+            let bit = bytes.get_bit_at_index_from_msb(i).unwrap();
             let shift = bit << (NUM_BITS - 1 - i);
             n |= shift;
         }
@@ -64,7 +75,7 @@ mod test {
 
         let mut n = 0;
         for i in 0..NUM_BITS {
-            let bit = bytes.get_bit_at_index_from_msb(i) as u16;
+            let bit = bytes.get_bit_at_index_from_msb(i).unwrap() as u16;
             let shift = bit << (NUM_BITS - 1 - i);
             n |= shift;
         }
@@ -81,7 +92,7 @@ mod test {
 
         let mut n = 0;
         for i in 0..NUM_BITS {
-            let bit = bytes.get_bit_at_index_from_msb(i) as u32;
+            let bit = bytes.get_bit_at_index_from_msb(i).unwrap() as u32;
             let shift = bit << (NUM_BITS - 1 - i);
             n |= shift;
         }
@@ -101,7 +112,7 @@ mod test {
 
         let mut n = 0;
         for i in 0..NUM_BITS {
-            let bit = bytes.get_bit_at_index_from_msb(i) as u64;
+            let bit = bytes.get_bit_at_index_from_msb(i).unwrap() as u64;
             let shift = bit << (NUM_BITS - 1 - i);
             n |= shift;
         }
@@ -110,12 +121,12 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
-    fn test_get_bit_at_index_from_msb_panics_for_index_out_of_bounds() {
+    fn test_get_bit_at_index_from_msb_returns_none_for_index_out_of_bounds() {
         let bytes: Bytes4 = [0b10101010, 0b10101010, 0b10101010, 0b10101010];
 
-        // Should panic; acceptable inputs for Bytes4 are in [0, 31]
-        bytes.get_bit_at_index_from_msb(32);
+        // Returns None; acceptable inputs for Bytes4 are in [0, 31]
+        let bit = bytes.get_bit_at_index_from_msb(32);
+        assert_eq!(bit, None);
     }
 
     #[test]

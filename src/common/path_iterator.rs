@@ -142,7 +142,9 @@ where
             let path_node = &path_node_side_node.0;
             if !path_node.is_leaf() {
                 let path = self.leaf.leaf_key();
-                let instruction = path.get_bit_at_index_from_msb(self.current_offset);
+                let instruction = path
+                    .get_bit_at_index_from_msb(self.current_offset)
+                    .expect("Unable to perform path iteration due to invalid indexing!");
                 if instruction == 0 {
                     let next = (path_node.left_child(), path_node.right_child());
                     self.current = Some(next);
