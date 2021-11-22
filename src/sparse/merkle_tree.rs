@@ -35,9 +35,9 @@ where
 
         let leaf_node = Node::create_leaf(key, data);
         self.storage
-            .insert(&leaf_node.leaf_key(), leaf_node.as_buffer());
-        self.storage
             .insert(&leaf_node.hash(), leaf_node.as_buffer());
+        self.storage
+            .insert(&leaf_node.leaf_key(), leaf_node.as_buffer());
         let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
         self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
     }
