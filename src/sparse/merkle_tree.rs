@@ -203,7 +203,7 @@ where
 #[cfg(test)]
 mod test {
     use crate::common::{Buffer, Bytes32, StorageError, StorageMap};
-    use crate::sparse::{zero_sum, MerkleTree};
+    use crate::sparse::MerkleTree;
     use hex;
 
     #[test]
@@ -211,8 +211,8 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let tree = MerkleTree::<StorageError>::new(&mut storage);
         let root = tree.root();
-        let expected_root = *zero_sum();
-        assert_eq!(root, expected_root);
+        let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
+        assert_eq!(hex::encode(root), expected_root);
     }
 
     #[test]
