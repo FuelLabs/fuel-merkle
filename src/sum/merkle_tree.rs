@@ -1,9 +1,12 @@
 use fuel_storage::Storage;
+use std::borrow::Cow;
+use std::marker::PhantomData;
 
-use crate::sum::data_pair::join_data_pair;
 use crate::sum::hash::{empty_sum, leaf_sum, node_sum, Data};
-use crate::sum::node::Node;
+use crate::sum::node::{Node, StorageNode};
 use crate::sum::subtree::Subtree;
+
+use crate::common::{AsPathIterator, Bytes32};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -11,22 +14,24 @@ pub enum MerkleTreeError {
     InvalidProofIndex(u64),
 }
 
-type DataNode = Node<Data>;
+type DataNode = Node;
 type ProofSet = Vec<Data>;
 
-pub struct MerkleTree<'storage, StorageError> {
+pub struct MerkleTree<'a, 'storage, StorageError> {
+    phantom: PhantomData<&'a StorageError>,
     storage: &'storage mut dyn Storage<Data, DataNode, Error = StorageError>,
     head: Option<Box<Subtree<DataNode>>>,
     leaves: Vec<Data>,
     leaves_count: u64,
 }
 
-impl<'storage, StorageError> MerkleTree<'storage, StorageError>
+impl<'a, 'storage, StorageError> MerkleTree<'a, 'storage, StorageError>
 where
-    StorageError: std::error::Error + 'static,
+    StorageError: std::error::Error + 'static + Clone,
 {
     pub fn new(storage: &'storage mut dyn Storage<Data, DataNode, Error = StorageError>) -> Self {
         Self {
+            phantom: PhantomData::default(),
             storage,
             head: None,
             leaves: Vec::<Data>::default(),
@@ -35,19 +40,11 @@ where
     }
 
     pub fn root(&mut self) -> Result<Data, Box<dyn std::error::Error>> {
-        let root = match self.head {
+        let root_node = self.root_node()?;
+        let root = match root_node {
             None => *empty_sum(),
-            Some(ref initial) => {
-                let mut current = initial.clone();
-                while current.next().is_some() {
-                    let mut head = current;
-                    let mut head_next = head.take_next().unwrap();
-                    current = self.join_subtrees(&mut head_next, &mut head)?
-                }
-                current.node().key()
-            }
+            Some(ref node) => node.key(),
         };
-
         Ok(root)
     }
 
@@ -104,9 +101,65 @@ where
         Ok(())
     }
 
+    pub fn prove(
+        &'storage mut self,
+        leaf: &Bytes32,
+    ) -> Result<(Data, Vec<(Data, u32)>), Box<dyn std::error::Error>> {
+        let root = self.root()?;
+        let leaf_node = self.storage.get(leaf)?;
+        match leaf_node {
+            None => {
+                let data = Vec::<(Data, u32)>::new();
+                Ok((root, data))
+            }
+            Some(l) => {
+                let path_set = self.path_set(l.into_owned());
+                let data = path_set
+                    .iter()
+                    .map(|node| (node.key(), node.fee()))
+                    .collect();
+                Ok((root, data))
+            }
+        }
+    }
+
+    fn path_set(&'storage mut self, leaf: Node) -> Vec<Node> {
+        let root_node = self.root_node().unwrap();
+        match root_node {
+            None => Vec::<Node>::default(),
+            Some(root) => {
+                let storage_root = StorageNode::<'storage, StorageError>::new(self.storage, root);
+                let storage_leaf = StorageNode::<'storage, StorageError>::new(self.storage, leaf);
+                let (_path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = storage_root
+                    .as_path_iter(&storage_leaf)
+                    .map(|(path_node, side_node)| (path_node.into_node(), side_node.into_node()))
+                    .unzip();
+                side_nodes.reverse();
+                side_nodes.pop();
+                side_nodes
+            }
+        }
+    }
+
     //
     // PRIVATE
     //
+
+    fn root_node(&mut self) -> Result<Option<DataNode>, Box<dyn std::error::Error>> {
+        let root_node = match self.head {
+            None => None,
+            Some(ref initial) => {
+                let mut current = initial.clone();
+                while current.next().is_some() {
+                    let mut head = current;
+                    let mut head_next = head.take_next().unwrap();
+                    current = self.join_subtrees(&mut head_next, &mut head)?
+                }
+                Some(current.node().clone())
+            }
+        };
+        Ok(root_node)
+    }
 
     fn join_all_subtrees(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         loop {
@@ -146,12 +199,12 @@ where
             DataNode::new(height, node_sum, fee)
         };
 
-        joined_node.set_left_key(Some(lhs.node().key()));
-        joined_node.set_right_key(Some(rhs.node().key()));
+        joined_node.set_left_child_key(Some(lhs.node().hash()));
+        joined_node.set_left_child_fee(lhs.node().fee());
+        joined_node.set_right_child_key(Some(rhs.node().hash()));
+        joined_node.set_right_child_fee(rhs.node().fee());
 
-        self.storage.insert(&joined_node.key(), &joined_node)?;
-        self.storage.insert(&lhs.node().key(), lhs.node())?;
-        self.storage.insert(&rhs.node().key(), rhs.node())?;
+        self.storage.insert(&joined_node.hash(), &joined_node)?;
 
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
@@ -162,18 +215,13 @@ where
 mod test {
     use fuel_merkle_test_helpers::TEST_DATA;
 
-    use super::*;
+    use super::{Data, MerkleTree, Node};
     use crate::common::{StorageError, StorageMap};
     use crate::sum::data_pair::split_data_pair;
     use crate::sum::hash::{empty_sum, leaf_sum, node_sum};
-    use sha2::{Digest, Sha256 as Hash};
-    use std::convert::TryFrom;
 
-    type DataNode = Node<Data>;
-    type MT<'a> = MerkleTree<'a, StorageError>;
-
-    const NODE: u8 = 0x01;
-    const LEAF: u8 = 0x00;
+    type DataNode = Node;
+    type MT<'a, 'storage> = MerkleTree<'a, 'storage, StorageError>;
     const FEE: u32 = 100;
 
     #[test]
@@ -304,115 +352,99 @@ mod test {
         assert_eq!(root, expected);
     }
 
-    // #[test]
-    // fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index() {
-    //     let mut mt = MT::new();
-    //     mt.set_proof_index(0);
-    //
-    //     let data = &DATA[0..4]; // 4 leaves
-    //     for datum in data.iter() {
-    //         mt.push(datum, FEE);
-    //     }
-    //
-    //     let proof = mt.prove();
-    //     let root = proof.0;
-    //     let set = proof.1;
-    //
-    //     //       N3
-    //     //      /  \
-    //     //     /    \
-    //     //   N1      N2
-    //     //  /  \    /  \
-    //     // L1  L2  L3  L4
-    //
-    //     let leaf_1 = leaf_sum(&data[0]);
-    //     let leaf_2 = leaf_sum(&data[1]);
-    //     let leaf_3 = leaf_sum(&data[2]);
-    //     let leaf_4 = leaf_sum(&data[3]);
-    //
-    //     let node_1 = node_sum(FEE * 1, &leaf_1, FEE * 1, &leaf_2);
-    //     let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
-    //     let node_3 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
-    //
-    //     let s_1 = set.get(0).unwrap();
-    //     let (fee_1, data_1) = split_data_pair(s_1);
-    //     let s_2 = set.get(1).unwrap();
-    //     let (fee_2, data_2) = split_data_pair(s_2);
-    //     let s_3 = set.get(2).unwrap();
-    //     let (fee_3, data_3) = split_data_pair(s_3);
-    //
-    //     assert_eq!(root, node_3);
-    //
-    //     assert_eq!(fee_1, FEE);
-    //     assert_eq!(data_1, &leaf_1[..]);
-    //
-    //     assert_eq!(fee_2, FEE);
-    //     assert_eq!(data_2, &leaf_2[..]);
-    //
-    //     assert_eq!(fee_3, FEE * 2);
-    //     assert_eq!(data_3, &node_2[..]);
-    // }
-    //
-    // #[test]
-    // fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_left_of_the_root() {
-    //     let mut mt = MT::new();
-    //     mt.set_proof_index(2);
-    //
-    //     let data = &DATA[0..5]; // 5 leaves
-    //     for datum in data.iter() {
-    //         mt.push(datum, FEE);
-    //     }
-    //
-    //     let proof = mt.prove();
-    //     let root = proof.0;
-    //     let set = proof.1;
-    //
-    //     //          N4
-    //     //         /  \
-    //     //       N3    \
-    //     //      /  \    \
-    //     //     /    \    \
-    //     //   N1      N2   \
-    //     //  /  \    /  \   \
-    //     // L1  L2  L3  L4  L5
-    //
-    //     let leaf_1 = leaf_sum(&data[0]);
-    //     let leaf_2 = leaf_sum(&data[1]);
-    //     let leaf_3 = leaf_sum(&data[2]);
-    //     let leaf_4 = leaf_sum(&data[3]);
-    //     let leaf_5 = leaf_sum(&data[4]);
-    //
-    //     let node_1 = node_sum(FEE * 1, &leaf_1, FEE * 1, &leaf_2);
-    //     let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
-    //     let node_3 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
-    //     let node_4 = node_sum(FEE * 4, &node_3, FEE * 1, &leaf_5);
-    //
-    //     let s_1 = set.get(0).unwrap();
-    //     let (fee_1, data_1) = split_data_pair(s_1);
-    //
-    //     let s_2 = set.get(1).unwrap();
-    //     let (fee_2, data_2) = split_data_pair(s_2);
-    //
-    //     let s_3 = set.get(2).unwrap();
-    //     let (fee_3, data_3) = split_data_pair(s_3);
-    //
-    //     let s_4 = set.get(3).unwrap();
-    //     let (fee_4, data_4) = split_data_pair(s_4);
-    //
-    //     assert_eq!(root, node_4);
-    //
-    //     assert_eq!(data_1, &leaf_3[..]);
-    //     assert_eq!(fee_1, FEE);
-    //
-    //     assert_eq!(data_2, &leaf_4[..]);
-    //     assert_eq!(fee_2, FEE);
-    //
-    //     assert_eq!(data_3, &node_1[..]);
-    //     assert_eq!(fee_3, FEE * 2);
-    //
-    //     assert_eq!(data_4, &leaf_5[..]);
-    //     assert_eq!(fee_4, FEE);
-    // }
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MT::new(&mut storage_map);
+
+        let data = &TEST_DATA[0..4]; // 4 leaves
+        for datum in data.iter() {
+            tree.push(datum, FEE);
+        }
+
+        let leaf = leaf_sum(&data[0]);
+        let proof = tree.prove(&leaf).unwrap();
+        let root = proof.0;
+        let set = proof.1;
+
+        //       N3
+        //      /  \
+        //     /    \
+        //   N1      N2
+        //  /  \    /  \
+        // L1  L2  L3  L4
+
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
+
+        let node_1 = node_sum(FEE * 1, &leaf_1, FEE * 1, &leaf_2);
+        let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
+        let node_3 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
+
+        let (data_1, fee_1) = set.get(0).unwrap();
+        let (data_2, fee_2) = set.get(1).unwrap();
+
+        assert_eq!(root, node_3);
+
+        assert_eq!(fee_1, &FEE);
+        assert_eq!(data_1, &leaf_2[..]);
+
+        assert_eq!(fee_2, &(FEE * 2));
+        assert_eq!(data_2, &node_2[..]);
+    }
+
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_left_of_the_root() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MT::new(&mut storage_map);
+
+        let data = &TEST_DATA[0..5]; // 5 leaves
+        for datum in data.iter() {
+            tree.push(datum, FEE);
+        }
+
+        let leaf = leaf_sum(&data[2]);
+        let proof = tree.prove(&leaf).unwrap();
+        let root = proof.0;
+        let set = proof.1;
+
+        //          N4
+        //         /  \
+        //       N3    \
+        //      /  \    \
+        //     /    \    \
+        //   N1      N2   \
+        //  /  \    /  \   \
+        // L1  L2  L3  L4  L5
+
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
+        let leaf_5 = leaf_sum(&data[4]);
+
+        let node_1 = node_sum(FEE * 1, &leaf_1, FEE * 1, &leaf_2);
+        let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
+        let node_3 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
+        let node_4 = node_sum(FEE * 4, &node_3, FEE * 1, &leaf_5);
+
+        let (data_1, fee_1) = set.get(0).unwrap();
+        let (data_2, fee_2) = set.get(1).unwrap();
+        let (data_3, fee_3) = set.get(2).unwrap();
+
+        assert_eq!(root, node_4);
+
+        assert_eq!(data_1, &leaf_4[..]);
+        assert_eq!(fee_1, &FEE);
+
+        assert_eq!(data_2, &node_1[..]);
+        assert_eq!(fee_2, &(FEE * 2));
+
+        assert_eq!(data_3, &leaf_5[..]);
+        assert_eq!(fee_3, &FEE);
+    }
     //
     // #[test]
     // fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index_right_of_the_root() {
