@@ -1,54 +1,51 @@
 #[derive(Clone)]
-pub struct Node<T> {
-    next: Option<Box<Node<T>>>,
+pub struct Node<Key> {
     height: u32,
-    data: T,
-    fee: u64,
+    key: Key,
+    fee: u32,
+    left_key: Option<Key>,
+    right_key: Option<Key>,
 }
 
-impl<T> Node<T> {
-    pub fn new(next: Option<Box<Node<T>>>, height: u32, data: T, fee: u64) -> Self {
+impl<Key> Node<Key>
+where
+    Key: Clone,
+{
+    pub fn new(height: u32, key: Key, fee: u32) -> Self {
         Self {
-            next,
             height,
-            data,
+            key,
             fee,
+            left_key: None,
+            right_key: None,
         }
-    }
-
-    pub fn next(&self) -> &Option<Box<Node<T>>> {
-        &self.next
-    }
-
-    pub fn next_mut(&mut self) -> &mut Option<Box<Node<T>>> {
-        &mut self.next
-    }
-
-    pub fn take_next(&mut self) -> Option<Box<Node<T>>> {
-        self.next_mut().take()
     }
 
     pub fn height(&self) -> u32 {
         self.height
     }
 
-    pub fn next_height(&self) -> Option<u32> {
-        self.next().as_ref().map(|next| next.height())
+    pub fn key(&self) -> Key {
+        self.key.clone()
     }
 
-    pub fn data(&self) -> &T {
-        &self.data
-    }
-
-    pub fn next_data(&self) -> Option<&T> {
-        self.next().as_ref().map(|next| next.data())
-    }
-
-    pub fn fee(&self) -> u64 {
+    pub fn fee(&self) -> u32 {
         self.fee
     }
 
-    pub fn next_fee(&self) -> Option<u64> {
-        self.next().as_ref().map(|next| next.fee())
+    pub fn left_key(&self) -> Option<Key> {
+        self.left_key.clone()
+    }
+
+    pub fn right_key(&self) -> Option<Key> {
+        self.right_key.clone()
+    }
+
+    pub fn set_left_key(&mut self, key: Option<Key>) {
+        self.left_key = key;
+    }
+
+    pub fn set_right_key(&mut self, key: Option<Key>) {
+        self.right_key = key;
     }
 }
