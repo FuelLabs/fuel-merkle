@@ -1,23 +1,28 @@
+use crate::common::Bytes32;
+use crate::sum::hash::{leaf_sum, node_sum};
+use fuel_storage::Storage;
+
 #[derive(Clone)]
-pub struct Node<Key> {
+pub struct Node {
     height: u32,
-    key: Key,
+    key: Bytes32,
     fee: u32,
-    left_key: Option<Key>,
-    right_key: Option<Key>,
+    left_child_key: Option<Bytes32>,
+    left_child_fee: u32,
+    right_child_key: Option<Bytes32>,
+    right_child_fee: u32,
 }
 
-impl<Key> Node<Key>
-where
-    Key: Clone,
-{
-    pub fn new(height: u32, key: Key, fee: u32) -> Self {
+impl Node {
+    pub fn new(height: u32, key: Bytes32, fee: u32) -> Self {
         Self {
             height,
             key,
             fee,
-            left_key: None,
-            right_key: None,
+            left_child_key: None,
+            left_child_fee: 0,
+            right_child_key: None,
+            right_child_fee: 0,
         }
     }
 
@@ -25,7 +30,7 @@ where
         self.height
     }
 
-    pub fn key(&self) -> Key {
+    pub fn key(&self) -> Bytes32 {
         self.key.clone()
     }
 
@@ -33,19 +38,122 @@ where
         self.fee
     }
 
-    pub fn left_key(&self) -> Option<Key> {
-        self.left_key.clone()
+    pub fn left_child_key(&self) -> Option<Bytes32> {
+        self.left_child_key.clone()
     }
 
-    pub fn right_key(&self) -> Option<Key> {
-        self.right_key.clone()
+    pub fn right_child_key(&self) -> Option<Bytes32> {
+        self.right_child_key.clone()
     }
 
-    pub fn set_left_key(&mut self, key: Option<Key>) {
-        self.left_key = key;
+    pub fn set_left_child_key(&mut self, key: Option<Bytes32>) {
+        self.left_child_key = key;
     }
 
-    pub fn set_right_key(&mut self, key: Option<Key>) {
-        self.right_key = key;
+    pub fn set_left_child_fee(&mut self, fee: u32) {
+        self.left_child_fee = fee;
+    }
+
+    pub fn set_right_child_key(&mut self, key: Option<Bytes32>) {
+        self.right_child_key = key;
+    }
+
+    pub fn set_right_child_fee(&mut self, fee: u32) {
+        self.right_child_fee = fee;
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.height == 0
+    }
+
+    pub fn is_node(&self) -> bool {
+        !self.is_leaf()
+    }
+
+    pub fn hash(&self) -> Bytes32 {
+        if self.is_leaf() {
+            self.key()
+        } else {
+            node_sum(
+                self.left_child_fee,
+                &self.left_child_key.unwrap(),
+                self.right_child_fee,
+                &self.right_child_key.unwrap(),
+            )
+        }
+    }
+}
+
+type NodeStorage<'storage, StorageError> =
+    dyn 'storage + Storage<Bytes32, Node, Error = StorageError>;
+
+#[derive(Clone)]
+pub(crate) struct StorageNode<'storage, StorageError> {
+    storage: &'storage NodeStorage<'storage, StorageError>,
+    node: Node,
+}
+
+impl<'a, 'storage, StorageError> StorageNode<'storage, StorageError>
+where
+    StorageError: std::error::Error + Clone,
+{
+    pub fn new(storage: &'storage NodeStorage<'storage, StorageError>, node: Node) -> Self {
+        Self { node, storage }
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.node.is_leaf()
+    }
+
+    pub fn is_node(&self) -> bool {
+        self.node.is_node()
+    }
+
+    pub fn leaf_key(&self) -> Bytes32 {
+        self.node.key()
+    }
+
+    pub fn left_child(&self) -> Option<Self> {
+        let key = self.node.left_child_key().unwrap();
+        let node = self.storage.get(&key).unwrap();
+        node.map(|n| Self::new(self.storage, n.into_owned()))
+    }
+
+    pub fn right_child(&self) -> Option<Self> {
+        let key = self.node.right_child_key().unwrap();
+        let node = self.storage.get(&key).unwrap();
+        node.map(|n| Self::new(self.storage, n.into_owned()))
+    }
+
+    pub fn into_node(self) -> Node {
+        self.node
+    }
+}
+
+impl<'storage, StorageError> crate::common::Node for StorageNode<'storage, StorageError>
+where
+    StorageError: std::error::Error + Clone,
+{
+    type Key = Bytes32;
+
+    fn leaf_key(&self) -> Self::Key {
+        StorageNode::leaf_key(self)
+    }
+
+    fn is_leaf(&self) -> bool {
+        StorageNode::is_leaf(self)
+    }
+}
+
+impl<'storage, StorageError> crate::common::ParentNode for StorageNode<'storage, StorageError>
+where
+    StorageError: std::error::Error + Clone,
+{
+    fn left_child(&self) -> Self {
+        StorageNode::left_child(self).unwrap()
+    }
+
+    fn right_child(&self) -> Self {
+        StorageNode::right_child(self).unwrap()
     }
 }
