@@ -101,8 +101,8 @@ where
         Ok(())
     }
 
-    pub fn prove(
-        &'storage mut self,
+    pub fn prove<'b>(
+        &'b mut self,
         leaf: &Bytes32,
     ) -> Result<(Data, Vec<(Data, u32)>), Box<dyn std::error::Error>> {
         let root = self.root()?;
@@ -113,30 +113,12 @@ where
                 Ok((root, data))
             }
             Some(l) => {
-                let path_set = self.path_set(l.into_owned());
-                let data = path_set
+                let (_path_nodes, side_nodes) = self.path_set(l.into_owned())?;
+                let data = side_nodes
                     .iter()
                     .map(|node| (node.key(), node.fee()))
                     .collect();
                 Ok((root, data))
-            }
-        }
-    }
-
-    fn path_set(&'storage mut self, leaf: Node) -> Vec<Node> {
-        let root_node = self.root_node().unwrap();
-        match root_node {
-            None => Vec::<Node>::default(),
-            Some(root) => {
-                let storage_root = StorageNode::<'storage, StorageError>::new(self.storage, root);
-                let storage_leaf = StorageNode::<'storage, StorageError>::new(self.storage, leaf);
-                let (_path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = storage_root
-                    .as_path_iter(&storage_leaf)
-                    .map(|(path_node, side_node)| (path_node.into_node(), side_node.into_node()))
-                    .unzip();
-                side_nodes.reverse();
-                side_nodes.pop();
-                side_nodes
             }
         }
     }
@@ -208,6 +190,29 @@ where
 
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
+    }
+
+    fn path_set<'b>(
+        &'b mut self,
+        leaf: Node,
+    ) -> Result<(Vec<Node>, Vec<Node>), Box<dyn std::error::Error>> {
+        let root_node = self.root_node()?;
+        match root_node {
+            None => Ok((Vec::<Node>::default(), Vec::<Node>::default())),
+            Some(root) => {
+                let height = root.height();
+                let storage_root = StorageNode::<'b, StorageError>::new(self.storage, root);
+                let storage_leaf = StorageNode::<'b, StorageError>::new(self.storage, leaf);
+                let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = storage_root
+                    .as_path_iter(&storage_leaf)
+                    .map(|(path_node, side_node)| (path_node.into_node(), side_node.into_node()))
+                    .unzip();
+                path_nodes.reverse();
+                side_nodes.reverse();
+                side_nodes.pop();
+                Ok((path_nodes, side_nodes))
+            }
+        }
     }
 }
 
@@ -353,7 +358,7 @@ mod test {
     }
 
     #[test]
-    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index() {
+    fn print_prove() {
         let mut storage_map = StorageMap::<Data, DataNode>::new();
         let mut tree = MT::new(&mut storage_map);
 
@@ -361,11 +366,6 @@ mod test {
         for datum in data.iter() {
             tree.push(datum, FEE);
         }
-
-        let leaf = leaf_sum(&data[0]);
-        let proof = tree.prove(&leaf).unwrap();
-        let root = proof.0;
-        let set = proof.1;
 
         //       N3
         //      /  \
@@ -383,16 +383,98 @@ mod test {
         let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
         let node_3 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
 
-        let (data_1, fee_1) = set.get(0).unwrap();
-        let (data_2, fee_2) = set.get(1).unwrap();
+        println!("{:#?}", storage_map);
+    }
 
-        assert_eq!(root, node_3);
+    #[test]
+    fn prove_returns_the_merkle_root_and_proof_set_for_the_given_proof_index() {
+        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut tree = MT::new(&mut storage_map);
 
-        assert_eq!(fee_1, &FEE);
-        assert_eq!(data_1, &leaf_2[..]);
+        let data = &TEST_DATA[0..4]; // 4 leaves
+        for datum in data.iter() {
+            tree.push(datum, FEE);
+        }
 
-        assert_eq!(fee_2, &(FEE * 2));
-        assert_eq!(data_2, &node_2[..]);
+        //       N3
+        //      /  \
+        //     /    \
+        //   N1      N2
+        //  /  \    /  \
+        // L1  L2  L3  L4
+
+        let leaf_1 = leaf_sum(&data[0]);
+        let leaf_2 = leaf_sum(&data[1]);
+        let leaf_3 = leaf_sum(&data[2]);
+        let leaf_4 = leaf_sum(&data[3]);
+
+        let node_1 = node_sum(FEE * 1, &leaf_1, FEE * 1, &leaf_2);
+        let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
+        let node_3 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
+
+        {
+            let leaf = leaf_sum(&data[0]);
+            let proof = tree.prove(&leaf).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            let (data_1, fee_1) = set.get(0).unwrap();
+            let (data_2, fee_2) = set.get(1).unwrap();
+
+            assert_eq!(root, node_3);
+            assert_eq!(fee_1, &FEE);
+            assert_eq!(data_1, &leaf_2);
+            assert_eq!(fee_2, &(FEE * 2));
+            assert_eq!(data_2, &node_2);
+        }
+
+        {
+            let leaf = leaf_sum(&data[1]);
+            let proof = tree.prove(&leaf).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            let (data_1, fee_1) = set.get(0).unwrap();
+            let (data_2, fee_2) = set.get(1).unwrap();
+
+            assert_eq!(root, node_3);
+            assert_eq!(fee_1, &FEE);
+            assert_eq!(data_1, &leaf_1);
+            assert_eq!(fee_2, &(FEE * 2));
+            assert_eq!(data_2, &node_2);
+        }
+
+        {
+            let leaf = leaf_sum(&data[2]);
+            let proof = tree.prove(&leaf).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            let (data_1, fee_1) = set.get(0).unwrap();
+            let (data_2, fee_2) = set.get(1).unwrap();
+
+            assert_eq!(root, node_3);
+            assert_eq!(fee_1, &FEE);
+            assert_eq!(data_1, &leaf_4);
+            assert_eq!(fee_2, &(FEE * 2));
+            assert_eq!(data_2, &node_1);
+        }
+
+        {
+            let leaf = leaf_sum(&data[3]);
+            let proof = tree.prove(&leaf).unwrap();
+            let root = proof.0;
+            let set = proof.1;
+
+            let (data_1, fee_1) = set.get(0).unwrap();
+            let (data_2, fee_2) = set.get(1).unwrap();
+
+            assert_eq!(root, node_3);
+            assert_eq!(fee_1, &FEE);
+            assert_eq!(data_1, &leaf_3);
+            assert_eq!(fee_2, &(FEE * 2));
+            assert_eq!(data_2, &node_1);
+        }
     }
 
     #[test]
