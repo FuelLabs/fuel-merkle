@@ -1,5 +1,6 @@
 use crate::common::Bytes32;
 use crate::sum::hash::{leaf_sum, node_sum};
+use core::fmt;
 use fuel_storage::Storage;
 
 #[derive(Clone)]
@@ -80,6 +81,31 @@ impl Node {
                 self.right_child_fee,
                 &self.right_child_key.unwrap(),
             )
+        }
+    }
+}
+
+impl fmt::Debug for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_node() {
+            f.debug_struct("Node (Internal)")
+                .field("Hash", &hex::encode(self.hash()))
+                .field("Fee", &self.fee)
+                .field(
+                    "Left child key",
+                    &hex::encode(&self.left_child_key().unwrap()),
+                )
+                .field(
+                    "Right child key",
+                    &hex::encode(&self.right_child_key().unwrap()),
+                )
+                .finish()
+        } else {
+            f.debug_struct("Node (Leaf)")
+                .field("Hash", &hex::encode(self.hash()))
+                .field("Fee", &self.fee)
+                .field("Key", &hex::encode(self.key()))
+                .finish()
         }
     }
 }
