@@ -144,7 +144,6 @@ mod test {
 
     use super::{Data, MerkleTree, Node};
     use crate::common::{StorageError, StorageMap};
-    use crate::sum::data_pair::split_data_pair;
     use crate::sum::hash::{empty_sum, leaf_sum, node_sum};
 
     type DataNode = Node;
