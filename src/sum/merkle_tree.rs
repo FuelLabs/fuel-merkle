@@ -37,7 +37,7 @@ where
 
     pub fn push(&mut self, data: &[u8], fee: u64) -> Result<(), Box<dyn std::error::Error>> {
         let node = Node::create_leaf(data, fee);
-        self.storage.insert(&node.hash(), &node)?;
+        self.storage.insert(node.hash(), &node)?;
 
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
@@ -98,11 +98,11 @@ where
         let joined_node = Node::create_node(
             height,
             lhs.node().fee(),
-            &lhs.node().hash(),
+            lhs.node().hash(),
             rhs.node().fee(),
-            &rhs.node().hash(),
+            rhs.node().hash(),
         );
-        self.storage.insert(&joined_node.hash(), &joined_node)?;
+        self.storage.insert(joined_node.hash(), &joined_node)?;
 
         let joined_head = Subtree::new(joined_node, lhs.take_next());
 
