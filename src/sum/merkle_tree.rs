@@ -1,10 +1,7 @@
-use std::marker::PhantomData;
-
 use fuel_storage::Storage;
 
 use crate::common::Subtree;
-use crate::sum::hash::{empty_sum, leaf_sum, node_sum, Data};
-use crate::sum::node::Node;
+use crate::sum::{empty_sum, leaf_sum, node_sum, Data, Node};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -41,7 +38,7 @@ where
         Ok(root)
     }
 
-    pub fn push(&mut self, data: &[u8], fee: u32) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn push(&mut self, data: &[u8], fee: u64) -> Result<(), Box<dyn std::error::Error>> {
         let node = {
             let height = 0;
             let leaf_sum = leaf_sum(data);
@@ -137,7 +134,7 @@ mod test {
     use crate::sum::hash::{empty_sum, leaf_sum, node_sum};
 
     type MT<'storage> = MerkleTree<'storage, StorageError>;
-    const FEE: u32 = 100;
+    const FEE: u64 = 100;
 
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {

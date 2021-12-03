@@ -6,13 +6,13 @@ use fuel_storage::Storage;
 pub struct Node {
     height: u32,
     hash: Bytes32,
-    fee: u32,
+    fee: u64,
     left_child_key: Option<Bytes32>,
     right_child_key: Option<Bytes32>,
 }
 
 impl Node {
-    pub fn new(height: u32, hash: Bytes32, fee: u32) -> Self {
+    pub fn new(height: u32, hash: Bytes32, fee: u64) -> Self {
         Self {
             height,
             hash,
@@ -30,7 +30,7 @@ impl Node {
         self.hash.clone()
     }
 
-    pub fn fee(&self) -> u32 {
+    pub fn fee(&self) -> u64 {
         self.fee
     }
 
