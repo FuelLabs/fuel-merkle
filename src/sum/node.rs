@@ -71,23 +71,11 @@ impl Node {
 impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_node() {
-            let left_child_key = {
-                match self.left_child_key() {
-                    None => String::from("None"),
-                    Some(data) => hex::encode(data)
-                }
-            };
-            let right_child_key = {
-                match self.right_child_key() {
-                    None => String::from("None"),
-                    Some(data) => hex::encode(data)
-                }
-            };
             f.debug_struct("Node (Internal)")
                 .field("Hash", &hex::encode(self.hash()))
                 .field("Fee", &self.fee)
-                .field("Left child key", &left_child_key)
-                .field("Right child key", &right_child_key)
+                .field("Left child key", &hex::encode(self.left_child_key().unwrap()))
+                .field("Right child key", &hex::encode(self.right_child_key().unwrap()))
                 .finish()
         } else {
             f.debug_struct("Node (Leaf)")
