@@ -12,10 +12,10 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(height: u32, key: Bytes32, fee: u32) -> Self {
+    pub fn new(height: u32, hash: Bytes32, fee: u32) -> Self {
         Self {
             height,
-            hash: key,
+            hash,
             fee,
             left_child_key: None,
             right_child_key: None,

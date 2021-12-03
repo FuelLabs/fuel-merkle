@@ -12,21 +12,19 @@ pub enum MerkleTreeError {
     InvalidProofIndex(u64),
 }
 
-pub struct MerkleTree<'a, 'storage, StorageError> {
-    phantom: PhantomData<&'a StorageError>,
+pub struct MerkleTree<'storage, StorageError> {
     storage: &'storage mut dyn Storage<Data, Node, Error = StorageError>,
     head: Option<Box<Subtree<Node>>>,
     leaves: Vec<Data>,
     leaves_count: u64,
 }
 
-impl<'a, 'storage, StorageError> MerkleTree<'a, 'storage, StorageError>
+impl<'storage, StorageError> MerkleTree<'storage, StorageError>
 where
-    StorageError: std::error::Error + 'static + Clone,
+    StorageError: 'static + std::error::Error + Clone,
 {
     pub fn new(storage: &'storage mut dyn Storage<Data, Node, Error = StorageError>) -> Self {
         Self {
-            phantom: PhantomData::default(),
             storage,
             head: None,
             leaves: Vec::<Data>::default(),
@@ -138,7 +136,7 @@ mod test {
     use crate::common::{StorageError, StorageMap};
     use crate::sum::hash::{empty_sum, leaf_sum, node_sum};
 
-    type MT<'a, 'storage> = MerkleTree<'a, 'storage, StorageError>;
+    type MT<'storage> = MerkleTree<'storage, StorageError>;
     const FEE: u32 = 100;
 
     #[test]
@@ -174,23 +172,23 @@ mod test {
         }
         let root = tree.root().unwrap();
 
-        //       N3
+        //       N2
         //      /  \
         //     /    \
-        //   N1      N2
+        //   N0      N1
         //  /  \    /  \
-        // L1  L2  L3  L4
+        // L0  L1  L2  L3
 
-        let leaf_1 = leaf_sum(&data[0]);
-        let leaf_2 = leaf_sum(&data[1]);
-        let leaf_3 = leaf_sum(&data[2]);
-        let leaf_4 = leaf_sum(&data[3]);
+        let leaf_0 = leaf_sum(&data[0]);
+        let leaf_1 = leaf_sum(&data[1]);
+        let leaf_2 = leaf_sum(&data[2]);
+        let leaf_3 = leaf_sum(&data[3]);
 
-        let node_1 = node_sum(FEE * 1, &leaf_1, FEE * 1, &leaf_2);
-        let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
-        let node_3 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
+        let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
+        let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
+        let node_2 = node_sum(FEE * 2, &node_0, FEE * 2, &node_1);
 
-        let expected = node_3;
+        let expected = node_2;
         assert_eq!(root, expected);
     }
 
@@ -205,27 +203,27 @@ mod test {
         }
         let root = tree.root().unwrap();
 
-        //          N4
+        //          N3
         //         /  \
-        //       N3    \
+        //       N2    \
         //      /  \    \
         //     /    \    \
-        //   N1      N2   \
+        //   N0      N1   \
         //  /  \    /  \   \
-        // L1  L2  L3  L4  L5
+        // L0  L1  L2  L3  L4
 
-        let leaf_1 = leaf_sum(&data[0]);
-        let leaf_2 = leaf_sum(&data[1]);
-        let leaf_3 = leaf_sum(&data[2]);
-        let leaf_4 = leaf_sum(&data[3]);
-        let leaf_5 = leaf_sum(&data[4]);
+        let leaf_0 = leaf_sum(&data[0]);
+        let leaf_1 = leaf_sum(&data[1]);
+        let leaf_2 = leaf_sum(&data[2]);
+        let leaf_3 = leaf_sum(&data[3]);
+        let leaf_4 = leaf_sum(&data[4]);
 
-        let node_1 = node_sum(FEE * 1, &leaf_1, FEE * 1, &leaf_2);
-        let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
-        let node_3 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
-        let node_4 = node_sum(FEE * 4, &node_3, FEE * 1, &leaf_5);
+        let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
+        let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
+        let node_2 = node_sum(FEE * 2, &node_0, FEE * 2, &node_1);
+        let node_3 = node_sum(FEE * 4, &node_2, FEE * 1, &leaf_4);
 
-        let expected = node_4;
+        let expected = node_3;
         assert_eq!(root, expected);
     }
 
@@ -240,32 +238,34 @@ mod test {
         }
         let root = tree.root().unwrap();
 
-        //              N6
+        //              N5
+        //            /    \
+        //           /      \
         //          /        \
         //         /          \
-        //       N4            N5
+        //       N3            N4
         //      /  \           /\
         //     /    \         /  \
-        //   N1      N2      N3   \
+        //   N0      N1      N2   \
         //  /  \    /  \    /  \   \
-        // L1  L2  L3  L4  L5  L6  L7
+        // L0  L1  L2  L3  L4  L5  L6
 
-        let leaf_1 = leaf_sum(&data[0]);
-        let leaf_2 = leaf_sum(&data[1]);
-        let leaf_3 = leaf_sum(&data[2]);
-        let leaf_4 = leaf_sum(&data[3]);
-        let leaf_5 = leaf_sum(&data[4]);
-        let leaf_6 = leaf_sum(&data[5]);
-        let leaf_7 = leaf_sum(&data[6]);
+        let leaf_0 = leaf_sum(&data[0]);
+        let leaf_1 = leaf_sum(&data[1]);
+        let leaf_2 = leaf_sum(&data[2]);
+        let leaf_3 = leaf_sum(&data[3]);
+        let leaf_4 = leaf_sum(&data[4]);
+        let leaf_5 = leaf_sum(&data[5]);
+        let leaf_6 = leaf_sum(&data[6]);
 
-        let node_1 = node_sum(FEE * 1, &leaf_1, FEE * 1, &leaf_2);
-        let node_2 = node_sum(FEE * 1, &leaf_3, FEE * 1, &leaf_4);
-        let node_3 = node_sum(FEE * 1, &leaf_5, FEE * 1, &leaf_6);
-        let node_4 = node_sum(FEE * 2, &node_1, FEE * 2, &node_2);
-        let node_5 = node_sum(FEE * 2, &node_3, FEE * 1, &leaf_7);
-        let node_6 = node_sum(FEE * 4, &node_4, FEE * 3, &node_5);
+        let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
+        let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
+        let node_2 = node_sum(FEE * 1, &leaf_4, FEE * 1, &leaf_5);
+        let node_3 = node_sum(FEE * 2, &node_0, FEE * 2, &node_1);
+        let node_4 = node_sum(FEE * 2, &node_2, FEE * 1, &leaf_6);
+        let node_5 = node_sum(FEE * 4, &node_3, FEE * 3, &node_4);
 
-        let expected = node_6;
+        let expected = node_5;
         assert_eq!(root, expected);
     }
 }
