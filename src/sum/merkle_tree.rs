@@ -1,7 +1,7 @@
 use fuel_storage::Storage;
 
-use crate::common::Subtree;
-use crate::sum::{empty_sum, leaf_sum, node_sum, Data, Node};
+use crate::common::{Bytes32, Subtree};
+use crate::sum::{empty_sum, leaf_sum, node_sum, Node};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -10,7 +10,7 @@ pub enum MerkleTreeError {
 }
 
 pub struct MerkleTree<'storage, StorageError> {
-    storage: &'storage mut dyn Storage<Data, Node, Error = StorageError>,
+    storage: &'storage mut dyn Storage<Bytes32, Node, Error = StorageError>,
     head: Option<Box<Subtree<Node>>>,
 }
 
@@ -18,14 +18,14 @@ impl<'storage, StorageError> MerkleTree<'storage, StorageError>
 where
     StorageError: 'static + std::error::Error + Clone,
 {
-    pub fn new(storage: &'storage mut dyn Storage<Data, Node, Error = StorageError>) -> Self {
+    pub fn new(storage: &'storage mut dyn Storage<Bytes32, Node, Error = StorageError>) -> Self {
         Self {
             storage,
             head: None,
         }
     }
 
-    pub fn root(&mut self) -> Result<Data, Box<dyn std::error::Error>> {
+    pub fn root(&mut self) -> Result<Bytes32, Box<dyn std::error::Error>> {
         let root_node = self.root_node()?;
         let root = match root_node {
             None => *empty_sum(),
@@ -122,16 +122,15 @@ where
 mod test {
     use fuel_merkle_test_helpers::TEST_DATA;
 
-    use super::{Data, MerkleTree, Node};
-    use crate::common::{StorageError, StorageMap};
-    use crate::sum::hash::{empty_sum, leaf_sum, node_sum};
+    use crate::common::{Bytes32, StorageError, StorageMap};
+    use crate::sum::{empty_sum, leaf_sum, node_sum, MerkleTree, Node};
 
     type MT<'storage> = MerkleTree<'storage, StorageError>;
     const FEE: u64 = 100;
 
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Data, Node>::new();
+        let mut storage_map = StorageMap::<Bytes32, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let root = tree.root().unwrap();
@@ -140,7 +139,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
-        let mut storage_map = StorageMap::<Data, Node>::new();
+        let mut storage_map = StorageMap::<Bytes32, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0];
@@ -153,7 +152,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Data, Node>::new();
+        let mut storage_map = StorageMap::<Bytes32, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..4]; // 4 leaves
@@ -184,7 +183,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Data, Node>::new();
+        let mut storage_map = StorageMap::<Bytes32, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..5]; // 5 leaves
@@ -219,7 +218,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Data, Node>::new();
+        let mut storage_map = StorageMap::<Bytes32, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..7]; // 7 leaves
