@@ -1,7 +1,7 @@
 use fuel_storage::Storage;
 
 use crate::common::{Bytes32, Subtree};
-use crate::sum::{empty_sum, leaf_sum, node_sum, Node};
+use crate::sum::{empty_sum, Node};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -31,6 +31,7 @@ where
             None => *empty_sum(),
             Some(ref node) => *node.hash(),
         };
+
         Ok(root)
     }
 
@@ -63,6 +64,7 @@ where
                 Some(current.node().clone())
             }
         };
+
         Ok(root_node)
     }
 
@@ -93,7 +95,7 @@ where
         rhs: &mut Subtree<Node>,
     ) -> Result<Box<Subtree<Node>>, Box<dyn std::error::Error>> {
         let height = lhs.node().height() + 1;
-        let mut joined_node = Node::create_node(
+        let joined_node = Node::create_node(
             height,
             lhs.node().fee(),
             &lhs.node().hash(),
@@ -103,6 +105,7 @@ where
         self.storage.insert(&joined_node.hash(), &joined_node)?;
 
         let joined_head = Subtree::new(joined_node, lhs.take_next());
+
         Ok(Box::new(joined_head))
     }
 }
