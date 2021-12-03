@@ -1,4 +1,5 @@
 use crate::common::Bytes32;
+use crate::sum::{leaf_sum, node_sum};
 use core::fmt;
 use fuel_storage::Storage;
 
@@ -12,13 +13,29 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(height: u32, hash: Bytes32, fee: u64) -> Self {
+    pub fn create_leaf(data: &[u8], fee: u64) -> Self {
         Self {
-            height,
-            hash,
+            height: 0,
+            hash: leaf_sum(data),
             fee,
             left_child_key: None,
             right_child_key: None,
+        }
+    }
+
+    pub fn create_node(
+        height: u32,
+        lhs_fee: u64,
+        lhs_key: &Bytes32,
+        rhs_fee: u64,
+        rhs_key: &Bytes32,
+    ) -> Self {
+        Self {
+            height,
+            hash: node_sum(lhs_fee, lhs_key, rhs_fee, rhs_key),
+            fee: lhs_fee + rhs_fee,
+            left_child_key: Some(lhs_key.clone()),
+            right_child_key: Some(rhs_key.clone()),
         }
     }
 
@@ -26,8 +43,8 @@ impl Node {
         self.height
     }
 
-    pub fn hash(&self) -> Bytes32 {
-        self.hash.clone()
+    pub fn hash(&self) -> &Bytes32 {
+        &self.hash
     }
 
     pub fn fee(&self) -> u64 {
@@ -40,14 +57,6 @@ impl Node {
 
     pub fn right_child_key(&self) -> Option<Bytes32> {
         self.right_child_key.clone()
-    }
-
-    pub fn set_left_child_key(&mut self, key: Option<Bytes32>) {
-        self.left_child_key = key;
-    }
-
-    pub fn set_right_child_key(&mut self, key: Option<Bytes32>) {
-        self.right_child_key = key;
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -110,7 +119,7 @@ where
     }
 
     pub fn leaf_key(&self) -> Bytes32 {
-        self.node.hash()
+        self.node.hash().clone()
     }
 
     pub fn left_child(&self) -> Option<Self> {

@@ -29,18 +29,13 @@ where
         let root_node = self.root_node()?;
         let root = match root_node {
             None => *empty_sum(),
-            Some(ref node) => node.hash(),
+            Some(ref node) => *node.hash(),
         };
         Ok(root)
     }
 
     pub fn push(&mut self, data: &[u8], fee: u64) -> Result<(), Box<dyn std::error::Error>> {
-        let node = {
-            let height = 0;
-            let leaf_sum = leaf_sum(data);
-            Node::new(height, leaf_sum, fee)
-        };
-
+        let node = Node::create_leaf(data, fee);
         self.storage.insert(&node.hash(), &node)?;
 
         let next = self.head.take();
@@ -97,20 +92,14 @@ where
         lhs: &mut Subtree<Node>,
         rhs: &mut Subtree<Node>,
     ) -> Result<Box<Subtree<Node>>, Box<dyn std::error::Error>> {
-        let mut joined_node = {
-            let height = lhs.node().height() + 1;
-            let fee = lhs.node().fee() + rhs.node().fee();
-            let node_sum = node_sum(
-                lhs.node().fee(),
-                &lhs.node().hash(),
-                rhs.node().fee(),
-                &rhs.node().hash(),
-            );
-            Node::new(height, node_sum, fee)
-        };
-
-        joined_node.set_left_child_key(Some(lhs.node().hash()));
-        joined_node.set_right_child_key(Some(rhs.node().hash()));
+        let height = lhs.node().height() + 1;
+        let mut joined_node = Node::create_node(
+            height,
+            lhs.node().fee(),
+            &lhs.node().hash(),
+            rhs.node().fee(),
+            &rhs.node().hash(),
+        );
         self.storage.insert(&joined_node.hash(), &joined_node)?;
 
         let joined_head = Subtree::new(joined_node, lhs.take_next());
