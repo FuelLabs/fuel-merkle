@@ -12,8 +12,6 @@ pub enum MerkleTreeError {
 pub struct MerkleTree<'storage, StorageError> {
     storage: &'storage mut dyn Storage<Data, Node, Error = StorageError>,
     head: Option<Box<Subtree<Node>>>,
-    leaves: Vec<Data>,
-    leaves_count: u64,
 }
 
 impl<'storage, StorageError> MerkleTree<'storage, StorageError>
@@ -24,8 +22,6 @@ where
         Self {
             storage,
             head: None,
-            leaves: Vec::<Data>::default(),
-            leaves_count: 0,
         }
     }
 
@@ -46,14 +42,11 @@ where
         };
 
         self.storage.insert(&node.hash(), &node)?;
-        self.leaves.push(node.hash());
 
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
         self.join_all_subtrees()?;
-
-        self.leaves_count += 1;
 
         Ok(())
     }
