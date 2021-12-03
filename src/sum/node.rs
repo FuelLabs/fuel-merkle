@@ -1,29 +1,24 @@
 use crate::common::Bytes32;
-use crate::sum::hash::{leaf_sum, node_sum};
 use core::fmt;
 use fuel_storage::Storage;
 
 #[derive(Clone)]
 pub struct Node {
     height: u32,
-    key: Bytes32,
+    hash: Bytes32,
     fee: u32,
     left_child_key: Option<Bytes32>,
-    left_child_fee: u32,
     right_child_key: Option<Bytes32>,
-    right_child_fee: u32,
 }
 
 impl Node {
     pub fn new(height: u32, key: Bytes32, fee: u32) -> Self {
         Self {
             height,
-            key,
+            hash: key,
             fee,
             left_child_key: None,
-            left_child_fee: 0,
             right_child_key: None,
-            right_child_fee: 0,
         }
     }
 
@@ -31,8 +26,8 @@ impl Node {
         self.height
     }
 
-    pub fn key(&self) -> Bytes32 {
-        self.key.clone()
+    pub fn hash(&self) -> Bytes32 {
+        self.hash.clone()
     }
 
     pub fn fee(&self) -> u32 {
@@ -51,16 +46,8 @@ impl Node {
         self.left_child_key = key;
     }
 
-    pub fn set_left_child_fee(&mut self, fee: u32) {
-        self.left_child_fee = fee;
-    }
-
     pub fn set_right_child_key(&mut self, key: Option<Bytes32>) {
         self.right_child_key = key;
-    }
-
-    pub fn set_right_child_fee(&mut self, fee: u32) {
-        self.right_child_fee = fee;
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -69,19 +56,6 @@ impl Node {
 
     pub fn is_node(&self) -> bool {
         !self.is_leaf()
-    }
-
-    pub fn hash(&self) -> Bytes32 {
-        if self.is_leaf() {
-            self.key()
-        } else {
-            node_sum(
-                self.left_child_fee,
-                &self.left_child_key.unwrap(),
-                self.right_child_fee,
-                &self.right_child_key.unwrap(),
-            )
-        }
     }
 }
 
@@ -104,7 +78,7 @@ impl fmt::Debug for Node {
             f.debug_struct("Node (Leaf)")
                 .field("Hash", &hex::encode(self.hash()))
                 .field("Fee", &self.fee)
-                .field("Key", &hex::encode(self.key()))
+                .field("Key", &hex::encode(self.hash()))
                 .finish()
         }
     }
@@ -136,7 +110,7 @@ where
     }
 
     pub fn leaf_key(&self) -> Bytes32 {
-        self.node.key()
+        self.node.hash()
     }
 
     pub fn left_child(&self) -> Option<Self> {

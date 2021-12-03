@@ -1,12 +1,10 @@
-use fuel_storage::Storage;
-use std::borrow::Cow;
 use std::marker::PhantomData;
 
-use crate::sum::hash::{empty_sum, leaf_sum, node_sum, Data};
-use crate::sum::node::{Node, StorageNode};
-use crate::sum::subtree::Subtree;
+use fuel_storage::Storage;
 
-use crate::common::{AsPathIterator, Bytes32};
+use crate::common::Subtree;
+use crate::sum::hash::{empty_sum, leaf_sum, node_sum, Data};
+use crate::sum::node::Node;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -14,13 +12,10 @@ pub enum MerkleTreeError {
     InvalidProofIndex(u64),
 }
 
-type DataNode = Node;
-type ProofSet = Vec<Data>;
-
 pub struct MerkleTree<'a, 'storage, StorageError> {
     phantom: PhantomData<&'a StorageError>,
-    storage: &'storage mut dyn Storage<Data, DataNode, Error = StorageError>,
-    head: Option<Box<Subtree<DataNode>>>,
+    storage: &'storage mut dyn Storage<Data, Node, Error = StorageError>,
+    head: Option<Box<Subtree<Node>>>,
     leaves: Vec<Data>,
     leaves_count: u64,
 }
@@ -29,7 +24,7 @@ impl<'a, 'storage, StorageError> MerkleTree<'a, 'storage, StorageError>
 where
     StorageError: std::error::Error + 'static + Clone,
 {
-    pub fn new(storage: &'storage mut dyn Storage<Data, DataNode, Error = StorageError>) -> Self {
+    pub fn new(storage: &'storage mut dyn Storage<Data, Node, Error = StorageError>) -> Self {
         Self {
             phantom: PhantomData::default(),
             storage,
@@ -43,7 +38,7 @@ where
         let root_node = self.root_node()?;
         let root = match root_node {
             None => *empty_sum(),
-            Some(ref node) => node.key(),
+            Some(ref node) => node.hash(),
         };
         Ok(root)
     }
@@ -52,16 +47,16 @@ where
         let node = {
             let height = 0;
             let leaf_sum = leaf_sum(data);
-            DataNode::new(height, leaf_sum, fee)
+            Node::new(height, leaf_sum, fee)
         };
 
-        self.storage.insert(&node.key(), &node)?;
-        self.leaves.push(node.key());
+        self.storage.insert(&node.hash(), &node)?;
+        self.leaves.push(node.hash());
 
         let next = self.head.take();
-        let head = Box::new(Subtree::<DataNode>::new(node, next));
+        let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
-        self.join_all_subtrees();
+        self.join_all_subtrees()?;
 
         self.leaves_count += 1;
 
@@ -72,7 +67,7 @@ where
     // PRIVATE
     //
 
-    fn root_node(&mut self) -> Result<Option<DataNode>, Box<dyn std::error::Error>> {
+    fn root_node(&mut self) -> Result<Option<Node>, Box<dyn std::error::Error>> {
         let root_node = match self.head {
             None => None,
             Some(ref initial) => {
@@ -111,26 +106,23 @@ where
 
     fn join_subtrees(
         &mut self,
-        lhs: &mut Subtree<DataNode>,
-        rhs: &mut Subtree<DataNode>,
-    ) -> Result<Box<Subtree<DataNode>>, Box<dyn std::error::Error>> {
+        lhs: &mut Subtree<Node>,
+        rhs: &mut Subtree<Node>,
+    ) -> Result<Box<Subtree<Node>>, Box<dyn std::error::Error>> {
         let mut joined_node = {
             let height = lhs.node().height() + 1;
             let fee = lhs.node().fee() + rhs.node().fee();
             let node_sum = node_sum(
                 lhs.node().fee(),
-                &lhs.node().key(),
+                &lhs.node().hash(),
                 rhs.node().fee(),
-                &rhs.node().key(),
+                &rhs.node().hash(),
             );
-            DataNode::new(height, node_sum, fee)
+            Node::new(height, node_sum, fee)
         };
 
         joined_node.set_left_child_key(Some(lhs.node().hash()));
-        joined_node.set_left_child_fee(lhs.node().fee());
         joined_node.set_right_child_key(Some(rhs.node().hash()));
-        joined_node.set_right_child_fee(rhs.node().fee());
-
         self.storage.insert(&joined_node.hash(), &joined_node)?;
 
         let joined_head = Subtree::new(joined_node, lhs.take_next());
@@ -146,13 +138,12 @@ mod test {
     use crate::common::{StorageError, StorageMap};
     use crate::sum::hash::{empty_sum, leaf_sum, node_sum};
 
-    type DataNode = Node;
     type MT<'a, 'storage> = MerkleTree<'a, 'storage, StorageError>;
     const FEE: u32 = 100;
 
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut storage_map = StorageMap::<Data, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let root = tree.root().unwrap();
@@ -161,11 +152,11 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
-        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut storage_map = StorageMap::<Data, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0];
-        tree.push(&data, FEE);
+        let _ = tree.push(&data, FEE);
         let root = tree.root().unwrap();
 
         let expected = leaf_sum(&data);
@@ -174,12 +165,12 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut storage_map = StorageMap::<Data, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..4]; // 4 leaves
         for datum in data.iter() {
-            tree.push(datum, FEE);
+            let _ = tree.push(datum, FEE);
         }
         let root = tree.root().unwrap();
 
@@ -205,12 +196,12 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut storage_map = StorageMap::<Data, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..5]; // 5 leaves
         for datum in data.iter() {
-            tree.push(datum, FEE);
+            let _ = tree.push(datum, FEE);
         }
         let root = tree.root().unwrap();
 
@@ -240,12 +231,12 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Data, DataNode>::new();
+        let mut storage_map = StorageMap::<Data, Node>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..7]; // 7 leaves
         for datum in data.iter() {
-            tree.push(datum, FEE);
+            let _ = tree.push(datum, FEE);
         }
         let root = tree.root().unwrap();
 
