@@ -74,8 +74,14 @@ impl fmt::Debug for Node {
             f.debug_struct("Node (Internal)")
                 .field("Hash", &hex::encode(self.hash()))
                 .field("Fee", &self.fee)
-                .field("Left child key", &hex::encode(self.left_child_key().unwrap()))
-                .field("Right child key", &hex::encode(self.right_child_key().unwrap()))
+                .field(
+                    "Left child key",
+                    &hex::encode(self.left_child_key().unwrap()),
+                )
+                .field(
+                    "Right child key",
+                    &hex::encode(self.right_child_key().unwrap()),
+                )
                 .finish()
         } else {
             f.debug_struct("Node (Leaf)")
