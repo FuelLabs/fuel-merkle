@@ -35,8 +35,8 @@ where
         Ok(root)
     }
 
-    pub fn push(&mut self, data: &[u8], fee: u64) -> Result<(), Box<dyn std::error::Error>> {
-        let node = Node::create_leaf(data, fee);
+    pub fn push(&mut self, fee: u64, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+        let node = Node::create_leaf(fee, data);
         self.storage.insert(node.hash(), &node)?;
 
         let next = self.head.take();
@@ -135,10 +135,10 @@ mod test {
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0];
-        let _ = tree.push(&data, FEE);
+        let _ = tree.push(FEE, &data);
         let root = tree.root().unwrap();
 
-        let expected = leaf_sum(&data);
+        let expected = leaf_sum(FEE, &data);
         assert_eq!(root, expected);
     }
 
@@ -149,7 +149,7 @@ mod test {
 
         let data = &TEST_DATA[0..4]; // 4 leaves
         for datum in data.iter() {
-            let _ = tree.push(datum, FEE);
+            let _ = tree.push(FEE, datum);
         }
         let root = tree.root().unwrap();
 
@@ -160,10 +160,10 @@ mod test {
         //  /  \    /  \
         // L0  L1  L2  L3
 
-        let leaf_0 = leaf_sum(&data[0]);
-        let leaf_1 = leaf_sum(&data[1]);
-        let leaf_2 = leaf_sum(&data[2]);
-        let leaf_3 = leaf_sum(&data[3]);
+        let leaf_0 = leaf_sum(FEE, &data[0]);
+        let leaf_1 = leaf_sum(FEE, &data[1]);
+        let leaf_2 = leaf_sum(FEE, &data[2]);
+        let leaf_3 = leaf_sum(FEE, &data[3]);
 
         let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
         let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
@@ -180,7 +180,7 @@ mod test {
 
         let data = &TEST_DATA[0..5]; // 5 leaves
         for datum in data.iter() {
-            let _ = tree.push(datum, FEE);
+            let _ = tree.push(FEE, datum);
         }
         let root = tree.root().unwrap();
 
@@ -193,11 +193,11 @@ mod test {
         //  /  \    /  \   \
         // L0  L1  L2  L3  L4
 
-        let leaf_0 = leaf_sum(&data[0]);
-        let leaf_1 = leaf_sum(&data[1]);
-        let leaf_2 = leaf_sum(&data[2]);
-        let leaf_3 = leaf_sum(&data[3]);
-        let leaf_4 = leaf_sum(&data[4]);
+        let leaf_0 = leaf_sum(FEE, &data[0]);
+        let leaf_1 = leaf_sum(FEE, &data[1]);
+        let leaf_2 = leaf_sum(FEE, &data[2]);
+        let leaf_3 = leaf_sum(FEE, &data[3]);
+        let leaf_4 = leaf_sum(FEE, &data[4]);
 
         let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
         let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
@@ -215,7 +215,7 @@ mod test {
 
         let data = &TEST_DATA[0..7]; // 7 leaves
         for datum in data.iter() {
-            let _ = tree.push(datum, FEE);
+            let _ = tree.push(FEE, datum);
         }
         let root = tree.root().unwrap();
 
@@ -231,13 +231,13 @@ mod test {
         //  /  \    /  \    /  \   \
         // L0  L1  L2  L3  L4  L5  L6
 
-        let leaf_0 = leaf_sum(&data[0]);
-        let leaf_1 = leaf_sum(&data[1]);
-        let leaf_2 = leaf_sum(&data[2]);
-        let leaf_3 = leaf_sum(&data[3]);
-        let leaf_4 = leaf_sum(&data[4]);
-        let leaf_5 = leaf_sum(&data[5]);
-        let leaf_6 = leaf_sum(&data[6]);
+        let leaf_0 = leaf_sum(FEE, &data[0]);
+        let leaf_1 = leaf_sum(FEE, &data[1]);
+        let leaf_2 = leaf_sum(FEE, &data[2]);
+        let leaf_3 = leaf_sum(FEE, &data[3]);
+        let leaf_4 = leaf_sum(FEE, &data[4]);
+        let leaf_5 = leaf_sum(FEE, &data[5]);
+        let leaf_6 = leaf_sum(FEE, &data[6]);
 
         let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
         let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);

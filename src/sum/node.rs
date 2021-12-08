@@ -13,10 +13,10 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn create_leaf(data: &[u8], fee: u64) -> Self {
+    pub fn create_leaf(fee: u64, data: &[u8]) -> Self {
         Self {
             height: 0,
-            hash: leaf_sum(data),
+            hash: leaf_sum(fee, data),
             fee,
             left_child_key: None,
             right_child_key: None,
