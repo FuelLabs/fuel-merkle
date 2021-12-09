@@ -28,7 +28,7 @@ pub fn node_sum(lhs_fee: u64, lhs_data: &[u8], rhs_fee: u64, rhs_data: &[u8]) ->
 }
 
 // Merkle tree hash of a list with one entry
-// MTH({d(0)}) = Hash(0x00 || d(0))
+// MTH({d(0)}) = Hash(0x00 || fee || d(0))
 pub fn leaf_sum(fee: u64, data: &[u8]) -> Bytes32 {
     let mut hash = Sha256::new();
     hash.update(&[LEAF]);
