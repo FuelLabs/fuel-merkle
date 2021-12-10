@@ -102,7 +102,7 @@ pub(crate) struct StorageNode<'storage, StorageError> {
     node: Node,
 }
 
-impl<'a, 'storage, StorageError> StorageNode<'storage, StorageError>
+impl<'storage, StorageError> StorageNode<'storage, StorageError>
 where
     StorageError: std::error::Error + Clone,
 {
