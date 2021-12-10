@@ -122,16 +122,20 @@ where
         self.node.hash().clone()
     }
 
-    pub fn left_child(&self) -> Option<Self> {
+    pub fn left_child(&self) -> Result<Option<Self>, StorageError> {
+        assert!(self.is_node());
         let key = self.node.left_child_key().unwrap();
-        let node = self.storage.get(&key).unwrap();
-        node.map(|n| Self::new(self.storage, n.into_owned()))
+        let node = self.storage.get(&key)?;
+        let storage_node = node.map(|n| Self::new(self.storage, n.into_owned()));
+        Ok(storage_node)
     }
 
-    pub fn right_child(&self) -> Option<Self> {
+    pub fn right_child(&self) -> Result<Option<Self>, StorageError> {
+        assert!(self.is_node());
         let key = self.node.right_child_key().unwrap();
-        let node = self.storage.get(&key).unwrap();
-        node.map(|n| Self::new(self.storage, n.into_owned()))
+        let node = self.storage.get(&key)?;
+        let storage_node = node.map(|n| Self::new(self.storage, n.into_owned()));
+        Ok(storage_node)
     }
 
     pub fn into_node(self) -> Node {
@@ -159,10 +163,10 @@ where
     StorageError: std::error::Error + Clone,
 {
     fn left_child(&self) -> Self {
-        StorageNode::left_child(self).unwrap()
+        StorageNode::left_child(self).unwrap().unwrap()
     }
 
     fn right_child(&self) -> Self {
-        StorageNode::right_child(self).unwrap()
+        StorageNode::right_child(self).unwrap().unwrap()
     }
 }
