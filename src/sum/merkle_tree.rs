@@ -25,14 +25,14 @@ where
         }
     }
 
-    pub fn root(&mut self) -> Result<Bytes32, Box<dyn std::error::Error>> {
+    pub fn root(&mut self) -> Result<(u64, Bytes32), Box<dyn std::error::Error>> {
         let root_node = self.root_node()?;
-        let root = match root_node {
-            None => *empty_sum(),
-            Some(ref node) => *node.hash(),
+        let root_pair = match root_node {
+            None => (0, *empty_sum()),
+            Some(ref node) => (node.fee(), *node.hash()),
         };
 
-        Ok(root)
+        Ok(root_pair)
     }
 
     pub fn push(&mut self, fee: u64, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
@@ -126,7 +126,7 @@ mod test {
         let mut tree = MT::new(&mut storage_map);
 
         let root = tree.root().unwrap();
-        assert_eq!(root, empty_sum().clone());
+        assert_eq!(root, (0, empty_sum().clone()));
     }
 
     #[test]
@@ -138,7 +138,7 @@ mod test {
         let _ = tree.push(FEE, &data);
         let root = tree.root().unwrap();
 
-        let expected = leaf_sum(FEE, &data);
+        let expected = (FEE, leaf_sum(FEE, &data));
         assert_eq!(root, expected);
     }
 
@@ -169,7 +169,7 @@ mod test {
         let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
         let node_2 = node_sum(FEE * 2, &node_0, FEE * 2, &node_1);
 
-        let expected = node_2;
+        let expected = (FEE * 4, node_2);
         assert_eq!(root, expected);
     }
 
@@ -204,7 +204,7 @@ mod test {
         let node_2 = node_sum(FEE * 2, &node_0, FEE * 2, &node_1);
         let node_3 = node_sum(FEE * 4, &node_2, FEE * 1, &leaf_4);
 
-        let expected = node_3;
+        let expected = (FEE * 5, node_3);
         assert_eq!(root, expected);
     }
 
@@ -246,7 +246,7 @@ mod test {
         let node_4 = node_sum(FEE * 2, &node_2, FEE * 1, &leaf_6);
         let node_5 = node_sum(FEE * 4, &node_3, FEE * 3, &node_4);
 
-        let expected = node_5;
+        let expected = (FEE * 7, node_5);
         assert_eq!(root, expected);
     }
 }
