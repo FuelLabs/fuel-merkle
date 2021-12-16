@@ -176,7 +176,7 @@ impl Position {
     /// current index; the right child position has the in-order index arriving after the current
     /// index.
     fn child(self, direction: i64) -> Self {
-        assert!(!self.is_leaf());
+        assert!(self.is_node());
         let shift = 1 << (self.height() - 1);
         let index = self.in_order_index() as i64 + shift * direction;
         Self::from_in_order_index(index as u64)
