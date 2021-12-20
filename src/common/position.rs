@@ -72,6 +72,9 @@
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Position(u64);
 
+const LEFT_CHILD_DIRECTION: i64 = -1;
+const RIGHT_CHILD_DIRECTION: i64 = 1;
+
 impl Position {
     pub fn in_order_index(self) -> u64 {
         self.0
@@ -114,13 +117,13 @@ impl Position {
     /// The left child position.
     /// See [child](Self::child).
     pub fn left_child(self) -> Self {
-        self.child(-1)
+        self.child(LEFT_CHILD_DIRECTION)
     }
 
     /// The right child position.
     /// See [child](Self::child).
     pub fn right_child(self) -> Self {
-        self.child(1)
+        self.child(RIGHT_CHILD_DIRECTION)
     }
 
     /// The height of the index in a binary tree.
