@@ -153,8 +153,8 @@ impl Position {
     /// Returns `true` if the position is a leaf node.
     /// Returns `false` if the position is an internal node.
     ///
-    /// A position is a leaf node if and only if its in order index is even. A position is an
-    /// internal node if and only if its in order index is odd.
+    /// A position is a leaf node if and only if its in-order index is even. A position is an
+    /// internal node if and only if its in-order index is odd.
     pub fn is_leaf(self) -> bool {
         self.in_order_index() % 2 == 0
     }
