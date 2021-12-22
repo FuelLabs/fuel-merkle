@@ -3,6 +3,11 @@ name = "fuel-merkle"
 version = "0.1.0"
 authors = ["Fuel Labs <contact@fuel.sh>"]
 edition = "2018"
+homepage = "https://fuel.network/"
+keywords = ["blockchain", "cryptocurrencies", "fuel-vm", "vm"]
+license = "Apache-2.0"
+repository = "https://github.com/FuelLabs/fuel-merkle"
+description = "Fuel Merkle tree libraries."
 
 [dependencies]
 bytes = "~1.1"
