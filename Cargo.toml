@@ -11,7 +11,7 @@ description = "Fuel Merkle tree libraries."
 
 [dependencies]
 bytes = "1.0"
-digest = "0.9.0"
+digest = "0.9"
 fuel-storage = "0.1"
 generic-array = "0.14"
 hex = "0.4"
