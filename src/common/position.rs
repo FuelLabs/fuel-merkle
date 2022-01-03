@@ -1,3 +1,6 @@
+use crate::common::Msb;
+use crate::common::{AsPathIterator, Bytes8};
+
 /// #Position
 ///
 /// A `Position` represents a node's position in a binary tree by encapsulating the node's index
@@ -78,6 +81,11 @@ const RIGHT_CHILD_DIRECTION: i64 = 1;
 impl Position {
     pub fn in_order_index(self) -> u64 {
         self.0
+    }
+
+    pub fn leaf_index(self) -> u64 {
+        assert!(self.is_leaf());
+        self.in_order_index() / 2
     }
 
     /// Construct a position from an in-order index.
@@ -217,20 +225,13 @@ impl Position {
         -scale
     }
 
-    pub fn path_set(
-        self: &Self,
-        leaf: &Self,
-        leaves_count: u64
-    ) -> (Vec<Position>, Vec<Position>) {
+    pub fn path_set(self: &Self, leaf: &Self, leaves_count: u64) -> (Vec<Self>, Vec<Self>) {
+        let (path, side): (Vec<Self>, Vec<Self>) = self.as_path_iter(&leaf).unzip();
+
+        let mut path_positions = Vec::<Self>::new();
+        let mut side_positions = Vec::<Self>::new();
+
         let last_position = Position::from_leaf_index(leaves_count - 1);
-
-        let (path, side): (Vec<Position>, Vec<Position>) = self
-            .as_path_iter_height(self.height(), &leaf)
-            .unzip();
-
-        let mut path_positions = Vec::<Position>::new();
-        let mut side_positions = Vec::<Position>::new();
-
         let mut ind = 0;
         let mut step = 1;
         for path_position in path {
@@ -244,9 +245,9 @@ impl Position {
         }
 
         // If the following are true:
-        //  - The tree is unbalanced (i.e. Merkle Mountain Range)
+        //  - The tree is unbalanced (i.e. a Merkle Mountain Range)
         //  - The path leaf is a left descendent of the unbalanced parent
-        // then we know there is a side node that lies outside the range of the tree. This side node
+        // Then we know there is a side node that lies outside the range of the tree; this side node
         // is an ancestor of the actual side node.
         for side_position in &mut side_positions {
             while side_position.in_order_index() > last_position.in_order_index() {
@@ -255,6 +256,32 @@ impl Position {
         }
 
         (path_positions, side_positions)
+    }
+}
+
+impl crate::common::Node for Position {
+    type Key = Bytes8;
+
+    fn height(&self) -> u32 {
+        Position::height(*self)
+    }
+
+    fn leaf_key(&self) -> Self::Key {
+        Position::leaf_index(*self).to_be_bytes()
+    }
+
+    fn is_leaf(&self) -> bool {
+        Position::is_leaf(*self)
+    }
+}
+
+impl crate::common::ParentNode for Position {
+    fn left_child(&self) -> Self {
+        Position::left_child(*self)
+    }
+
+    fn right_child(&self) -> Self {
+        Position::right_child(*self)
     }
 }
 
@@ -387,5 +414,390 @@ mod test {
         assert_eq!(Position(5).is_node(), true);
         assert_eq!(Position(9).is_node(), true);
         assert_eq!(Position(13).is_node(), true);
+    }
+
+    #[test]
+    fn test_path_set_returns_path_and_side_nodes_for_4_leaves() {
+        //       03
+        //      /  \
+        //     /    \
+        //   01      05
+        //  /  \    /  \
+        // 00  02  04  06
+        // 00  01  02  03
+
+        let root = Position::from_in_order_index(3);
+
+        let leaf = Position::from_leaf_index(0);
+        let (path_positions, side_positions) = root.path_set(&leaf, 4);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(0),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(2),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(1);
+        let (path_positions, side_positions) = root.path_set(&leaf, 4);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(2),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(0),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(2);
+        let (path_positions, side_positions) = root.path_set(&leaf, 4);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(4),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(6),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(3);
+        let (path_positions, side_positions) = root.path_set(&leaf, 4);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(6),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(4),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_path_set_returns_path_and_side_nodes_for_5_leaves() {
+        //          07
+        //         /  \
+        //       03    \
+        //      /  \    \
+        //     /    \    \
+        //   01      05   \
+        //  /  \    /  \   \
+        // 00  02  04  06  08
+        // 00  01  02  03  04
+
+        let root = Position::from_in_order_index(7);
+
+        let leaf = Position::from_leaf_index(0);
+        let (path_positions, side_positions) = root.path_set(&leaf, 5);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(0),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(8),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(2),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(1);
+        let (path_positions, side_positions) = root.path_set(&leaf, 5);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(2),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(8),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(0),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(2);
+        let (path_positions, side_positions) = root.path_set(&leaf, 5);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(4),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(8),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(6),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(3);
+        let (path_positions, side_positions) = root.path_set(&leaf, 5);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(6),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(8),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(4),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(4);
+        let (path_positions, side_positions) = root.path_set(&leaf, 5);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(8),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(3),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_path_set_returns_path_and_side_nodes_for_6_leaves() {
+        //            07
+        //           /  \
+        //          /    \
+        //         /      \
+        //       03        \
+        //      /  \        \
+        //     /    \        \
+        //   01      05      09
+        //  /  \    /  \    /  \
+        // 00  02  04  06  08  10
+        // 00  01  02  03  04  05
+
+        let root = Position::from_in_order_index(7);
+
+        let leaf = Position::from_leaf_index(3);
+        let (path_positions, side_positions) = root.path_set(&leaf, 6);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(5),
+                Position::from_in_order_index(6),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(9),
+                Position::from_in_order_index(1),
+                Position::from_in_order_index(4),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(4);
+        let (path_positions, side_positions) = root.path_set(&leaf, 6);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(9),
+                Position::from_in_order_index(8),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(10),
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(5);
+        let (path_positions, side_positions) = root.path_set(&leaf, 6);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(9),
+                Position::from_in_order_index(10),
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(8),
+            ]
+        );
+    }
+
+    #[test]
+    fn path_set_returns__9_leaves_are_pushed() {
+        //                   15
+        //                  /  \
+        //                 /    \
+        //               07      \
+        //              /  \      \
+        //             /    \      \
+        //            /      \      \
+        //           /        \      \
+        //          /          \      \
+        //         /            \      \
+        //       03              11     \
+        //      /  \            /  \     \
+        //     /    \          /    \     \
+        //   01      05      09      13    \
+        //  /  \    /  \    /  \    /  \    \
+        // 00  02  04  06  08  10  12  14   16
+        // 00  01  02  03  04  05  06  07   08
+
+        let root = Position::from_in_order_index(15);
+
+        let leaf = Position::from_leaf_index(8);
+        let (path_positions, side_positions) = root.path_set(&leaf, 9);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(15),
+                Position::from_in_order_index(16)
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(15),
+                Position::from_in_order_index(7)
+            ]
+        );
+
+        let leaf = Position::from_leaf_index(7);
+        let (path_positions, side_positions) = root.path_set(&leaf, 9);
+        assert_eq!(
+            path_positions,
+            [
+                Position::from_in_order_index(15),
+                Position::from_in_order_index(7),
+                Position::from_in_order_index(11),
+                Position::from_in_order_index(13),
+                Position::from_in_order_index(14)
+            ]
+        );
+        assert_eq!(
+            side_positions,
+            [
+                Position::from_in_order_index(15),
+                Position::from_in_order_index(16),
+                Position::from_in_order_index(3),
+                Position::from_in_order_index(9),
+                Position::from_in_order_index(12),
+            ]
+        );
+    }
+
+    #[test]
+    fn path_set_returns__15_leaves_are_pushed() {
+        //                               15
+        //                              /  \
+        //                             /    \
+        //                            /      \
+        //                           /        \
+        //                          /          \
+        //                         /            \
+        //                        /              \
+        //                       /                \
+        //                      /                  \
+        //                     /                    \
+        //                    /                      \
+        //                   /                        \
+        //                  /                          \
+        //                 /                            \
+        //               07                              23
+        //              /  \                            /  \
+        //             /    \                          /    \
+        //            /      \                        /      \
+        //           /        \                      /        \
+        //          /          \                    /          \
+        //         /            \                  /            \
+        //       03              11              19              27
+        //      /  \            /  \            /  \            /  \
+        //     /    \          /    \          /    \          /    \
+        //   01      05      09      13      17      21      25      \
+        //  /  \    /  \    /  \    /  \    /  \    /  \    /  \      \
+        // 00  02  04  06  08  10  12  14  16  18  20  22  24  26     28
+        // 00  01  02  03  04  05  06  07  08  09  10  11  12  13     14
+
+        // let root = tree.get(15);
+        // let leaf = tree.get(16);
+        // let (path_positions, side_positions) = tree.path_set(&root, &leaf);
+        //
+        // let root = tree.get(15);
+        // let leaf = tree.get(26);
+        // let (path_positions, side_positions) = tree.path_set(&root, &leaf);
     }
 }

@@ -201,6 +201,10 @@ impl Node {
 impl crate::common::Node for Node {
     type Key = Bytes32;
 
+    fn height(&self) -> u32 {
+        todo!()
+    }
+
     fn leaf_key(&self) -> Self::Key {
         *Node::leaf_key(self)
     }
@@ -291,6 +295,10 @@ where
     StorageError: std::error::Error + Clone,
 {
     type Key = Bytes32;
+
+    fn height(&self) -> u32 {
+        todo!()
+    }
 
     fn leaf_key(&self) -> Self::Key {
         *StorageNode::leaf_key(self)
