@@ -4,6 +4,7 @@ mod msb;
 mod node;
 mod path_iterator;
 mod position;
+mod position_iter;
 mod storage_map;
 mod subtree;
 
