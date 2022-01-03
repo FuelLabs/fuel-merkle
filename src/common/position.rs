@@ -216,6 +216,46 @@ impl Position {
         let scale = self.orientation() as i64 * 2 - 1; // Scale [0, 1] to [-1, 1];
         -scale
     }
+
+    pub fn path_set(
+        self: &Self,
+        leaf: &Self,
+        leaves_count: u64
+    ) -> (Vec<Position>, Vec<Position>) {
+        let last_position = Position::from_leaf_index(leaves_count - 1);
+
+        let (path, side): (Vec<Position>, Vec<Position>) = self
+            .as_path_iter_height(self.height(), &leaf)
+            .unzip();
+
+        let mut path_positions = Vec::<Position>::new();
+        let mut side_positions = Vec::<Position>::new();
+
+        let mut ind = 0;
+        let mut step = 1;
+        for path_position in path {
+            if path_position.in_order_index() <= last_position.in_order_index() {
+                path_positions.push(path_position);
+                side_positions.push(side[ind]);
+                ind += step;
+            } else {
+                step += 1;
+            }
+        }
+
+        // If the following are true:
+        //  - The tree is unbalanced (i.e. Merkle Mountain Range)
+        //  - The path leaf is a left descendent of the unbalanced parent
+        // then we know there is a side node that lies outside the range of the tree. This side node
+        // is an ancestor of the actual side node.
+        for side_position in &mut side_positions {
+            while side_position.in_order_index() > last_position.in_order_index() {
+                *side_position = side_position.left_child();
+            }
+        }
+
+        (path_positions, side_positions)
+    }
 }
 
 #[cfg(test)]
