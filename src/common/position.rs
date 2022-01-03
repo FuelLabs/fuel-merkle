@@ -1,5 +1,6 @@
 use crate::common::Msb;
 use crate::common::{AsPathIterator, Bytes8};
+use crate::common::path_iterator::PathIter;
 
 /// #Position
 ///
@@ -225,6 +226,8 @@ impl Position {
         -scale
     }
 
+    /// Calculate the path and side nodes from this position to the given leaf position.
+    /// Returns a tuple containing the vector of path nodes and a vector of side nodes.
     pub fn path_set(self: &Self, leaf: &Self, leaves_count: u64) -> (Vec<Self>, Vec<Self>) {
         let (path, side): (Vec<Self>, Vec<Self>) = self.as_path_iter(&leaf).unzip();
 
@@ -430,79 +433,63 @@ mod test {
 
         let leaf = Position::from_leaf_index(0);
         let (path_positions, side_positions) = root.path_set(&leaf, 4);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(0),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(2),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(0),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(2),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(1);
         let (path_positions, side_positions) = root.path_set(&leaf, 4);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(2),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(0),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(2),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(0),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(2);
         let (path_positions, side_positions) = root.path_set(&leaf, 4);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(4),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(6),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(4),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(6),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(3);
         let (path_positions, side_positions) = root.path_set(&leaf, 4);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(6),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(4),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(6),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(4),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
     }
 
     #[test]
@@ -521,104 +508,84 @@ mod test {
 
         let leaf = Position::from_leaf_index(0);
         let (path_positions, side_positions) = root.path_set(&leaf, 5);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(0),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(8),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(2),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(0),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(8),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(2),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(1);
         let (path_positions, side_positions) = root.path_set(&leaf, 5);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(2),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(8),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(0),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(2),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(8),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(0),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(2);
         let (path_positions, side_positions) = root.path_set(&leaf, 5);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(4),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(8),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(6),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(4),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(8),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(6),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(3);
         let (path_positions, side_positions) = root.path_set(&leaf, 5);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(6),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(8),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(4),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(6),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(8),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(4),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(4);
         let (path_positions, side_positions) = root.path_set(&leaf, 5);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(8),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(3),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(8),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
     }
 
     #[test]
@@ -637,167 +604,102 @@ mod test {
 
         let root = Position::from_in_order_index(7);
 
+        let leaf = Position::from_leaf_index(0);
+        let (path_positions, side_positions) = root.path_set(&leaf, 6);
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(0),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(9),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(2),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
+
+        let leaf = Position::from_leaf_index(1);
+        let (path_positions, side_positions) = root.path_set(&leaf, 6);
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(2),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(9),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(0),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
+
+        let leaf = Position::from_leaf_index(2);
+        let (path_positions, side_positions) = root.path_set(&leaf, 6);
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(4),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(9),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(6),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
+
         let leaf = Position::from_leaf_index(3);
         let (path_positions, side_positions) = root.path_set(&leaf, 6);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(5),
-                Position::from_in_order_index(6),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(9),
-                Position::from_in_order_index(1),
-                Position::from_in_order_index(4),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(5),
+            Position::from_in_order_index(6),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(9),
+            Position::from_in_order_index(1),
+            Position::from_in_order_index(4),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(4);
         let (path_positions, side_positions) = root.path_set(&leaf, 6);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(9),
-                Position::from_in_order_index(8),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(10),
-            ]
-        );
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(9),
+            Position::from_in_order_index(8),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(10),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
 
         let leaf = Position::from_leaf_index(5);
         let (path_positions, side_positions) = root.path_set(&leaf, 6);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(9),
-                Position::from_in_order_index(10),
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(8),
-            ]
-        );
-    }
-
-    #[test]
-    fn path_set_returns__9_leaves_are_pushed() {
-        //                   15
-        //                  /  \
-        //                 /    \
-        //               07      \
-        //              /  \      \
-        //             /    \      \
-        //            /      \      \
-        //           /        \      \
-        //          /          \      \
-        //         /            \      \
-        //       03              11     \
-        //      /  \            /  \     \
-        //     /    \          /    \     \
-        //   01      05      09      13    \
-        //  /  \    /  \    /  \    /  \    \
-        // 00  02  04  06  08  10  12  14   16
-        // 00  01  02  03  04  05  06  07   08
-
-        let root = Position::from_in_order_index(15);
-
-        let leaf = Position::from_leaf_index(8);
-        let (path_positions, side_positions) = root.path_set(&leaf, 9);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(15),
-                Position::from_in_order_index(16)
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(15),
-                Position::from_in_order_index(7)
-            ]
-        );
-
-        let leaf = Position::from_leaf_index(7);
-        let (path_positions, side_positions) = root.path_set(&leaf, 9);
-        assert_eq!(
-            path_positions,
-            [
-                Position::from_in_order_index(15),
-                Position::from_in_order_index(7),
-                Position::from_in_order_index(11),
-                Position::from_in_order_index(13),
-                Position::from_in_order_index(14)
-            ]
-        );
-        assert_eq!(
-            side_positions,
-            [
-                Position::from_in_order_index(15),
-                Position::from_in_order_index(16),
-                Position::from_in_order_index(3),
-                Position::from_in_order_index(9),
-                Position::from_in_order_index(12),
-            ]
-        );
-    }
-
-    #[test]
-    fn path_set_returns__15_leaves_are_pushed() {
-        //                               15
-        //                              /  \
-        //                             /    \
-        //                            /      \
-        //                           /        \
-        //                          /          \
-        //                         /            \
-        //                        /              \
-        //                       /                \
-        //                      /                  \
-        //                     /                    \
-        //                    /                      \
-        //                   /                        \
-        //                  /                          \
-        //                 /                            \
-        //               07                              23
-        //              /  \                            /  \
-        //             /    \                          /    \
-        //            /      \                        /      \
-        //           /        \                      /        \
-        //          /          \                    /          \
-        //         /            \                  /            \
-        //       03              11              19              27
-        //      /  \            /  \            /  \            /  \
-        //     /    \          /    \          /    \          /    \
-        //   01      05      09      13      17      21      25      \
-        //  /  \    /  \    /  \    /  \    /  \    /  \    /  \      \
-        // 00  02  04  06  08  10  12  14  16  18  20  22  24  26     28
-        // 00  01  02  03  04  05  06  07  08  09  10  11  12  13     14
-
-        // let root = tree.get(15);
-        // let leaf = tree.get(16);
-        // let (path_positions, side_positions) = tree.path_set(&root, &leaf);
-        //
-        // let root = tree.get(15);
-        // let leaf = tree.get(26);
-        // let (path_positions, side_positions) = tree.path_set(&root, &leaf);
+        let expected_path = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(9),
+            Position::from_in_order_index(10),
+        ];
+        let expected_side = [
+            Position::from_in_order_index(7),
+            Position::from_in_order_index(3),
+            Position::from_in_order_index(8),
+        ];
+        assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
     }
 }
