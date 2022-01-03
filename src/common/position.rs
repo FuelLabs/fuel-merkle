@@ -1,6 +1,4 @@
-use crate::common::path_iterator::PathIter;
-use crate::common::Msb;
-use crate::common::{AsPathIterator, Bytes8};
+use crate::common::Bytes8;
 
 /// #Position
 ///

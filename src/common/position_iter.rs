@@ -41,7 +41,7 @@ impl Iterator for PositionIter {
     }
 }
 
-trait AsPositionIterator {
+pub(crate) trait AsPositionIterator {
     fn as_position_iter(&self, leaf: &Position, leaves_count: u64) -> PositionIter;
 }
 
@@ -53,7 +53,7 @@ impl AsPositionIterator for Position {
 
 #[cfg(test)]
 mod test {
-    use crate::common::position_iter::AsPositionIterator;
+    use super::AsPositionIterator;
     use crate::common::Position;
 
     #[test]
