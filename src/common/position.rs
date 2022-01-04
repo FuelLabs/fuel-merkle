@@ -175,6 +175,9 @@ impl Position {
         !self.is_leaf()
     }
 
+    /// Given a leaf position and the total count of leaves in a tree, get the path from the path
+    /// from this position to the given leaf.
+    /// See [PositionPath](crate::common::PositionPath).
     pub fn path(self, leaf: &Self, leaves_count: u64) -> PositionPath {
         PositionPath::new(self, *leaf, leaves_count)
     }
