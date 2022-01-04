@@ -1,4 +1,4 @@
-use crate::common::Bytes8;
+use crate::common::{Bytes8, PositionPath};
 
 /// #Position
 ///
@@ -173,6 +173,10 @@ impl Position {
     /// When a position is an internal node, the position will have both a left and right child.
     pub fn is_node(self) -> bool {
         !self.is_leaf()
+    }
+
+    pub fn path(self, leaf: &Self, leaves_count: u64) -> PositionPath {
+        PositionPath::new(self, *leaf, leaves_count)
     }
 
     // PRIVATE
