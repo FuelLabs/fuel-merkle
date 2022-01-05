@@ -56,34 +56,37 @@ impl Iterator for PositionPathIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some((path, mut side)) = self.path_iter.next() {
-            // To determine if the position is in the tree defined by the leaves count parameter, we
-            // observe that the highest in-order index belongs to the rightmost leaf position (as
-            // defined by the `leaves_count` parameter) and that all path nodes will have an
-            // in-order index less than or equal to the in-order index of this rightmost leaf
-            // position.
+            // To determine if the position is in the tree, we observe that the highest in-order
+            // index belongs to the tree's rightmost leaf position (as defined by the `leaves_count`
+            // parameter) and that all path nodes will have an in-order index less than or equal to
+            // the in-order index of this rightmost leaf position.
             // If a path position has an in-order index greater than that of the rightmost leaf
-            // position, it is invalid in the context of this tree, and must be discarded. However,
-            // the corresponding side node is valid and represents the side node of a deeper
-            // path position that is valid (i.e., has an in-order index less than or equal to that
-            // of the rightmost leaf). We can save reference to it now so that we can generate
-            // the path node and side node pair later, once both nodes are encountered.
+            // position, it is invalid in the context of this tree and must be discarded. However,
+            // the corresponding side node is valid (or is the ancestor of a valid side node) and
+            // represents the side node of a deeper path position that is also valid (i.e., has an
+            // in-order index less than or equal to that of the rightmost leaf). We can save
+            // reference to it now so that we can generate the path node and side node pair later,
+            // once both nodes are encountered.
             if path.in_order_index() <= self.rightmost_position.in_order_index() {
                 // If we previously encountered a side node corresponding to an invalid path node,
                 // we observe that the next valid path node always pairs with this side node. Once
                 // the path and side node have been paired, we continue to pair path and side nodes
-                // regularly.
+                // normally.
                 if self.current_side_node.is_some() {
                     side = self.current_side_node.take().unwrap()
                 }
+
                 // A side node with an in-order index greater than the index of the rightmost leaf
                 // position is invalid and does not exist in the context of this tree. The invalid
-                // side node will always be the ancestor of the correct side node. The correct side
-                // node will always be a leftward descendent of this invalid side node.
+                // side node will always be the ancestor of the correct side node. Furthermore, the
+                // correct side node will always be a leftward descendent of this invalid side node.
                 while side.in_order_index() > self.rightmost_position.in_order_index() {
                     side = side.left_child()
                 }
+
                 return Some((path, side));
             } else {
+                // If the path node is invalid, save reference to the the corresponding side node.
                 if self.current_side_node.is_none() {
                     self.current_side_node = Some(side);
                 }
