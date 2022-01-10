@@ -67,6 +67,10 @@ impl Node {
         self.bytes_hi().try_into().unwrap()
     }
 
+    pub fn height(&self) -> u32 {
+        todo!("https://github.com/FuelLabs/fuel-merkle/issues/59")
+    }
+
     pub fn is_leaf(&self) -> bool {
         self.prefix() == LEAF || self.is_placeholder()
     }
@@ -202,7 +206,7 @@ impl crate::common::Node for Node {
     type Key = Bytes32;
 
     fn height(&self) -> u32 {
-        todo!()
+        Node::height(self)
     }
 
     fn leaf_key(&self) -> Self::Key {
@@ -265,6 +269,10 @@ where
         self.node.hash()
     }
 
+    pub fn height(&self) -> u32 {
+        self.node.height()
+    }
+
     pub fn left_child(&self) -> Option<Self> {
         assert!(self.is_node());
         let key = self.node.left_child_key();
@@ -297,7 +305,7 @@ where
     type Key = Bytes32;
 
     fn height(&self) -> u32 {
-        todo!()
+        StorageNode::height(self)
     }
 
     fn leaf_key(&self) -> Self::Key {

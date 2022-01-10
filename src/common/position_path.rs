@@ -72,9 +72,7 @@ impl Iterator for PositionPathIter {
                 // we observe that the next valid path node always pairs with this side node. Once
                 // the path and side node have been paired, we continue to pair path and side nodes
                 // normally.
-                if self.current_side_node.is_some() {
-                    side = self.current_side_node.take().unwrap()
-                }
+                side = self.current_side_node.take().unwrap_or(side);
 
                 // A side node with an in-order index greater than the index of the rightmost leaf
                 // position is invalid and does not exist in the context of this tree. The invalid
