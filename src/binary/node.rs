@@ -16,7 +16,7 @@ impl Node {
         Self { position, hash }
     }
 
-    pub fn create_node(left_child: &mut Self, right_child: &mut Self) -> Self {
+    pub fn create_node(left_child: &Self, right_child: &Self) -> Self {
         let position = left_child.position().parent();
         let hash = node_sum(left_child.hash(), right_child.hash());
         Self { position, hash }
