@@ -51,10 +51,13 @@ where
         let root_node = self.root_node()?.unwrap();
         let root_position = root_node.position();
         let leaf_position = Position::from_leaf_index(proof_index);
-        let leaf_node=  self.storage.get(&leaf_position.in_order_index())?.unwrap();
+        let leaf_node = self.storage.get(&leaf_position.in_order_index())?.unwrap();
         proof_set.push(*leaf_node.hash());
 
-        let (_, mut side_positions): (Vec<_>, Vec<_>) = root_position.path(&leaf_position, self.leaves_count).iter().unzip();
+        let (_, mut side_positions): (Vec<_>, Vec<_>) = root_position
+            .path(&leaf_position, self.leaves_count)
+            .iter()
+            .unzip();
         side_positions.reverse(); // Reorder side positions from leaf to root.
         side_positions.pop(); // The last side position is the root; remove it.
 

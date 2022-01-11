@@ -13,19 +13,13 @@ impl Node {
     pub fn create_leaf(index: u64, data: &[u8]) -> Self {
         let position = Position::from_leaf_index(index);
         let hash = leaf_sum(data);
-        Self {
-            position,
-            hash
-        }
+        Self { position, hash }
     }
 
     pub fn create_node(left_child: &mut Self, right_child: &mut Self) -> Self {
         let position = left_child.position().parent();
         let hash = node_sum(left_child.hash(), right_child.hash());
-        Self {
-            position,
-            hash
-        }
+        Self { position, hash }
     }
 
     pub fn position(&self) -> Position {
