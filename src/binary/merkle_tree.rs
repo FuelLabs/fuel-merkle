@@ -134,9 +134,6 @@ where
     ) -> Result<Box<Subtree<Node>>, Box<dyn std::error::Error>> {
         let joined_node = Node::create_node(lhs.node_mut(), rhs.node_mut());
         self.storage.insert(&joined_node.key(), &joined_node)?;
-        self.storage.insert(&lhs.node().key(), lhs.node())?;
-        self.storage.insert(&rhs.node().key(), rhs.node())?;
-
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
     }
