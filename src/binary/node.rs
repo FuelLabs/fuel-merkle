@@ -30,14 +30,6 @@ impl Node {
         self.position().in_order_index()
     }
 
-    pub fn left_key(&self) -> u64 {
-        self.position().left_child().in_order_index()
-    }
-
-    pub fn right_key(&self) -> u64 {
-        self.position().right_child().in_order_index()
-    }
-
     pub fn hash(&self) -> &Bytes32 {
         &self.hash
     }
