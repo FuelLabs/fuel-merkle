@@ -132,7 +132,7 @@ where
         lhs: &mut Subtree<Node>,
         rhs: &mut Subtree<Node>,
     ) -> Result<Box<Subtree<Node>>, Box<dyn std::error::Error>> {
-        let joined_node = Node::create_node(lhs.node_mut(), rhs.node_mut());
+        let joined_node = Node::create_node(lhs.node(), rhs.node());
         self.storage.insert(&joined_node.key(), &joined_node)?;
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
