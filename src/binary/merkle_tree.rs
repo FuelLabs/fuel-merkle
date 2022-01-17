@@ -1,7 +1,7 @@
 use fuel_storage::Storage;
 
 use crate::binary::{empty_sum, Node};
-use crate::common::{Bytes32, Position, Subtree, p2_under};
+use crate::common::{p2_under, Bytes32, Position, Subtree};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
