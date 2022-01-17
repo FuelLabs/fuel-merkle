@@ -1,15 +1,7 @@
 use fuel_storage::Storage;
 
 use crate::binary::{empty_sum, Node};
-use crate::common::{Bytes32, Position, Subtree};
-
-fn p2(x: u64) -> u64 {
-    if x == 0 {
-        return x;
-    }
-
-    1 << (63 - x.leading_zeros())
-}
+use crate::common::{Bytes32, Position, Subtree, p2_under};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -47,7 +39,7 @@ where
         let mut undistributed_leaves_count = leaves_count;
 
         while undistributed_leaves_count > 0 {
-            let mountain_leaves_count = p2(undistributed_leaves_count);
+            let mountain_leaves_count = p2_under(undistributed_leaves_count);
             undistributed_leaves_count -= mountain_leaves_count;
 
             let mountain_head = {
@@ -192,7 +184,7 @@ where
 mod test {
     use super::{MerkleTree, Storage};
     use crate::binary::{empty_sum, leaf_sum, node_sum, Node};
-    use crate::common::{Position, StorageError, StorageMap};
+    use crate::common::{StorageError, StorageMap};
     use fuel_merkle_test_helpers::TEST_DATA;
 
     type MT<'a> = MerkleTree<'a, StorageError>;

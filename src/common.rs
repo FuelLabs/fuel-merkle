@@ -27,6 +27,14 @@ pub type Bytes8 = [u8; 8];
 pub type Bytes16 = [u8; 16];
 pub type Bytes32 = [u8; 32];
 
+pub fn p2_under(x: u64) -> u64 {
+    if x == 0 {
+        return x;
+    }
+
+    1 << (63 - x.leading_zeros())
+}
+
 /// For a leaf:
 /// `00 - 01`: Prefix (1 byte, 0x00),
 /// `01 - 33`: hash(Key) (32 bytes),
