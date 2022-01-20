@@ -276,7 +276,7 @@ mod test {
 
         {
             let mut tree = MT::new(&mut storage_map);
-            let data = &TEST_DATA[0..5 as usize];
+            let data = &TEST_DATA[0..5];
             for datum in data.iter() {
                 let _ = tree.push(datum);
             }
