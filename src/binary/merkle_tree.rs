@@ -5,11 +5,11 @@ use crate::common::{Bytes32, Position, Subtree};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
-    #[error("cannot load node with key {0}; the key is not found in storage")]
-    LoadError(u64),
-
     #[error("proof index {0} is not valid")]
     InvalidProofIndex(u64),
+
+    #[error("cannot load node with key {0}; the key is not found in storage")]
+    LoadError(u64),
 }
 
 type ProofSet = Vec<Bytes32>;
