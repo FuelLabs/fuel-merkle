@@ -1,7 +1,7 @@
 use fuel_storage::Storage;
 
 use crate::binary::{empty_sum, Node};
-use crate::common::{p2_under, Bytes32, Position, Subtree};
+use crate::common::{Bytes32, Position, Subtree};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -34,37 +34,14 @@ where
         storage: &'storage mut StorageType<StorageError>,
         leaves_count: u64,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut head = None;
-        let mut mountain_start_index = 0;
-        let mut undistributed_leaves_count = leaves_count;
-
-        while undistributed_leaves_count > 0 {
-            let mountain_leaves_count = p2_under(undistributed_leaves_count);
-            undistributed_leaves_count -= mountain_leaves_count;
-
-            let mountain_head = {
-                let height = Position::from_in_order_index(mountain_leaves_count - 1).height();
-                let mut runner = Position::from_leaf_index(mountain_start_index);
-                for _ in 0..height {
-                    runner = runner.parent();
-                }
-                runner
-            };
-
-            mountain_start_index += mountain_leaves_count;
-
-            let node = storage
-                .get(&mountain_head.in_order_index())?
-                .unwrap()
-                .into_owned();
-            head = Some(Box::new(Subtree::<Node>::new(node, head.take())));
-        }
-
-        let tree = Self {
+        let mut tree = Self {
             storage,
-            head,
+            head: None,
             leaves_count,
         };
+
+        tree.build()?;
+
         Ok(tree)
     }
 
@@ -114,7 +91,6 @@ where
     pub fn push(&mut self, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         let node = Node::create_leaf(self.leaves_count, data);
         self.storage.insert(&node.key(), &node)?;
-
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
@@ -128,6 +104,20 @@ where
     //
     // PRIVATE
     //
+
+    fn build(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let leaf_positions = (0..self.leaves_count).map(|i| Position::from_leaf_index(i));
+        for position in leaf_positions {
+            let key = position.in_order_index();
+            let node = self.storage.get(&key)?.unwrap().into_owned();
+            let next = self.head.take();
+            let head = Box::new(Subtree::<Node>::new(node, next));
+            self.head = Some(head);
+            self.join_all_subtrees()?;
+        }
+
+        Ok(())
+    }
 
     fn root_node(&mut self) -> Result<Option<Node>, Box<dyn std::error::Error>> {
         let root_node = match self.head {
@@ -253,7 +243,7 @@ mod test {
 
     #[test]
     fn test_load() {
-        const LEAVES_COUNT: u64 = 10;
+        const LEAVES_COUNT: u64 = 7;
 
         let mut storage_map = StorageMap::<u64, Node>::new();
 
@@ -564,10 +554,10 @@ mod test {
         //       03              11
         //      /  \            /  \
         //     /    \          /    \
-        //   01      05       09     \
-        //  /  \    /  \     /  \     \
-        // 00  02  04  06   08  10    12
-        // 00  01  02  03   04  05    06
+        //   01      05      09      \
+        //  /  \    /  \    /  \      \
+        // 00  02  04  06  08  10     12
+        // 00  01  02  03  04  05     06
 
         let leaf_0 = leaf_sum(&data[0]);
         let leaf_1 = leaf_sum(&data[1]);
