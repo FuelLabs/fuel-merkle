@@ -283,7 +283,7 @@ mod test {
         }
 
         {
-            let mut tree = MT::load(&mut storage_map, 10);
+            let tree = MT::load(&mut storage_map, 10);
             assert!(tree.is_err());
         }
     }
