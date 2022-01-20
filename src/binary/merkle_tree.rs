@@ -5,6 +5,9 @@ use crate::common::{Bytes32, Position, Subtree};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
+    #[error("cannot load node with key {0}; the key is not found in storage")]
+    LoadError(u64),
+
     #[error("proof index {0} is not valid")]
     InvalidProofIndex(u64),
 }
@@ -106,10 +109,13 @@ where
     //
 
     fn build(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let leaf_positions = (0..self.leaves_count).map(|i| Position::from_leaf_index(i));
-        for position in leaf_positions {
-            let key = position.in_order_index();
-            let node = self.storage.get(&key)?.unwrap().into_owned();
+        let keys = (0..self.leaves_count).map(|i| Position::from_leaf_index(i).in_order_index());
+        for key in keys {
+            let node = self
+                .storage
+                .get(&key)?
+                .ok_or(Box::new(MerkleTreeError::LoadError(key)))?
+                .into_owned();
             let next = self.head.take();
             let head = Box::new(Subtree::<Node>::new(node, next));
             self.head = Some(head);
@@ -242,14 +248,14 @@ mod test {
     }
 
     #[test]
-    fn test_load() {
+    fn load_returns_a_valid_tree() {
         const LEAVES_COUNT: u64 = 7;
 
         let mut storage_map = StorageMap::<u64, Node>::new();
 
         let root_1 = {
             let mut tree = MT::new(&mut storage_map);
-            let data = &TEST_DATA[0..LEAVES_COUNT as usize]; // 7 leaves
+            let data = &TEST_DATA[0..LEAVES_COUNT as usize];
             for datum in data.iter() {
                 let _ = tree.push(datum);
             }
@@ -262,6 +268,24 @@ mod test {
         };
 
         assert_eq!(root_1, root_2);
+    }
+
+    #[test]
+    fn load_returns_a_load_error_if_the_storage_is_not_valid_for_the_leaves_count() {
+        let mut storage_map = StorageMap::<u64, Node>::new();
+
+        {
+            let mut tree = MT::new(&mut storage_map);
+            let data = &TEST_DATA[0..5 as usize];
+            for datum in data.iter() {
+                let _ = tree.push(datum);
+            }
+        }
+
+        {
+            let mut tree = MT::load(&mut storage_map, 10);
+            assert!(tree.is_err());
+        }
     }
 
     #[test]
