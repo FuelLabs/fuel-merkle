@@ -114,7 +114,7 @@ where
             let node = self
                 .storage
                 .get(&key)?
-                .ok_or(Box::new(MerkleTreeError::LoadError(key)))?
+                .ok_or(MerkleTreeError::LoadError(key))?
                 .into_owned();
             let next = self.head.take();
             let head = Box::new(Subtree::<Node>::new(node, next));
