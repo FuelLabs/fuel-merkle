@@ -1,8 +1,8 @@
-use crate::common::{AsPathIterator, Buffer, Bytes32, Msb, Node as NodeTrait};
+use crate::common::{AsPathIterator, Bytes32, Msb, Node as NodeTrait};
 use fuel_storage::Storage;
 
 use crate::sparse::hash::sum;
-use crate::sparse::{zero_sum, Node, StorageNode};
+use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MerkleTreeError {
@@ -114,9 +114,9 @@ where
                 .unwrap()
                 == 1
             {
-                current_node = Node::create_node(&actual_leaf_node.hash(), &current_node.hash());
+                current_node = Node::create_node(&actual_leaf_node, &current_node);
             } else {
-                current_node = Node::create_node(&current_node.hash(), &actual_leaf_node.hash());
+                current_node = Node::create_node(&current_node, &actual_leaf_node);
             }
             self.insert(&current_node);
         }
@@ -143,9 +143,9 @@ where
                 .unwrap()
                 == 1
             {
-                current_node = Node::create_node(&side_node.hash(), &current_node.hash());
+                current_node = Node::create_node(&side_node, &current_node);
             } else {
-                current_node = Node::create_node(&current_node.hash(), &side_node.hash());
+                current_node = Node::create_node(&current_node, &side_node);
             }
             self.insert(&current_node);
         }
@@ -189,9 +189,9 @@ where
                 .unwrap()
                 == 1
             {
-                current_node = Node::create_node(&side_node.hash(), &current_node.hash());
+                current_node = Node::create_node(&side_node, &current_node);
             } else {
-                current_node = Node::create_node(&current_node.hash(), &side_node.hash());
+                current_node = Node::create_node(&current_node, &side_node);
             }
             self.insert(&current_node);
         }
@@ -202,8 +202,8 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::common::{Buffer, Bytes32, StorageError, StorageMap};
-    use crate::sparse::MerkleTree;
+    use crate::common::{Bytes32, StorageError, StorageMap};
+    use crate::sparse::{Buffer, MerkleTree};
     use hex;
 
     #[test]
