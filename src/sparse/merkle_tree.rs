@@ -21,7 +21,7 @@ where
         Self { root_node, storage }
     }
 
-    pub fn update(&'a mut self, key: &[u8], data: &[u8]) -> Result<(), Box<dyn std::error::Error>>{
+    pub fn update(&'a mut self, key: &[u8], data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         if data.is_empty() {
             // If the data is empty, this signifies a delete operation for the given key.
             self.delete(key);
