@@ -4,12 +4,6 @@ use fuel_storage::Storage;
 use crate::sparse::hash::sum;
 use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
 
-#[derive(Debug, thiserror::Error)]
-pub enum MerkleTreeError {
-    #[error("Error")]
-    Error(),
-}
-
 pub struct MerkleTree<'storage, StorageError> {
     root_node: Node,
     storage: &'storage mut dyn Storage<Bytes32, Buffer, Error = StorageError>,
@@ -17,29 +11,32 @@ pub struct MerkleTree<'storage, StorageError> {
 
 impl<'a, 'storage, StorageError> MerkleTree<'storage, StorageError>
 where
-    StorageError: std::error::Error + Clone,
+    StorageError: std::error::Error + Clone + 'static,
 {
     pub fn new(storage: &'storage mut dyn Storage<Bytes32, Buffer, Error = StorageError>) -> Self {
         let root_node = Node::create_placeholder();
+
         let _ = storage.insert(&root_node.hash(), root_node.as_buffer());
 
         Self { root_node, storage }
     }
 
-    pub fn update(&'a mut self, key: &[u8], data: &[u8]) {
+    pub fn update(&'a mut self, key: &[u8], data: &[u8]) -> Result<(), Box<dyn std::error::Error>>{
         if data.is_empty() {
             // If the data is empty, this signifies a delete operation for the given key.
             self.delete(key);
-            return;
+            return Ok(());
         }
 
         let leaf_node = Node::create_leaf(key, data);
         self.storage
-            .insert(&leaf_node.hash(), leaf_node.as_buffer());
+            .insert(&leaf_node.hash(), leaf_node.as_buffer())?;
         self.storage
-            .insert(&leaf_node.leaf_key(), leaf_node.as_buffer());
+            .insert(&leaf_node.leaf_key(), leaf_node.as_buffer())?;
         let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
         self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
+
+        Ok(())
     }
 
     pub fn delete(&'a mut self, key: &[u8]) {
@@ -76,6 +73,7 @@ where
 
     fn path_set(&'a self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
         let root_node = self.root_node().clone();
+        println!("ROOT: {:?}", root_node);
         let root_storage_node = StorageNode::<StorageError>::new(self.storage, root_node);
         let leaf_storage_node = StorageNode::<StorageError>::new(self.storage, leaf_node);
         let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = root_storage_node
@@ -107,7 +105,15 @@ where
                 actual_leaf_key.common_prefix_count(requested_leaf_key)
             }
         };
+
         if common_prefix_count != self.depth() {
+            // 1. Determine the depth of the common radix ancestor relative to the root, using the
+            //    common prefix count (CPC).
+            // 2. Create a parent for the leaf node we traversed to and the leaf we are updating.
+            //    Invert the depth to get the parent's height.
+            // 3. Check the requested leaf's bit at the CPC to determine it's orientation relative
+            //    to the radix ancestor. If the requested leaf is on the left of the radix ancestor,
+            //    it is the parent's left child; otherwise, it is the parent's right child.
             let requested_leaf_key = requested_leaf_node.leaf_key();
             if requested_leaf_key
                 .get_bit_at_index_from_msb(common_prefix_count)
@@ -118,6 +124,7 @@ where
             } else {
                 current_node = Node::create_node(&current_node, &actual_leaf_node);
             }
+            current_node.set_height((self.depth() - common_prefix_count) as u32);
             self.insert(&current_node);
         }
 
