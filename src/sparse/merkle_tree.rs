@@ -292,7 +292,7 @@ mod test {
 
         for i in 0_u32..100 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
+            let data = b"DATA";
             let _ = tree.update(&key, data);
         }
 
