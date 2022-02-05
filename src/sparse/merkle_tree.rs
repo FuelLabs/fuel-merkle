@@ -24,7 +24,7 @@ where
     pub fn update(&'a mut self, key: &[u8], data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         if data.is_empty() {
             // If the data is empty, this signifies a delete operation for the given key.
-            self.delete(key);
+            self.delete(key)?;
             return Ok(());
         }
 
@@ -34,23 +34,25 @@ where
         self.storage
             .insert(&leaf_node.leaf_key(), leaf_node.as_buffer())?;
         let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
-        self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
+        self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
 
         Ok(())
     }
 
-    pub fn delete(&'a mut self, key: &[u8]) {
+    pub fn delete(&'a mut self, key: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         if self.root() == *zero_sum() {
             // The zero root signifies that all leaves are empty, including the given key.
-            return;
+            return Ok(());
         }
 
         let leaf_key = sum(key);
         if let Some(buffer) = self.storage.get(&leaf_key).unwrap() {
             let leaf_node = Node::from_buffer(*buffer);
             let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
-            self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice());
+            self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
         }
+
+        Ok(())
     }
 
     pub fn root(&'a self) -> Bytes32 {
@@ -65,10 +67,6 @@ where
 
     fn root_node(&'a self) -> &Node {
         &self.root_node
-    }
-
-    fn insert(&'a mut self, node: &Node) {
-        let _ = self.storage.insert(&node.hash(), node.as_buffer());
     }
 
     fn path_set(&'a self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
@@ -91,7 +89,7 @@ where
         requested_leaf_node: &Node,
         path_nodes: &[Node],
         side_nodes: &[Node],
-    ) {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let actual_leaf_node = &path_nodes[0];
         let mut current_node = requested_leaf_node.clone();
 
@@ -124,7 +122,8 @@ where
                 current_node = Node::create_node(&current_node, &actual_leaf_node);
             }
             current_node.set_height((self.depth() - common_prefix_count) as u32);
-            self.insert(&current_node);
+            self.storage
+                .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
         let offset_side_nodes = self.depth() - side_nodes.len();
@@ -153,10 +152,13 @@ where
             } else {
                 current_node = Node::create_node(&current_node, &side_node);
             }
-            self.insert(&current_node);
+            self.storage
+                .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
         self.root_node = current_node;
+
+        Ok(())
     }
 
     fn delete_with_path_set(
@@ -164,9 +166,9 @@ where
         requested_leaf_node: &Node,
         path_nodes: &[Node],
         side_nodes: &[Node],
-    ) {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         for node in path_nodes {
-            let _ = self.storage.remove(&node.hash());
+            self.storage.remove(&node.hash())?;
         }
 
         let mut non_placeholder_reached = false;
@@ -199,10 +201,13 @@ where
             } else {
                 current_node = Node::create_node(&current_node, &side_node);
             }
-            self.insert(&current_node);
+            self.storage.insert(&current_node.hash(), current_node.as_buffer())?;
+
         }
 
         self.root_node = current_node;
+
+        Ok(())
     }
 }
 
@@ -229,7 +234,7 @@ mod test {
         for i in 0_u32..1 {
             let key = i.to_be_bytes();
             let data = "DATA".as_bytes();
-            tree.update(&key, data);
+            let _ = tree.update(&key, data);
         }
 
         let root = tree.root();
@@ -245,7 +250,7 @@ mod test {
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
             let data = "DATA".as_bytes();
-            tree.update(&key, data);
+            let _ = tree.update(&key, data);
         }
 
         let root = tree.root();
@@ -261,7 +266,7 @@ mod test {
         for i in 0_u32..3 {
             let key = i.to_be_bytes();
             let data = "DATA".as_bytes();
-            tree.update(&key, data);
+            let _ = tree.update(&key, data);
         }
 
         let root = tree.root();
@@ -277,7 +282,7 @@ mod test {
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
             let data = "DATA".as_bytes();
-            tree.update(&key, data);
+            let _ = tree.update(&key, data);
         }
 
         let root = tree.root();
@@ -293,7 +298,7 @@ mod test {
         for i in 0_u32..100 {
             let key = i.to_be_bytes();
             let data = "DATA".as_bytes();
-            tree.update(&key, data);
+            let _ = tree.update(&key, data);
         }
 
         let root = tree.root();
@@ -308,7 +313,7 @@ mod test {
 
         let key = 0_u32.to_be_bytes();
         let data = [0_u8; 0];
-        tree.update(&key, &data);
+        let _ = tree.update(&key, &data);
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -322,8 +327,8 @@ mod test {
 
         let key = 1_u32.to_be_bytes();
         let data = "DATA".as_bytes();
-        tree.update(&key, data);
-        tree.delete(&key);
+        let _ = tree.update(&key, data);
+        let _ = tree.delete(&key);
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -337,8 +342,8 @@ mod test {
 
         let key = 0_u32.to_be_bytes();
         let data = "DATA".as_bytes();
-        tree.update(&key, data);
-        tree.update(&key, &[0; 0]);
+        let _ = tree.update(&key, data);
+        let _ = tree.update(&key, &[0; 0]);
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -353,11 +358,11 @@ mod test {
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
             let data = "DATA".as_bytes();
-            tree.update(&key, data);
+            let _ = tree.update(&key, data);
         }
 
         let key = 0_u32.to_be_bytes();
-        tree.delete(&key);
+        let _ = tree.delete(&key);
 
         let root = tree.root();
         let expected_root = "d7cb6616832899ac111a852ca8df2d63a1cdb36cb84651ffde72e264506a456f";
@@ -372,11 +377,11 @@ mod test {
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
             let data = "DATA".as_bytes();
-            tree.update(&key, data);
+            let _ = tree.update(&key, data);
         }
 
         let key = 1024_u32.to_be_bytes();
-        tree.delete(&key);
+        let _ = tree.delete(&key);
 
         let root = tree.root();
         let expected_root = "108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b";
