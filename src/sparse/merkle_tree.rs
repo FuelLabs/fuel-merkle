@@ -13,7 +13,9 @@ impl<'a, 'storage, StorageError> MerkleTree<'storage, StorageError>
 where
     StorageError: std::error::Error + Clone + 'static,
 {
-    pub fn new(storage: &'storage mut dyn Storage<Bytes32, Buffer, Error = StorageError>) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(
+        storage: &'storage mut dyn Storage<Bytes32, Buffer, Error = StorageError>,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         let root_node = Node::create_placeholder();
 
         storage.insert(&root_node.hash(), root_node.as_buffer())?;
@@ -201,8 +203,8 @@ where
             } else {
                 current_node = Node::create_node(&current_node, &side_node);
             }
-            self.storage.insert(&current_node.hash(), current_node.as_buffer())?;
-
+            self.storage
+                .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
         self.root_node = current_node;
