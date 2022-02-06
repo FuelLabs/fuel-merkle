@@ -63,7 +63,7 @@ where
 
     // PRIVATE
 
-    fn depth(&'a self) -> usize {
+    fn max_height(&'a self) -> usize {
         Node::key_size_in_bits()
     }
 
@@ -92,8 +92,8 @@ where
         path_nodes: &[Node],
         side_nodes: &[Node],
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let actual_leaf_node = &path_nodes[0];
         let mut current_node = requested_leaf_node.clone();
+        let actual_leaf_node = &path_nodes[0];
 
         // 1. Determine the depth of the common radix ancestor relative to the root, using the
         //    common prefix count (CPC).
@@ -102,11 +102,6 @@ where
         // 3. Check the requested leaf's bit at the CPC to determine it's orientation relative
         //    to the radix ancestor. If the requested leaf is on the left of the radix ancestor,
         //    it is the parent's left child; otherwise, it is the parent's right child.
-
-        println!("Requested: {:?}", requested_leaf_node);
-        println!("Actual: {:?}", path_nodes[0]);
-
-        let actual_leaf_node = &path_nodes[0];
 
         let ancestor_depth = {
             if actual_leaf_node.is_placeholder() {
@@ -119,12 +114,12 @@ where
                 actual_leaf_key.common_prefix_count(requested_leaf_key)
             }
         };
-        let ancestor_height = max_height - ancestor_depth;
+        let ancestor_height = self.max_height() - ancestor_depth;
 
         // If the ancestor is not the root:
         if ancestor_depth != 0 {
-            let requested_leaf_key = requested_leaf_node.leaf_key();
-            if requested_leaf_key
+            if requested_leaf_node
+                .leaf_key()
                 .get_bit_at_index_from_msb(ancestor_depth)
                 .unwrap()
                 == 1
@@ -138,32 +133,22 @@ where
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
-        println!("Depth: {}, Height: {}", ancestor_depth, ancestor_height);
+        let depth = std::cmp::max(side_nodes.len(), ancestor_depth);
+        let placeholders = depth - side_nodes.len();
 
-        // println!("{:#?}", side_nodes);
-        // let offset_side_nodes = max_height - side_nodes.len();
-        // println!("SIDE NODES LEN: {}", side_nodes.len());
-        // println!("MAX - SIDE NODES LEN: {:#?}", offset_side_nodes);
-        // println!("PLACEHOLDERS: {}", offset_side_nodes - ancestor_height);
-
-        let m = std::cmp::max(side_nodes.len(), ancestor_depth);
-
-        for i in 0..m {
+        for current_depth in 0..depth {
             let side_node = {
-                let placeholders = m - side_nodes.len();
-                if i < placeholders {
-                    println!("{}: CREATING PLACEHOLDER!", i);
+                if current_depth < placeholders {
                     Node::create_placeholder()
                 } else {
-                    println!("{}: USING SIDE NODE!", i);
-                    side_nodes[i - placeholders].clone()
+                    side_nodes[current_depth - placeholders].clone()
                 }
             };
 
-            let requested_leaf_key = requested_leaf_node.leaf_key();
-            let height = m - i - 1;
-            if requested_leaf_key
-                .get_bit_at_index_from_msb(height)
+            let current_height = depth - current_depth;
+            if requested_leaf_node
+                .leaf_key()
+                .get_bit_at_index_from_msb(current_height - 1)
                 .unwrap()
                 == 1
             {
@@ -212,7 +197,7 @@ where
 
             let requested_leaf_key = requested_leaf_node.leaf_key();
             if requested_leaf_key
-                .get_bit_at_index_from_msb(self.depth() - 1 - i)
+                .get_bit_at_index_from_msb(self.max_height() - 1 - i)
                 .unwrap()
                 == 1
             {
@@ -316,7 +301,7 @@ mod test {
 
         for i in 0_u32..100 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
+            let data = "DATA".as_bytes();
             let _ = tree.update(&key, data);
         }
 
