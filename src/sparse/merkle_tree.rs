@@ -106,13 +106,6 @@ where
         };
 
         if common_prefix_count != self.depth() {
-            // 1. Determine the depth of the common radix ancestor relative to the root, using the
-            //    common prefix count (CPC).
-            // 2. Create a parent for the leaf node we traversed to and the leaf we are updating.
-            //    Invert the depth to get the parent's height.
-            // 3. Check the requested leaf's bit at the CPC to determine it's orientation relative
-            //    to the radix ancestor. If the requested leaf is on the left of the radix ancestor,
-            //    it is the parent's left child; otherwise, it is the parent's right child.
             let requested_leaf_key = requested_leaf_node.leaf_key();
             if requested_leaf_key
                 .get_bit_at_index_from_msb(common_prefix_count)
