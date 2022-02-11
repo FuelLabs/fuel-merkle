@@ -92,70 +92,56 @@ where
         path_nodes: &[Node],
         side_nodes: &[Node],
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut current_node = requested_leaf_node.clone();
         let actual_leaf_node = &path_nodes[0];
+        let mut current_node = requested_leaf_node.clone();
 
-        // 1. Determine the depth of the common radix ancestor relative to the root, using the
-        //    common prefix count (CPC).
-        // 2. Create a parent for the leaf node we traversed to and the leaf we are updating.
-        //    Invert the depth to get the parent's height.
-        // 3. Check the requested leaf's bit at the CPC to determine it's orientation relative
-        //    to the radix ancestor. If the requested leaf is on the left of the radix ancestor,
-        //    it is the parent's left child; otherwise, it is the parent's right child.
-
-        let ancestor_depth = {
-            if actual_leaf_node.is_placeholder() {
-                // If the actual leaf node is a placeholder, we cannot infer any path instructions
-                // from its leaf key. Therefore, the only common ancestor is the root at depth 0.
-                0
-            } else {
-                let actual_leaf_key = actual_leaf_node.leaf_key();
-                let requested_leaf_key = requested_leaf_node.leaf_key();
-                actual_leaf_key.common_prefix_count(requested_leaf_key)
-            }
+        let path_key = requested_leaf_node.leaf_key();
+        let ancestor_depth = if actual_leaf_node.is_placeholder() {
+            0
+        } else {
+            actual_leaf_node.leaf_key().common_prefix_count(path_key)
         };
-        let ancestor_height = self.max_height() - ancestor_depth;
 
         // If the ancestor is not the root:
         if ancestor_depth != 0 {
-            if requested_leaf_node
-                .leaf_key()
-                .get_bit_at_index_from_msb(ancestor_depth)
-                .unwrap()
-                == 1
-            {
-                current_node = Node::create_node(&actual_leaf_node, &requested_leaf_node);
+            current_node = if path_key.get_bit_at_index_from_msb(ancestor_depth).unwrap() == 1 {
+                Node::create_node(&actual_leaf_node, &requested_leaf_node)
             } else {
-                current_node = Node::create_node(&requested_leaf_node, &actual_leaf_node);
-            }
+                Node::create_node(&requested_leaf_node, &actual_leaf_node)
+            };
+            let ancestor_height = self.max_height() - ancestor_depth;
             current_node.set_height(ancestor_height as u32);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
-        let depth = std::cmp::max(side_nodes.len(), ancestor_depth);
-        let placeholders = depth - side_nodes.len();
+        let stale_depth = std::cmp::max(side_nodes.len(), ancestor_depth);
+        let placeholders = stale_depth - side_nodes.len();
 
-        for current_depth in 0..depth {
-            let side_node = {
-                if current_depth < placeholders {
-                    Node::create_placeholder()
-                } else {
-                    side_nodes[current_depth - placeholders].clone()
-                }
-            };
-
-            let current_height = depth - current_depth;
-            if requested_leaf_node
-                .leaf_key()
-                .get_bit_at_index_from_msb(current_height - 1)
-                .unwrap()
-                == 1
-            {
-                current_node = Node::create_node(&side_node, &current_node);
+        // Merge placeholders
+        for _ in 0..placeholders {
+            let side_node = Node::create_placeholder();
+            let parent_height = current_node.height() + 1;
+            let parent_depth = self.max_height() - parent_height as usize;
+            current_node = if path_key.get_bit_at_index_from_msb(parent_depth).unwrap() == 1 {
+                Node::create_node(&side_node, &current_node)
             } else {
-                current_node = Node::create_node(&current_node, &side_node);
-            }
+                Node::create_node(&current_node, &side_node)
+            };
+            self.storage
+                .insert(&current_node.hash(), current_node.as_buffer())?;
+        }
+
+        // Merge side nodes
+        for i in 0..side_nodes.len() {
+            let side_node = &side_nodes[i];
+            let parent_height = std::cmp::max(current_node.height(), side_node.height()) + 1;
+            let parent_depth = self.max_height() - parent_height as usize;
+            current_node = if path_key.get_bit_at_index_from_msb(parent_depth).unwrap() == 1 {
+                Node::create_node(&side_node, &current_node)
+            } else {
+                Node::create_node(&current_node, &side_node)
+            };
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
