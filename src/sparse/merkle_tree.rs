@@ -35,8 +35,13 @@ where
             .insert(&leaf_node.hash(), leaf_node.as_buffer())?;
         self.storage
             .insert(&leaf_node.leaf_key(), leaf_node.as_buffer())?;
-        let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
-        self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
+
+        if self.root_node().is_placeholder() {
+            self.set_root_node(leaf_node);
+        } else {
+            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+            self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
+        }
 
         Ok(())
     }
@@ -69,6 +74,11 @@ where
 
     fn root_node(&'a self) -> &Node {
         &self.root_node
+    }
+
+    fn set_root_node(&'a mut self, node: Node) {
+        assert!(node.is_leaf() || node.height() == self.max_height() as u32);
+        self.root_node = node;
     }
 
     fn path_set(&'a self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
@@ -144,7 +154,7 @@ where
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
-        self.root_node = current_node;
+        self.set_root_node(current_node);
 
         Ok(())
     }
@@ -193,7 +203,7 @@ where
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
-        self.root_node = current_node;
+        self.set_root_node(current_node);
 
         Ok(())
     }
