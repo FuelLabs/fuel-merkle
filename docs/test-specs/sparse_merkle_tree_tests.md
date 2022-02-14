@@ -114,7 +114,7 @@ expect(hex_encode(root), expected_root).to_be_equal
 
 **Description**:
 
-Tests the root after performing three update calls with the specified inputs.
+Tests the root after performing five update calls with the specified inputs.
 
 **Inputs**:
 
