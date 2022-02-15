@@ -7,6 +7,12 @@
 3. [Test Root Update 2](#test-root-update-2)
 4. [Test Root Update 3](#test-root-update-3)
 5. [Test Root Update 5](#test-root-update-5)
+6. [Test Root Update 10](#test-root-update-10)
+7. [Test Root Update 100](#test-root-update-100)
+8. [Test Root Update Empty With Null Data](#test-root-update-empty-with-null-data)
+9. [Test Root Update With Null Data Performs Delete](#test-root-update-with-null-data-performs-delete)
+10. [Test Root Update 1 Delete 1](#test-root-update-1-delete-1)
+11. [Test Root Update 2 Delete 1](#test-root-update-2-delete-1)
 ---
 
 ### Test Empty Root
@@ -131,11 +137,166 @@ Tests the root after performing five update calls with the specified inputs.
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-
-for i in 0..5:
+for i in 0..5 {
     smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
-
+}
 root = smt.root()
 expected_root = '108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Root Update 10
+
+**Description**:
+
+Tests the root after performing 10 update calls with the specified inputs.
+
+**Inputs**:
+
+1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+
+**Outputs**:
+
+- The expected root signature: `0x21ca4917e99da99a61de93deaf88c400d4c082991cb95779e444d43dd13e8849`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+for i in 0..10 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+}
+root = smt.root()
+expected_root = '21ca4917e99da99a61de93deaf88c400d4c082991cb95779e444d43dd13e8849'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Root Update 100
+
+**Description**:
+
+Tests the root after performing 100 update calls with the specified inputs.
+
+**Inputs**:
+
+1. For each `i` in `0..100`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+
+**Outputs**:
+
+- The expected root signature: `0x82bf747d455a55e2f7044a03536fc43f1f55d43b855e72c0110c986707a23e4d`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+for i in 0..100 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+}
+root = smt.root()
+expected_root = '82bf747d455a55e2f7044a03536fc43f1f55d43b855e72c0110c986707a23e4d'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Root Update Empty With Null Data
+
+**Description**:
+
+Tests the root after performing one update call with null data. Updating the empty tree with null data does not change the root, and the expected root is the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+
+**Inputs**:
+
+1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and null leaf data `"\0"` (1 byte)
+
+**Outputs**:
+
+- The expected root signature: `0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+smt.update(b"\x00\x00\x00\x00", b"\0")
+root = smt.root()
+expected_root = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Root Update With Null Data Performs Delete 
+
+**Description**:
+
+Tests the root after performing one update call with arbitrary data and a second update call one the same key with null data. Updating a key with null data is equivalent to calling delete. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+
+**Inputs**:
+
+1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. Update the tree with leaf key `0u32` (4 bytes, big endian) and null leaf data `"\0"` (1 byte)
+
+**Outputs**:
+
+- The expected root signature: `0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+smt.update(b"\x00\x00\x00\x00", b"DATA")
+smt.update(b"\x00\x00\x00\x00", b"\0")
+root = smt.root()
+expected_root = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Root Update 1 Delete 1
+
+**Description**:
+
+Tests the root after performing one update call and a subsequent delete call on the same key. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+
+**Inputs**:
+
+1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. Delete from the tree leaf key `0u32` (4 bytes, big endian)
+
+**Outputs**:
+
+- The expected root signature: `0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+smt.update(b"\x00\x00\x00\x00", b"DATA")
+smt.delete(b"\x00\x00\x00\x00")
+root = smt.root()
+expected_root = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Root Update 2 Delete 1
+
+**Description**:
+
+Tests the root after performing two update calls and a subsequent delete call on the first key. By deleting the second key, we have a tree with only one key remaining, equivalent to a single update. This test expects a root signature identical to that produced by [Test Root Update 1](#test-root-update-1).
+
+**Inputs**:
+
+1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. Update the empty tree with leaf key `1u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+3. Delete from the tree leaf key `0u32` (4 bytes, big endian)
+
+**Outputs**:
+
+- The expected root signature: `0x39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+smt.update(b"\x00\x00\x00\x00", b"DATA")
+smt.update(b"\x00\x00\x00\x01", b"DATA")
+smt.delete(b"\x00\x00\x00\x00")
+root = smt.root()
+expected_root = '39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b'
 expect(hex_encode(root), expected_root).to_be_equal
 ```
