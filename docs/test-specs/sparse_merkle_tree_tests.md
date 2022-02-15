@@ -1,4 +1,6 @@
-# Sparse Merkle Tree Test specifications
+# Sparse Merkle Tree Test Specifications
+
+This document 
 
 ## Root Signature Tests
 
@@ -13,6 +15,8 @@
 9. [Test Root Update With Null Data Performs Delete](#test-root-update-with-null-data-performs-delete)
 10. [Test Root Update 1 Delete 1](#test-root-update-1-delete-1)
 11. [Test Root Update 2 Delete 1](#test-root-update-2-delete-1)
+12. [Test Root Update 10 Delete 5](#test-root-update-10-delete-5)
+13. [Test Root Interleaved Update Delete](#test-root-interleaved-update-delete)
 ---
 
 ### Test Empty Root
@@ -202,7 +206,7 @@ expect(hex_encode(root), expected_root).to_be_equal
 
 **Description**:
 
-Tests the root after performing one update call with null data. Updating the empty tree with null data does not change the root, and the expected root is the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+Tests the root after performing one update call with null data. Updating the empty tree with null data does not change the root, and the expected root remains the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
 
 **Inputs**:
 
@@ -226,7 +230,7 @@ expect(hex_encode(root), expected_root).to_be_equal
 
 **Description**:
 
-Tests the root after performing one update call with arbitrary data and a second update call one the same key with null data. Updating a key with null data is equivalent to calling delete. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+Tests the root after performing one update call with arbitrary data followed by a second update call on the same key with null data. Updating a key with null data is equivalent to calling delete. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
 
 **Inputs**:
 
@@ -252,7 +256,7 @@ expect(hex_encode(root), expected_root).to_be_equal
 
 **Description**:
 
-Tests the root after performing one update call and a subsequent delete call on the same key. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+Tests the root after performing one update call followed by a subsequent delete call on the same key. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
 
 **Inputs**:
 
@@ -278,7 +282,7 @@ expect(hex_encode(root), expected_root).to_be_equal
 
 **Description**:
 
-Tests the root after performing two update calls and a subsequent delete call on the first key. By deleting the second key, we have a tree with only one key remaining, equivalent to a single update. This test expects a root signature identical to that produced by [Test Root Update 1](#test-root-update-1).
+Tests the root after performing two update calls followed by a subsequent delete call on the first key. By deleting the second key, we have a tree with only one key remaining, equivalent to a single update. This test expects a root signature identical to that produced by [Test Root Update 1](#test-root-update-1).
 
 **Inputs**:
 
@@ -298,5 +302,68 @@ smt.update(b"\x00\x00\x00\x01", b"DATA")
 smt.delete(b"\x00\x00\x00\x00")
 root = smt.root()
 expected_root = '39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Root Update 10 Delete 5
+
+**Description**:
+
+Tests the root after performing 10 update calls followed by 5 subsequent delete calls on the latter keys. By deleting the last five keys, we have a tree with the first five keys remaining, equivalent to five updates. This test expects a root signature identical to that produced by [Test Root Update 5](#test-root-update-5).
+
+**Inputs**:
+
+1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. For each `i` in `5..10`, delete from the tree with leaf key `i` (4 bytes, big endian)
+
+**Outputs**:
+
+- The expected root signature: `0x108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+for i in 0..10 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+}
+for i in 5..10 {
+    smt.delete(&(i as u32).to_big_endian_bytes())
+}
+root = smt.root()
+expected_root = '108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Root Interleaved Update Delete
+
+**Description**:
+
+Tests the root after performing a series of interleaved update and delete calls.
+
+**Inputs**:
+
+1. For each `i` in `0..25`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. For each `i` in `0..10`, delete from the tree with leaf key `i` (4 bytes, big endian)
+3. For each `i` in `5..15`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+4. For each `i` in `10..20`, delete from the tree with leaf key `i` (4 bytes, big endian)
+5. For each `i` in `15..25`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+
+**Outputs**:
+
+- The expected root signature: `0xa80f5d43c91726388759bbf5f27d71d97c50c1c2e45a7f9e0be00cd0251fcc2b`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+for i in 0..10 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+}
+for i in 5..10 {
+    smt.delete(&(i as u32).to_big_endian_bytes())
+}
+root = smt.root()
+expected_root = 'a80f5d43c91726388759bbf5f27d71d97c50c1c2e45a7f9e0be00cd0251fcc2b'
 expect(hex_encode(root), expected_root).to_be_equal
 ```
