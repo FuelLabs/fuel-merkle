@@ -1,6 +1,22 @@
 # Sparse Merkle Tree Test Specifications
 
-This document 
+## Version 0.1.0
+Last updated 2022/02/15
+
+## Abstract
+
+This document outlines a test suite specification that can be used to verify the correctness of a Sparse Merkle Tree's outputs. The scope of this document covers only Sparse Merkle Tree (SMT) implementations that are compliant with [Celestia Sparse Merkle Tree Specification](https://github.com/celestiaorg/celestia-specs/blob/master/src/specs/data_structures.md#sparse-merkle-tree). The goal of this document is to equip SMT library developers with an additional indicator of correctness. Libraries implementing an SMT can additionally implement this test suite specification in the codebase's native language. Passing all tests in the concrete test suite is an indication of correctness and consistency with the reference specification; however, it is not an absolute guarantee.
+
+The tests described in this document are designed to test features common to most Sparse Merkle Tree implementations. Test specifications are agnostic of the language or implementation details, and therefore take a black-box testing approach. A test specification may provide an example of what a compliant test may look like in the form of pseudocode.
+
+A test specification follows the format:
+- Test name
+- Test description
+- Test inputs
+- Test outputs
+- Example pseudocode
+
+For a concrete test to comply with its corresponding test specification, the System Under Test (SUT) must take in the prescribed inputs. When the SUT produces the prescribed outputs, the test passes. When the SUT produces any result or error that is not prescribed by the speciifcation, the test fails. For a library to comply with the complete test specification, it must implement all tests described herein, and each test must pass.
 
 ## Root Signature Tests
 
