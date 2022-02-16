@@ -306,7 +306,7 @@ Tests the root after performing two update calls followed by a subsequent delete
 
 1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
 2. Update the empty tree with leaf key `1u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-3. Delete from the tree leaf key `0u32` (4 bytes, big endian)
+3. Delete from the tree leaf key `1u32` (4 bytes, big endian)
 
 **Outputs**:
 
@@ -317,7 +317,7 @@ Tests the root after performing two update calls followed by a subsequent delete
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 smt.update(b"\x00\x00\x00\x00", b"DATA")
 smt.update(b"\x00\x00\x00\x01", b"DATA")
-smt.delete(b"\x00\x00\x00\x00")
+smt.delete(b"\x00\x00\x00\x01")
 root = smt.root()
 expected_root = '39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b'
 expect(hex_encode(root), expected_root).to_be_equal
