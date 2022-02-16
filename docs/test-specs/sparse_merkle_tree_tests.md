@@ -375,11 +375,20 @@ Tests the root after performing a series of interleaved update and delete calls.
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-for i in 0..10 {
+for i in 0..25 {
     smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
 }
-for i in 5..10 {
+for i in 0..10 {
     smt.delete(&(i as u32).to_big_endian_bytes())
+}
+for i in 5..15 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA)
+}
+for i in 10..20 {
+    smt.delete(&(i as u32).to_big_endian_bytes())
+}
+for i in 15..25 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA)
 }
 root = smt.root()
 expected_root = 'a80f5d43c91726388759bbf5f27d71d97c50c1c2e45a7f9e0be00cd0251fcc2b'
