@@ -174,18 +174,28 @@ where
         let n = side_nodes.len();
         for i in 0..n {
             let side_node = &side_nodes[i];
+
+            // If the first iteration (I think?)
             if current_node.is_placeholder() {
+                // If leaf:
+                //      This is the leaf sibling that needs to be bubbled up the tree; go to next iteration
                 if side_node.is_leaf() {
                     current_node = side_node.clone();
                     continue;
                 } else {
+                // If not leaf:
+                //      This is the node sibling that needs to be left in place
                     non_placeholder_reached = true;
                 }
             }
 
             if !non_placeholder_reached && side_node.is_placeholder() {
+                // We found another placeholder sibling node
+                // Keep going up the tree until we find the first sibling that is not a placeholder
                 continue;
             } else if !non_placeholder_reached {
+                // We found the first sibling node that is not a placeholder
+                // It is time to insert our leaf sibling node here
                 non_placeholder_reached = true;
             }
 
@@ -364,6 +374,48 @@ mod test {
 
         let root = tree.root();
         let expected_root = "d7cb6616832899ac111a852ca8df2d63a1cdb36cb84651ffde72e264506a456f";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_interleaved_update_delete() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage).unwrap();
+
+        let data = b"DATA";
+
+        for i in 0_u32..10 {
+            let key = i.to_be_bytes();
+            tree.update(&key, data).unwrap();
+        }
+
+        for i in 5_u32..15 {
+            let key = i.to_be_bytes();
+            tree.delete(&key).unwrap();
+        }
+
+        for i in 10_u32..20 {
+            let key = i.to_be_bytes();
+            tree.update(&key, data).unwrap();
+        }
+
+        for i in 15_u32..25 {
+            let key = i.to_be_bytes();
+            tree.delete(&key).unwrap();
+        }
+
+        for i in 20_u32..30 {
+            let key = i.to_be_bytes();
+            tree.update(&key, data).unwrap();
+        }
+
+        for i in 25_u32..35 {
+            let key = i.to_be_bytes();
+            tree.delete(&key).unwrap();
+        }
+
+        let root = tree.root();
+        let expected_root = "7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326";
         assert_eq!(hex::encode(root), expected_root);
     }
 
