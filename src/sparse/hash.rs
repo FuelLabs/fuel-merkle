@@ -13,12 +13,12 @@ lazy_static! {
     static ref ZERO_SUM: Bytes32 = [0; 32];
 }
 
-pub fn zero_sum() -> &'static Bytes32 {
-    &*ZERO_SUM
-}
-
 pub fn empty_sum() -> &'static Bytes32 {
     &*EMPTY_SUM
+}
+
+pub fn zero_sum() -> &'static Bytes32 {
+    &*ZERO_SUM
 }
 
 pub fn sum(data: &[u8]) -> Bytes32 {
