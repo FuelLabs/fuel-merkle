@@ -14,8 +14,10 @@ where
     StorageError: std::error::Error + Clone + 'static,
 {
     pub fn new(storage: &'storage mut dyn Storage<Bytes32, Buffer, Error = StorageError>) -> Self {
-        let root_node = Node::create_placeholder();
-        Self { root_node, storage }
+        Self {
+            root_node: Node::create_placeholder(),
+            storage,
+        }
     }
 
     pub fn update(&'a mut self, key: &[u8], data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
