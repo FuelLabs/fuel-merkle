@@ -305,7 +305,7 @@ mod test {
 
         let key = 0_u32.to_be_bytes();
         let data = [0_u8; 0];
-        let _ = tree.update(&key, &data);
+        tree.update(&key, &data).unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -335,7 +335,7 @@ mod test {
         let key = 0_u32.to_be_bytes();
         let data = b"DATA";
         tree.update(&key, data).unwrap();
-        let _ = tree.update(&key, &[0; 0]);
+        tree.update(&key, &[0; 0]).unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
