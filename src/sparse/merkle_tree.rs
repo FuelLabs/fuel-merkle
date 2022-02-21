@@ -225,8 +225,8 @@ mod test {
 
         for i in 0_u32..1 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
-            let _ = tree.update(&key, data);
+            let data = b"DATA";
+            tree.update(&key, data).unwrap();
         }
 
         let root = tree.root();
@@ -241,8 +241,8 @@ mod test {
 
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
-            let _ = tree.update(&key, data);
+            let data = b"DATA";
+            tree.update(&key, data).unwrap();
         }
 
         let root = tree.root();
@@ -257,8 +257,8 @@ mod test {
 
         for i in 0_u32..3 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
-            let _ = tree.update(&key, data);
+            let data = b"DATA";
+            tree.update(&key, data).unwrap();
         }
 
         let root = tree.root();
@@ -273,8 +273,8 @@ mod test {
 
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
-            let _ = tree.update(&key, data);
+            let data = b"DATA";
+            tree.update(&key, data).unwrap();
         }
 
         let root = tree.root();
@@ -289,8 +289,8 @@ mod test {
 
         for i in 0_u32..100 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
-            let _ = tree.update(&key, data);
+            let data = b"DATA";
+            tree.update(&key, data).unwrap();
         }
 
         let root = tree.root();
@@ -318,9 +318,9 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         let key = 1_u32.to_be_bytes();
-        let data = "DATA".as_bytes();
-        let _ = tree.update(&key, data);
-        let _ = tree.delete(&key);
+        let data = b"DATA";
+        tree.update(&key, data).unwrap();
+        tree.delete(&key).unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -333,8 +333,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         let key = 0_u32.to_be_bytes();
-        let data = "DATA".as_bytes();
-        let _ = tree.update(&key, data);
+        let data = b"DATA";
+        tree.update(&key, data).unwrap();
         let _ = tree.update(&key, &[0; 0]);
 
         let root = tree.root();
@@ -349,12 +349,12 @@ mod test {
 
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
-            let _ = tree.update(&key, data);
+            let data = b"DATA";
+            tree.update(&key, data).unwrap();
         }
 
         let key = 0_u32.to_be_bytes();
-        let _ = tree.delete(&key);
+        tree.delete(&key).unwrap();
 
         let root = tree.root();
         let expected_root = "d7cb6616832899ac111a852ca8df2d63a1cdb36cb84651ffde72e264506a456f";
@@ -368,13 +368,13 @@ mod test {
 
         for i in 0_u32..10 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
-            let _ = tree.update(&key, data);
+            let data = b"DATA";
+            tree.update(&key, data).unwrap();
         }
 
         for i in 5_u32..10 {
             let key = i.to_be_bytes();
-            let _ = tree.delete(&key);
+            tree.delete(&key).unwrap();
         }
 
         let root = tree.root();
@@ -431,12 +431,12 @@ mod test {
 
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
-            let data = "DATA".as_bytes();
-            let _ = tree.update(&key, data);
+            let data = b"DATA";
+            tree.update(&key, data).unwrap();
         }
 
         let key = 1024_u32.to_be_bytes();
-        let _ = tree.delete(&key);
+        tree.delete(&key).unwrap();
 
         let root = tree.root();
         let expected_root = "108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b";
