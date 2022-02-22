@@ -1,6 +1,8 @@
 # Sparse Merkle Tree Test Specifications
 
-## Version 0.1.0
+## Version
+0.1.0
+
 Last updated 2022/02/15
 
 ## Abstract
@@ -20,6 +22,8 @@ For a concrete test to comply with its corresponding test specification, the Sys
 
 All test specifications assume that the Merkle Tree implementation under test uses the SHA-2-256 hashing algorithm as defined in [FIPS PUB 180-4](https://doi.org/10.6028/NIST.FIPS.180-4) to produce its outputs.
 
+*NOTE: As of version 0.1.0 of this document, there is discrepancy between the empty root defined by the Celestia specification and the empty root produced by the Celestia SMT implementation. Test specifications within this document that require the definition of the empty root have been marked with a note and are subject to change. There is an outstanding issue in the Celestia repository (https://github.com/celestiaorg/smt/issues/67) to address this discrepancy.*
+
 ## Root Signature Tests
 
 1. [Test Empty Root](#test-empty-root)
@@ -29,12 +33,13 @@ All test specifications assume that the Merkle Tree implementation under test us
 5. [Test Root Update 5](#test-root-update-5)
 6. [Test Root Update 10](#test-root-update-10)
 7. [Test Root Update 100](#test-root-update-100)
-8. [Test Root Update Empty With Null Data](#test-root-update-empty-with-null-data)
-9. [Test Root Update With Null Data Performs Delete](#test-root-update-with-null-data-performs-delete)
-10. [Test Root Update 1 Delete 1](#test-root-update-1-delete-1)
-11. [Test Root Update 2 Delete 1](#test-root-update-2-delete-1)
-12. [Test Root Update 10 Delete 5](#test-root-update-10-delete-5)
-13. [Test Root Interleaved Update Delete](#test-root-interleaved-update-delete)
+8. [Test Root Update Union](#test-root-update-union)
+9. [Test Root Update Empty With Null Data](#test-root-update-empty-with-null-data)
+10. [Test Root Update With Null Data Performs Delete](#test-root-update-with-null-data-performs-delete)
+11. [Test Root Update 1 Delete 1](#test-root-update-1-delete-1)
+12. [Test Root Update 2 Delete 1](#test-root-update-2-delete-1)
+13. [Test Root Update 10 Delete 5](#test-root-update-10-delete-5)
+14. [Test Root Interleaved Update Delete](#test-root-interleaved-update-delete)
 ---
 
 ### Test Empty Root
@@ -42,6 +47,9 @@ All test specifications assume that the Merkle Tree implementation under test us
 **Description**:
 
 Tests the default root given no update or delete operations.
+
+
+*NOTE: This test is currently a WIP and subject to change due to a discrepancy in the SMT specification. See https://github.com/celestiaorg/smt/issues/67.*
 
 **Inputs**:
 
@@ -253,7 +261,9 @@ expect(hex_encode(root), expected_root).to_be_equal
 
 **Description**:
 
-Tests the root after performing one update call with null data. Updating the empty tree with null data does not change the root, and the expected root remains the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+Tests the root after performing one update call with null data. Updating the empty tree with null data does not change the root, and the expected root remains the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root). 
+
+*NOTE: This test is currently a WIP and subject to change due to a discrepancy in the SMT specification. See https://github.com/celestiaorg/smt/issues/67.*
 
 **Inputs**:
 
@@ -278,6 +288,9 @@ expect(hex_encode(root), expected_root).to_be_equal
 **Description**:
 
 Tests the root after performing one update call with arbitrary data followed by a second update call on the same key with null data. Updating a key with null data is equivalent to calling delete. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+
+
+*NOTE: This test is currently a WIP and subject to change due to a discrepancy in the SMT specification. See https://github.com/celestiaorg/smt/issues/67.*
 
 **Inputs**:
 
@@ -304,6 +317,9 @@ expect(hex_encode(root), expected_root).to_be_equal
 **Description**:
 
 Tests the root after performing one update call followed by a subsequent delete call on the same key. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+
+
+*NOTE: This test is currently a WIP and subject to change due to a discrepancy in the SMT specification. See https://github.com/celestiaorg/smt/issues/67.*
 
 **Inputs**:
 
