@@ -220,6 +220,35 @@ expect(hex_encode(root), expected_root).to_be_equal
 ```
 ---
 
+### Test Root Update Union
+
+**Description**:
+
+Tests the root after performing update calls with discontinuous sets of inputs. The resulting input set is described by
+`[0..5) U [10..15) U [20..25)`.
+
+**Inputs**:
+
+1. For each `i` in `0..5`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `10..15`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `20..25`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+
+**Outputs**:
+
+- The expected root signature: `0x7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+for i in 0..100 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+}
+root = smt.root()
+expected_root = '7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
 ### Test Root Update Empty With Null Data
 
 **Description**:
@@ -358,39 +387,43 @@ expect(hex_encode(root), expected_root).to_be_equal
 
 **Description**:
 
-Tests the root after performing a series of interleaved update and delete calls.
+Tests the root after performing a series of interleaved update and delete calls. The resulting input set is described by `[0..5) U [10..15) U [20..25)`. This test demonstrates the inverse relationship between operations `update` and `delete`. This test expects a root signature identical to that produced by [Test Root Update Union](#test-root-update-union).
 
 **Inputs**:
 
-1. For each `i` in `0..25`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. For each `i` in `0..10`, delete from the tree with leaf key `i` (4 bytes, big endian)
-3. For each `i` in `5..15`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-4. For each `i` in `10..20`, delete from the tree with leaf key `i` (4 bytes, big endian)
-5. For each `i` in `15..25`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. For each `i` in `5..15`, delete from the tree with leaf key `i` (4 bytes, big endian)
+3. For each `i` in `10..20`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+4. For each `i` in `15..25`, delete from the tree with leaf key `i` (4 bytes, big endian)
+5. For each `i` in `20..30`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+6. For each `i` in `25..35`, delete from the tree with leaf key `i` (4 bytes, big endian)
 
 **Outputs**:
 
-- The expected root signature: `0xa80f5d43c91726388759bbf5f27d71d97c50c1c2e45a7f9e0be00cd0251fcc2b`
+- The expected root signature: `0x7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326`
 
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-for i in 0..25 {
+for i in 0..10 {
     smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
 }
-for i in 0..10 {
-    smt.delete(&(i as u32).to_big_endian_bytes())
-}
 for i in 5..15 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA)
+    smt.delete(&(i as u32).to_big_endian_bytes())
 }
 for i in 10..20 {
-    smt.delete(&(i as u32).to_big_endian_bytes())
-}
-for i in 15..25 {
     smt.update(&(i as u32).to_big_endian_bytes(), b"DATA)
 }
+for i in 15..25 {
+    smt.delete(&(i as u32).to_big_endian_bytes())
+}
+for i in 20..30 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA)
+}
+for i in 25..35 {
+    smt.delete(&(i as u32).to_big_endian_bytes())
+}
 root = smt.root()
-expected_root = 'a80f5d43c91726388759bbf5f27d71d97c50c1c2e45a7f9e0be00cd0251fcc2b'
+expected_root = '7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326'
 expect(hex_encode(root), expected_root).to_be_equal
 ```
