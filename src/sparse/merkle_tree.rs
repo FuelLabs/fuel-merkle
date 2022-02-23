@@ -199,9 +199,10 @@ where
                 non_placeholder_reached = true;
             }
 
+            let depth = side_nodes.len() - 1 - i;
             let requested_leaf_key = requested_leaf_node.leaf_key();
             if requested_leaf_key
-                .get_bit_at_index_from_msb(self.max_height() - 1 - i)
+                .get_bit_at_index_from_msb(depth)
                 .unwrap()
                 == 1
             {
@@ -209,6 +210,8 @@ where
             } else {
                 current_node = Node::create_node(&current_node, &side_node);
             }
+            let height = self.max_height() - depth;
+            current_node.set_height(height as u32);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
@@ -295,6 +298,22 @@ mod test {
 
         let root = tree.root();
         let expected_root = "108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_10() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage).unwrap();
+
+        for i in 0_u32..10 {
+            let key = i.to_be_bytes();
+            let data = "DATA".as_bytes();
+            let _ = tree.update(&key, data);
+        }
+
+        let root = tree.root();
+        let expected_root = "21ca4917e99da99a61de93deaf88c400d4c082991cb95779e444d43dd13e8849";
         assert_eq!(hex::encode(root), expected_root);
     }
 
