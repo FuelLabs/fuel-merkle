@@ -210,7 +210,7 @@ mod test {
     use hex;
 
     #[test]
-    fn test_root_returns_empty_sum_with_no_leaves() {
+    fn test_empty_root() {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let tree = MerkleTree::<StorageError>::new(&mut storage);
         let root = tree.root();
@@ -225,8 +225,7 @@ mod test {
 
         for i in 0_u32..1 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
-            tree.update(&key, data).unwrap();
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -241,8 +240,7 @@ mod test {
 
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
-            tree.update(&key, data).unwrap();
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -257,8 +255,7 @@ mod test {
 
         for i in 0_u32..3 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
-            tree.update(&key, data).unwrap();
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -273,12 +270,26 @@ mod test {
 
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
-            tree.update(&key, data).unwrap();
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
         let expected_root = "108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_10() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
+
+        for i in 0_u32..10 {
+            let key = i.to_be_bytes();
+            tree.update(&key, b"DATA").unwrap();
+        }
+
+        let root = tree.root();
+        let expected_root = "21ca4917e99da99a61de93deaf88c400d4c082991cb95779e444d43dd13e8849";
         assert_eq!(hex::encode(root), expected_root);
     }
 
@@ -289,8 +300,7 @@ mod test {
 
         for i in 0_u32..100 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
-            tree.update(&key, data).unwrap();
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -299,13 +309,52 @@ mod test {
     }
 
     #[test]
-    fn test_update_empty() {
+    fn test_update_union() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
+
+        for i in 0_u32..5 {
+            let key = i.to_be_bytes();
+            tree.update(&key, b"DATA").unwrap();
+        }
+
+        for i in 10_u32..15 {
+            let key = i.to_be_bytes();
+            tree.update(&key, b"DATA").unwrap();
+        }
+
+        for i in 20_u32..25 {
+            let key = i.to_be_bytes();
+            tree.update(&key, b"DATA").unwrap();
+        }
+
+
+        let root = tree.root();
+        let expected_root = "7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_with_empty() {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         let key = 0_u32.to_be_bytes();
-        let data = [0_u8; 0];
-        tree.update(&key, &data).unwrap();
+        tree.update(&key, b"").unwrap();
+
+        let root = tree.root();
+        let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_with_empty_performs_delete  () {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
+
+        let key = 0_u32.to_be_bytes();
+        tree.update(&key, b"DATA").unwrap();
+        tree.update(&key, b"").unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -318,24 +367,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         let key = 1_u32.to_be_bytes();
-        let data = b"DATA";
-        tree.update(&key, data).unwrap();
+        tree.update(&key,  b"DATA").unwrap();
         tree.delete(&key).unwrap();
-
-        let root = tree.root();
-        let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
-        assert_eq!(hex::encode(root), expected_root);
-    }
-
-    #[test]
-    fn test_update_1_update_empty() {
-        let mut storage = StorageMap::<Bytes32, Buffer>::new();
-        let mut tree = MerkleTree::<StorageError>::new(&mut storage);
-
-        let key = 0_u32.to_be_bytes();
-        let data = b"DATA";
-        tree.update(&key, data).unwrap();
-        tree.update(&key, &[0; 0]).unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -349,15 +382,14 @@ mod test {
 
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
-            tree.update(&key, data).unwrap();
+            tree.update(&key, b"DATA").unwrap();
         }
 
-        let key = 0_u32.to_be_bytes();
+        let key = 1_u32.to_be_bytes();
         tree.delete(&key).unwrap();
 
         let root = tree.root();
-        let expected_root = "d7cb6616832899ac111a852ca8df2d63a1cdb36cb84651ffde72e264506a456f";
+        let expected_root = "39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b";
         assert_eq!(hex::encode(root), expected_root);
     }
 
@@ -368,8 +400,7 @@ mod test {
 
         for i in 0_u32..10 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
-            tree.update(&key, data).unwrap();
+            tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 5_u32..10 {
@@ -431,8 +462,7 @@ mod test {
 
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
-            let data = b"DATA";
-            tree.update(&key, data).unwrap();
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let key = 1024_u32.to_be_bytes();
