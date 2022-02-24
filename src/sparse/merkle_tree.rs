@@ -31,17 +31,23 @@ where
         }
 
         let leaf_node = Node::create_leaf(key, data);
+
+        // println!();
+        // println!("Updating...");
+        // println!("Path: {}", hex::encode(leaf_node.leaf_key()));
+        // println!("Inserting (req): {:?}", leaf_node);
+
         self.storage
             .insert(&leaf_node.hash(), leaf_node.as_buffer())?;
         self.storage
             .insert(&leaf_node.leaf_key(), leaf_node.as_buffer())?;
 
-        if self.root_node().is_placeholder() {
-            self.set_root_node(leaf_node);
-        } else {
+        // if self.root_node().is_placeholder() {
+        //     self.set_root_node(leaf_node);
+        // } else {
             let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
             self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
-        }
+        // }
 
         Ok(())
     }
@@ -102,20 +108,18 @@ where
         path_nodes: &[Node],
         side_nodes: &[Node],
     ) -> Result<(), Box<dyn std::error::Error>> {
-        println!("Updating...");
-
         let actual_leaf_node = &path_nodes[0];
         let mut current_node = requested_leaf_node.clone();
 
         let path_key = requested_leaf_node.leaf_key();
+
         let ancestor_depth = if actual_leaf_node.is_placeholder() {
             0
         } else {
             path_key.common_prefix_count(actual_leaf_node.leaf_key())
         };
 
-        // If the ancestor is not the root:
-        if ancestor_depth != 0 {
+        if !actual_leaf_node.is_placeholder() {
             current_node = if path_key.get_bit_at_index_from_msb(ancestor_depth).unwrap() == 1 {
                 Node::create_node(&actual_leaf_node, &requested_leaf_node)
             } else {
@@ -123,7 +127,7 @@ where
             };
             let ancestor_height = self.max_height() - ancestor_depth;
             current_node.set_height(ancestor_height as u32);
-            println!("Inserting: {:?}", current_node);
+            // println!("Inserting (ancestor): {:?}", current_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
@@ -140,7 +144,7 @@ where
             } else {
                 Node::create_node(&current_node, &placeholder)
             };
-            println!("Inserting: {:?}", current_node);
+            // println!("Inserting (placeholder): {:?}", current_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
@@ -154,11 +158,12 @@ where
             } else {
                 Node::create_node(&current_node, &side_node)
             };
-            println!("Inserting: {:?}", current_node);
+            // println!("Inserting (side): {:?}", current_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
+        // println!("Setting root: {:?}", current_node);
         self.set_root_node(current_node);
 
         Ok(())
@@ -183,33 +188,26 @@ where
         }
 
         let path_key = requested_leaf_node.leaf_key();
+
         let mut current_node = Node::create_placeholder();
 
         let start_index = if side_nodes.first().unwrap().is_leaf() {
             current_node = side_nodes.first().unwrap().clone();
-            side_nodes[1..]
+            if let Some(index) = side_nodes[1..]
                 .iter()
-                .position(|node| !node.is_placeholder())
-                .unwrap()
-                + 1
+                .position(|node| !node.is_placeholder()) {
+                index + 1
+            } else {
+                side_nodes.len()
+            }
         } else {
             current_node = Node::create_placeholder();
             0
         };
-
-        println!("Side nodes len: {}", side_nodes.len());
-        println!("Current node: {:?}", current_node);
-
-        // println!("Start index: {}", start_index);
-
+        
         let n = side_nodes.len();
         for i in start_index..n {
             let side_node = &side_nodes[i];
-
-            println!("{}: MERGING...", i);
-            println!("Current node: {:?}", current_node);
-            println!("Side node: {:?}", side_node);
-
             let parent_height = if current_node.is_leaf() && side_node.is_leaf() {
                 let ancestor_depth = current_node
                     .leaf_key()
@@ -220,18 +218,12 @@ where
                 std::cmp::max(current_node.height(), side_node.height()) as usize + 1
             };
 
-            // let parent_depth = side_nodes.len() - 1 - i;
-            // let parent_height = self.max_height() - parent_depth;
             let parent_depth = self.max_height() - parent_height;
-            println!("Parent height: {}", parent_height);
-
             if path_key.get_bit_at_index_from_msb(parent_depth).unwrap() == 1 {
                 current_node = Node::create_node(&side_node, &current_node);
             } else {
                 current_node = Node::create_node(&current_node, &side_node);
             }
-
-            println!("Merged node: {:?}", current_node);
 
             current_node.set_height(parent_height as u32);
             self.storage
