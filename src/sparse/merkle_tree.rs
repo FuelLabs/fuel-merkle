@@ -328,7 +328,6 @@ mod test {
             tree.update(&key, b"DATA").unwrap();
         }
 
-
         let root = tree.root();
         let expected_root = "7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326";
         assert_eq!(hex::encode(root), expected_root);
@@ -348,7 +347,7 @@ mod test {
     }
 
     #[test]
-    fn test_update_with_empty_performs_delete  () {
+    fn test_update_with_empty_performs_delete() {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
@@ -367,7 +366,7 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         let key = 1_u32.to_be_bytes();
-        tree.update(&key,  b"DATA").unwrap();
+        tree.update(&key, b"DATA").unwrap();
         tree.delete(&key).unwrap();
 
         let root = tree.root();
