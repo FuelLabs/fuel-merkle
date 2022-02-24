@@ -40,6 +40,7 @@ All test specifications assume that the Merkle Tree implementation under test us
 12. [Test Update 2 Delete 1](#test-update-2-delete-1)
 13. [Test Update 10 Delete 5](#test-update-10-delete-5)
 14. [Test Interleaved Update Delete](#test-interleaved-update-delete)
+15. [Test Delete Non-existent Key](#test-delete-non-existent-key)
 ---
 
 ### Test Empty Root
