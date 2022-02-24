@@ -177,14 +177,14 @@ where
 
             // If the first iteration (I think?)
             if current_node.is_placeholder() {
-                // If leaf:
-                //      This is the leaf sibling that needs to be bubbled up the tree; go to next iteration
                 if side_node.is_leaf() {
+                    // If leaf:
+                    //      This is the leaf sibling that needs to be bubbled up the tree; go to next iteration
                     current_node = side_node.clone();
                     continue;
                 } else {
-                // If not leaf:
-                //      This is the node sibling that needs to be left in place
+                    // If not leaf:
+                    //      This is the node sibling that needs to be left in place
                     non_placeholder_reached = true;
                 }
             }
@@ -201,11 +201,7 @@ where
 
             let depth = side_nodes.len() - 1 - i;
             let requested_leaf_key = requested_leaf_node.leaf_key();
-            if requested_leaf_key
-                .get_bit_at_index_from_msb(depth)
-                .unwrap()
-                == 1
-            {
+            if requested_leaf_key.get_bit_at_index_from_msb(depth).unwrap() == 1 {
                 current_node = Node::create_node(&side_node, &current_node);
             } else {
                 current_node = Node::create_node(&current_node, &side_node);
