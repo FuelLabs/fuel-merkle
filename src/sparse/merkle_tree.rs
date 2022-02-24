@@ -102,6 +102,8 @@ where
         path_nodes: &[Node],
         side_nodes: &[Node],
     ) -> Result<(), Box<dyn std::error::Error>> {
+        println!("Updating...");
+
         let actual_leaf_node = &path_nodes[0];
         let mut current_node = requested_leaf_node.clone();
 
@@ -121,6 +123,7 @@ where
             };
             let ancestor_height = self.max_height() - ancestor_depth;
             current_node.set_height(ancestor_height as u32);
+            println!("Inserting: {:?}", current_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
@@ -137,6 +140,7 @@ where
             } else {
                 Node::create_node(&current_node, &placeholder)
             };
+            println!("Inserting: {:?}", current_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
@@ -150,6 +154,7 @@ where
             } else {
                 Node::create_node(&current_node, &side_node)
             };
+            println!("Inserting: {:?}", current_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
@@ -165,49 +170,70 @@ where
         path_nodes: &[Node],
         side_nodes: &[Node],
     ) -> Result<(), Box<dyn std::error::Error>> {
+        println!();
+
         for node in path_nodes {
             self.storage.remove(&node.hash())?;
         }
 
-        let mut non_placeholder_reached = false;
+        // What does it mean if side nodes is empty?
+        if side_nodes.is_empty() {
+            self.set_root_node(Node::create_placeholder());
+            return Ok(());
+        }
+
+        let path_key = requested_leaf_node.leaf_key();
         let mut current_node = Node::create_placeholder();
+
+        let start_index = if side_nodes.first().unwrap().is_leaf() {
+            current_node = side_nodes.first().unwrap().clone();
+            side_nodes[1..]
+                .iter()
+                .position(|node| !node.is_placeholder())
+                .unwrap()
+                + 1
+        } else {
+            current_node = Node::create_placeholder();
+            0
+        };
+
+        println!("Side nodes len: {}", side_nodes.len());
+        println!("Current node: {:?}", current_node);
+
+        // println!("Start index: {}", start_index);
+
         let n = side_nodes.len();
-        for i in 0..n {
+        for i in start_index..n {
             let side_node = &side_nodes[i];
 
-            // If the first iteration (I think?)
-            if current_node.is_placeholder() {
-                if side_node.is_leaf() {
-                    // If leaf:
-                    //      This is the leaf sibling that needs to be bubbled up the tree; go to next iteration
-                    current_node = side_node.clone();
-                    continue;
-                } else {
-                    // If not leaf:
-                    //      This is the node sibling that needs to be left in place
-                    non_placeholder_reached = true;
-                }
-            }
+            println!("{}: MERGING...", i);
+            println!("Current node: {:?}", current_node);
+            println!("Side node: {:?}", side_node);
 
-            if !non_placeholder_reached && side_node.is_placeholder() {
-                // We found another placeholder sibling node
-                // Keep going up the tree until we find the first sibling that is not a placeholder
-                continue;
-            } else if !non_placeholder_reached {
-                // We found the first sibling node that is not a placeholder
-                // It is time to insert our leaf sibling node here
-                non_placeholder_reached = true;
-            }
+            let parent_height = if current_node.is_leaf() && side_node.is_leaf() {
+                let ancestor_depth = current_node
+                    .leaf_key()
+                    .common_prefix_count(side_node.leaf_key());
+                let ancestor_height = self.max_height() - ancestor_depth;
+                ancestor_height
+            } else {
+                std::cmp::max(current_node.height(), side_node.height()) as usize + 1
+            };
 
-            let depth = side_nodes.len() - 1 - i;
-            let requested_leaf_key = requested_leaf_node.leaf_key();
-            if requested_leaf_key.get_bit_at_index_from_msb(depth).unwrap() == 1 {
+            // let parent_depth = side_nodes.len() - 1 - i;
+            // let parent_height = self.max_height() - parent_depth;
+            let parent_depth = self.max_height() - parent_height;
+            println!("Parent height: {}", parent_height);
+
+            if path_key.get_bit_at_index_from_msb(parent_depth).unwrap() == 1 {
                 current_node = Node::create_node(&side_node, &current_node);
             } else {
                 current_node = Node::create_node(&current_node, &side_node);
             }
-            let height = self.max_height() - depth;
-            current_node.set_height(height as u32);
+
+            println!("Merged node: {:?}", current_node);
+
+            current_node.set_height(parent_height as u32);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
@@ -431,6 +457,43 @@ mod test {
 
         let root = tree.root();
         let expected_root = "7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_sparse_update() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage).unwrap();
+
+        for i in 0_u32..50 {
+            let key = (i * 2).to_be_bytes();
+            tree.update(&key, b"DATA").unwrap();
+        }
+
+        let root = tree.root();
+        let expected_root = "e02e761efef33aaa7a7027b4f5596c4c860476f299cdd0c4555199292d5041ee";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_sparse_update_delete() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage).unwrap();
+
+        let data = b"DATA";
+
+        for i in 0_u32..100 {
+            let key = i.to_be_bytes();
+            tree.update(&key, data).unwrap();
+        }
+
+        for i in 0_u32..50 {
+            let key = (i * 2 + 1).to_be_bytes();
+            tree.delete(&key).unwrap();
+        }
+
+        let root = tree.root();
+        let expected_root = "e02e761efef33aaa7a7027b4f5596c4c860476f299cdd0c4555199292d5041ee";
         assert_eq!(hex::encode(root), expected_root);
     }
 
