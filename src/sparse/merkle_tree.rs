@@ -1,4 +1,4 @@
-use crate::common::{AsPathIterator, Bytes32, Msb, Node as NodeTrait};
+use crate::common::{AsPathIterator, Bytes32, Node as NodeTrait};
 use fuel_storage::Storage;
 
 use crate::sparse::hash::sum;
@@ -45,8 +45,8 @@ where
         // if self.root_node().is_placeholder() {
         //     self.set_root_node(leaf_node);
         // } else {
-            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
-            self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
+        let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+        self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
         // }
 
         Ok(())
@@ -109,61 +109,34 @@ where
         side_nodes: &[Node],
     ) -> Result<(), Box<dyn std::error::Error>> {
         let actual_leaf_node = &path_nodes[0];
+        let path = requested_leaf_node.leaf_key();
         let mut current_node = requested_leaf_node.clone();
 
-        let path_key = requested_leaf_node.leaf_key();
-
-        let ancestor_depth = if actual_leaf_node.is_placeholder() {
-            0
-        } else {
-            path_key.common_prefix_count(actual_leaf_node.leaf_key())
-        };
-
+        // Merge leaves
         if !actual_leaf_node.is_placeholder() {
-            current_node = if path_key.get_bit_at_index_from_msb(ancestor_depth).unwrap() == 1 {
-                Node::create_node(&actual_leaf_node, &requested_leaf_node)
-            } else {
-                Node::create_node(&requested_leaf_node, &actual_leaf_node)
-            };
-            let ancestor_height = self.max_height() - ancestor_depth;
-            current_node.set_height(ancestor_height as u32);
-            // println!("Inserting (ancestor): {:?}", current_node);
+            current_node = Node::create_node_on_path(path, requested_leaf_node, actual_leaf_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
         // Merge placeholders
+        let ancestor_depth = requested_leaf_node.common_path_length(actual_leaf_node);
         let stale_depth = std::cmp::max(side_nodes.len(), ancestor_depth);
         let placeholders_count = stale_depth - side_nodes.len();
         let placeholders = std::iter::repeat(Node::create_placeholder()).take(placeholders_count);
         for placeholder in placeholders {
-            let parent_height = current_node.height() + 1;
-            let parent_depth = self.max_height() - parent_height as usize;
-            current_node = if path_key.get_bit_at_index_from_msb(parent_depth).unwrap() == 1 {
-                Node::create_node(&placeholder, &current_node)
-            } else {
-                Node::create_node(&current_node, &placeholder)
-            };
-            // println!("Inserting (placeholder): {:?}", current_node);
+            current_node = Node::create_node_on_path(path, &current_node, &placeholder);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
         // Merge side nodes
         for side_node in side_nodes {
-            let parent_height = std::cmp::max(current_node.height(), side_node.height()) + 1;
-            let parent_depth = self.max_height() - parent_height as usize;
-            current_node = if path_key.get_bit_at_index_from_msb(parent_depth).unwrap() == 1 {
-                Node::create_node(&side_node, &current_node)
-            } else {
-                Node::create_node(&current_node, &side_node)
-            };
-            // println!("Inserting (side): {:?}", current_node);
+            current_node = Node::create_node_on_path(path, &current_node, &side_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
 
-        // println!("Setting root: {:?}", current_node);
         self.set_root_node(current_node);
 
         Ok(())
@@ -175,57 +148,42 @@ where
         path_nodes: &[Node],
         side_nodes: &[Node],
     ) -> Result<(), Box<dyn std::error::Error>> {
-        println!();
-
         for node in path_nodes {
             self.storage.remove(&node.hash())?;
         }
 
-        // What does it mean if side nodes is empty?
         if side_nodes.is_empty() {
             self.set_root_node(Node::create_placeholder());
             return Ok(());
         }
 
-        let path_key = requested_leaf_node.leaf_key();
-
+        let path = requested_leaf_node.leaf_key();
+        let first_side_node = side_nodes.first().unwrap(); // Safety: side_nodes is not empty
+        let mut side_nodes_iter = side_nodes.iter();
         let mut current_node = Node::create_placeholder();
 
-        let start_index = if side_nodes.first().unwrap().is_leaf() {
-            current_node = side_nodes.first().unwrap().clone();
-            if let Some(index) = side_nodes[1..]
-                .iter()
-                .position(|node| !node.is_placeholder()) {
-                index + 1
-            } else {
-                side_nodes.len()
-            }
-        } else {
-            current_node = Node::create_placeholder();
-            0
-        };
-        
-        let n = side_nodes.len();
-        for i in start_index..n {
-            let side_node = &side_nodes[i];
-            let parent_height = if current_node.is_leaf() && side_node.is_leaf() {
-                let ancestor_depth = current_node
-                    .leaf_key()
-                    .common_prefix_count(side_node.leaf_key());
-                let ancestor_height = self.max_height() - ancestor_depth;
-                ancestor_height
-            } else {
-                std::cmp::max(current_node.height(), side_node.height()) as usize + 1
-            };
+        if first_side_node.is_leaf() {
+            side_nodes_iter.next();
+            current_node = first_side_node.clone();
 
-            let parent_depth = self.max_height() - parent_height;
-            if path_key.get_bit_at_index_from_msb(parent_depth).unwrap() == 1 {
-                current_node = Node::create_node(&side_node, &current_node);
-            } else {
-                current_node = Node::create_node(&current_node, &side_node);
+            // Advance the side node iterator to the first non-placeholder node. This may be either
+            // another leaf node or an internal node.
+            // If only placeholder nodes exist beyond this point, then the current node is, in fact,
+            // the root.
+            // Using `find(..)` advances the iterator beyond the first non-placeholder side node and
+            // returns it. Therefore, we must consume the side node at this point. If another
+            // non-placeholder node exists in the side node collection, merge it with the
+            // first side node. This guarantees that the current node will be an internal node, and
+            // not a leaf, by the time we start merging the remaining side nodes.
+            if let Some(side_node) = side_nodes_iter.find(|side_node| !side_node.is_placeholder()) {
+                current_node = Node::create_node_on_path(path, &current_node, side_node);
+                self.storage
+                    .insert(&current_node.hash(), current_node.as_buffer())?;
             }
+        }
 
-            current_node.set_height(parent_height as u32);
+        for side_node in side_nodes_iter {
+            current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
