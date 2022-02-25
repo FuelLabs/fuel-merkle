@@ -160,8 +160,17 @@ where
         let path = requested_leaf_node.leaf_key();
         let first_side_node = side_nodes.first().unwrap(); // Safety: side_nodes is not empty
         let mut side_nodes_iter = side_nodes.iter();
+
+        // The deleted leaf is replaced by a placeholder.
         let mut current_node = Node::create_placeholder();
 
+        // If the first side node is a leaf, it means the ancestor node is now parent to a
+        // placeholder (the deleted leaf node) and a leaf node (the first side node). We can
+        // immediately discard the parent node from further calculation and attach the orphaned
+        // leaf node to its next ancestor. Any subsequent ancestor nodes composed of this leaf node
+        // and a placeholder must be similarly discarded from further calculation. We then create a
+        // valid ancestor node for the orphaned leaf node by joining it with the earliest
+        // non-placeholder side node.
         if first_side_node.is_leaf() {
             side_nodes_iter.next();
             current_node = first_side_node.clone();
