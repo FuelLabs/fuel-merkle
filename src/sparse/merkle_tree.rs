@@ -74,16 +74,12 @@ where
 
     // PRIVATE
 
-    fn max_height(&'a self) -> usize {
-        Node::key_size_in_bits()
-    }
-
     fn root_node(&'a self) -> &Node {
         &self.root_node
     }
 
     fn set_root_node(&'a mut self, node: Node) {
-        assert!(node.is_leaf() || node.height() == self.max_height() as u32);
+        assert!(node.is_leaf() || node.height() == Node::max_height() as u32);
         self.root_node = node;
     }
 
