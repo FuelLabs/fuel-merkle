@@ -104,33 +104,49 @@ where
         path_nodes: &[Node],
         side_nodes: &[Node],
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let actual_leaf_node = &path_nodes[0];
         let path = requested_leaf_node.leaf_key();
+        let actual_leaf_node = &path_nodes[0];
 
         // Build the tree upwards starting with the requested leaf node.
         let mut current_node = requested_leaf_node.clone();
 
-        // Merge leaves
-        if !actual_leaf_node.is_placeholder() {
-            current_node = Node::create_node_on_path(path, requested_leaf_node, actual_leaf_node);
-            self.storage
-                .insert(&current_node.hash(), current_node.as_buffer())?;
-        }
+        // If we are creating a new leaf node, the corresponding side node will be the first node in
+        // the path set. The first node in the path set will be the leaf node currently closest to
+        // the requested new leaf node. When creating a new leaf node, we must merge the leaf node
+        // with its corresponding side node to create a common ancestor. We then continue building
+        // the tree upwards from this ancestor node. This may require additional placeholder side
+        // nodes in addition to the side node set.
+        // If we are updating an existing leaf node, the leaf node we are updating is the first node
+        // in the path set. The side node set will already include all the side nodes needed to
+        // build up the tree from the requested leaf node, as these side nodes were previously built
+        // during the creation of leaf node.
+        // We can determine if we are updating an existing node, or if we are creating a new node,
+        // by comparing the paths of the requested leaf node and the leaf node at the end of the
+        // path set. When the paths are equal, it means the leaf nodes occupy the same address and
+        // we are updating an existing leaf. Otherwise, it means we are adding a new leaf node.
+        if requested_leaf_node.leaf_key() != actual_leaf_node.leaf_key() {
+            // Merge leaves
+            if !actual_leaf_node.is_placeholder() {
+                current_node = Node::create_node_on_path(path, &current_node, actual_leaf_node);
+                self.storage
+                    .insert(&current_node.hash(), current_node.as_buffer())?;
+            }
 
-        // Merge placeholders
-        let ancestor_depth = requested_leaf_node.common_path_length(actual_leaf_node);
-        let stale_depth = std::cmp::max(side_nodes.len(), ancestor_depth);
-        let placeholders_count = stale_depth - side_nodes.len();
-        let placeholders = std::iter::repeat(Node::create_placeholder()).take(placeholders_count);
-        for placeholder in placeholders {
-            current_node = Node::create_node_on_path(path, &current_node, &placeholder);
-            self.storage
-                .insert(&current_node.hash(), current_node.as_buffer())?;
+            // Merge placeholders
+            let ancestor_depth = requested_leaf_node.common_path_length(actual_leaf_node);
+            let stale_depth = std::cmp::max(side_nodes.len(), ancestor_depth);
+            let placeholders_count = stale_depth - side_nodes.len();
+            let placeholders = std::iter::repeat(Node::create_placeholder()).take(placeholders_count);
+            for placeholder in placeholders {
+                current_node = Node::create_node_on_path(path, &current_node, &placeholder);
+                self.storage
+                    .insert(&current_node.hash(), current_node.as_buffer())?;
+            }
         }
 
         // Merge side nodes
         for side_node in side_nodes {
-            current_node = Node::create_node_on_path(path, &current_node, &side_node);
+            current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
                 .insert(&current_node.hash(), current_node.as_buffer())?;
         }
@@ -150,13 +166,7 @@ where
             self.storage.remove(&node.hash())?;
         }
 
-        if side_nodes.is_empty() {
-            self.set_root_node(Node::create_placeholder());
-            return Ok(());
-        }
-
         let path = requested_leaf_node.leaf_key();
-        let first_side_node = side_nodes.first().unwrap(); // Safety: side_nodes is not empty
         let mut side_nodes_iter = side_nodes.iter();
 
         // The deleted leaf is replaced by a placeholder. Build the tree upwards starting with the
@@ -170,9 +180,10 @@ where
         // and a placeholder must be similarly discarded from further calculation. We then create a
         // valid ancestor node for the orphaned leaf node by joining it with the earliest
         // non-placeholder side node.
-        if first_side_node.is_leaf() {
+        let first_side_node = side_nodes.first();
+        if first_side_node.is_some() && first_side_node.unwrap().is_leaf() {
             side_nodes_iter.next();
-            current_node = first_side_node.clone();
+            current_node = first_side_node.unwrap().clone();
 
             // Advance the side node iterator to the next non-placeholder node. This may be either
             // another leaf node or an internal node.
@@ -190,6 +201,7 @@ where
             }
         }
 
+        // Merge side nodes
         for side_node in side_nodes_iter {
             current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
@@ -310,6 +322,34 @@ mod test {
 
         let root = tree.root();
         let expected_root = "82bf747d455a55e2f7044a03536fc43f1f55d43b855e72c0110c986707a23e4d";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_double() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage).unwrap();
+
+        let key = 0_u32.to_be_bytes();
+        let _ = tree.update(&key, b"DATA");
+        let _ = tree.update(&key, b"DATA");
+
+        let root = tree.root();
+        let expected_root = "39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b";
+        assert_eq!(hex::encode(root), expected_root);
+    }
+
+    #[test]
+    fn test_update_reuse_key() {
+        let mut storage = StorageMap::<Bytes32, Buffer>::new();
+        let mut tree = MerkleTree::<StorageError>::new(&mut storage).unwrap();
+
+        let key = 0_u32.to_be_bytes();
+        let _ = tree.update(&key, b"DATA");
+        let _ = tree.update(&key, b"CHANGE");
+
+        let root = tree.root();
+        let expected_root = "dd97174c80e5e5aa3a31c61b05e279c1495c8a07b2a08bca5dbc9fb9774f9457";
         assert_eq!(hex::encode(root), expected_root);
     }
 
