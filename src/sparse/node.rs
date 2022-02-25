@@ -66,12 +66,11 @@ impl Node {
             // N.B.: A leaf can be a placeholder.
             let parent_depth = path_node.common_path_length(side_node);
             let parent_height = (Node::max_height() - parent_depth) as u32;
-            let mut parent_node = if path.get_bit_at_index_from_msb(parent_depth).unwrap() == LEFT {
+            let parent_node = if path.get_bit_at_index_from_msb(parent_depth).unwrap() == LEFT {
                 Node::create_node(&path_node, &side_node, parent_height)
             } else {
                 Node::create_node(&side_node, &path_node, parent_height)
             };
-            parent_node.set_height(parent_height as u32);
             parent_node
         } else {
             // When joining two nodes, or a node and a leaf, the joined node is the direct parent
@@ -106,7 +105,7 @@ impl Node {
 
         // If either of the nodes are placeholders, the common path length is defined to be 0. This
         // is needed to prevent a 0 bit in the placeholder's key from producing an erroneous match
-        // with a legitimate 0 bit in the leaf's key.
+        // with a 0 bit in the leaf's key.
         if self.is_placeholder() || other.is_placeholder() {
             0
         } else {

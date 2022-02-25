@@ -110,6 +110,8 @@ where
     ) -> Result<(), Box<dyn std::error::Error>> {
         let actual_leaf_node = &path_nodes[0];
         let path = requested_leaf_node.leaf_key();
+
+        // Build the tree upwards starting with the requested leaf node.
         let mut current_node = requested_leaf_node.clone();
 
         // Merge leaves
@@ -161,7 +163,8 @@ where
         let first_side_node = side_nodes.first().unwrap(); // Safety: side_nodes is not empty
         let mut side_nodes_iter = side_nodes.iter();
 
-        // The deleted leaf is replaced by a placeholder.
+        // The deleted leaf is replaced by a placeholder. Build the tree upwards starting with the
+        // placeholder.
         let mut current_node = Node::create_placeholder();
 
         // If the first side node is a leaf, it means the ancestor node is now parent to a
