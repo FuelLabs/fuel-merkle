@@ -166,7 +166,7 @@ where
 
         // If the first side node is a leaf, it means the ancestor node is now parent to a
         // placeholder (the deleted leaf node) and a leaf node (the first side node). We can
-        // immediately discard the parent node from further calculation and attach the orphaned
+        // immediately discard the ancestor node from further calculation and attach the orphaned
         // leaf node to its next ancestor. Any subsequent ancestor nodes composed of this leaf node
         // and a placeholder must be similarly discarded from further calculation. We then create a
         // valid ancestor node for the orphaned leaf node by joining it with the earliest
@@ -175,14 +175,14 @@ where
             side_nodes_iter.next();
             current_node = first_side_node.clone();
 
-            // Advance the side node iterator to the first non-placeholder node. This may be either
+            // Advance the side node iterator to the next non-placeholder node. This may be either
             // another leaf node or an internal node.
-            // If only placeholder nodes exist beyond this point, then the current node is, in fact,
-            // the root.
-            // Using `find(..)` advances the iterator beyond the first non-placeholder side node and
+            // If only placeholder nodes exist beyond the first leaf node, then that leaf node is,
+            // in fact, the new root node.
+            // Using `find(..)` advances the iterator beyond the next non-placeholder side node and
             // returns it. Therefore, we must consume the side node at this point. If another
-            // non-placeholder node exists in the side node collection, merge it with the
-            // first side node. This guarantees that the current node will be an internal node, and
+            // non-placeholder node was found in the side node collection, merge it with the first
+            // side node. This guarantees that the current node will be an internal node, and
             // not a leaf, by the time we start merging the remaining side nodes.
             if let Some(side_node) = side_nodes_iter.find(|side_node| !side_node.is_placeholder()) {
                 current_node = Node::create_node_on_path(path, &current_node, side_node);
