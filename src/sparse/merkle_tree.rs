@@ -1,4 +1,4 @@
-use crate::common::{AsPathIterator, Bytes32, Node as NodeTrait};
+use crate::common::{AsPathIterator, Bytes32};
 use fuel_storage::Storage;
 
 use crate::sparse::hash::sum;
