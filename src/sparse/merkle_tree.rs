@@ -114,16 +114,17 @@ where
         // the path set. The first node in the path set will be the leaf node currently closest to
         // the requested new leaf node. When creating a new leaf node, we must merge the leaf node
         // with its corresponding side node to create a common ancestor. We then continue building
-        // the tree upwards from this ancestor node. This may require additional placeholder side
-        // nodes in addition to the side node set.
+        // the tree upwards from this ancestor node. This may require creating new placeholder side
+        // nodes, in addition to the existing side node set.
         // If we are updating an existing leaf node, the leaf node we are updating is the first node
         // in the path set. The side node set will already include all the side nodes needed to
-        // build up the tree from the requested leaf node, as these side nodes were previously built
-        // during the creation of leaf node.
-        // We can determine if we are updating an existing node, or if we are creating a new node,
-        // by comparing the paths of the requested leaf node and the leaf node at the end of the
-        // path set. When the paths are equal, it means the leaf nodes occupy the same address and
-        // we are updating an existing leaf. Otherwise, it means we are adding a new leaf node.
+        // build up the tree from the requested leaf node, since these side nodes were already built
+        // during the creation of the leaf node.
+        // We can determine if we are updating an existing leaf node, or if we are creating a new
+        // leaf node, by comparing the paths of the requested leaf node and the leaf node at the end
+        // of the path set. When the paths are equal, it means the leaf nodes occupy the same
+        // address, and we are updating an existing leaf. Otherwise, it means we are adding a new
+        // leaf node.
         if requested_leaf_node.leaf_key() != actual_leaf_node.leaf_key() {
             // Merge leaves
             if !actual_leaf_node.is_placeholder() {
