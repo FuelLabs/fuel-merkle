@@ -3,7 +3,7 @@
 ## Version
 0.1.0
 
-Last updated 2022/02/15
+Last updated 2022/02/25
 
 ## Abstract
 
@@ -237,7 +237,7 @@ expect(hex_encode(root), expected_root).to_be_equal
 
 **Description**:
 
-Tests the root after performing two update calls with the same inputs. The resulting input set is described by `S = {A} U {A} = {A}`, where `{A}` is the input. This test expects a root signature identical to that produced by Test Empty Root. This test expects a root signature identical to that produced by [Test Update 1](#test-update-1).
+Tests the root after performing two update calls with the same inputs. The resulting input set is described by `S = {A} U {A} = {A}`, where `{A}` is the input. This test expects a root signature identical to that produced by [Test Update 1](#test-update-1).
 
 **Inputs**:
 
@@ -383,7 +383,7 @@ Tests the root after performing one update call with arbitrary data followed by 
 **Inputs**:
 
 1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-1. Update the tree with leaf key `0u32` (4 bytes, big endian) and empty leaf data `""` (1 byte)
+2. Update the tree with leaf key `0u32` (4 bytes, big endian) and empty leaf data `""` (1 byte)
 
 **Outputs**:
 
@@ -439,7 +439,7 @@ Tests the root after performing two update calls followed by a subsequent delete
 **Inputs**:
 
 1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Update the empty tree with leaf key `1u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. Update the tree with leaf key `1u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
 3. Delete leaf key `1u32` (4 bytes, big endian) from the tree
 
 **Outputs**:
@@ -573,7 +573,7 @@ Tests the root after performing delete calls with discontinuous sets of inputs. 
 **Inputs**:
 
 1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-1. For each `i` in `0..5`, update the tree with leaf key `i * 2 + 1` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. For each `i` in `0..5`, update the tree with leaf key `i * 2 + 1` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
