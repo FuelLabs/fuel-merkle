@@ -7,7 +7,7 @@ Last updated 2022/02/15
 
 ## Abstract
 
-This document outlines a test suite specification that can be used to verify the correctness of a Sparse Merkle Tree's outputs. The scope of this document covers only Sparse Merkle Tree (SMT) implementations that are compliant with [Celestia Sparse Merkle Tree Specification](https://github.com/celestiaorg/celestia-specs/blob/master/src/specs/data_structures.md#sparse-merkle-tree). The goal of this document is to equip SMT library developers with a supplemental indicator of correctness. Libraries implementing an SMT can additionally implement this test suite specification in the codebase's native language. Passing all tests in the concrete test suite is an indication of correctness and consistency with the reference specification; however, it is not an absolute guarantee.
+This document outlines a test suite specification that can be used to verify the correctness of a Sparse Merkle Tree's outputs. The scope of this document covers only Sparse Merkle Tree (SMT) implementations that are compliant with [Celestia Sparse Merkle Tree Specification](https://github.com/celestiaorg/celestia-specs/blob/master/src/specs/data_structures.md#sparse-merkle-tree). The goal of this document is to equip SMT library developers with a supplemental indicator of correctness. Libraries implementing an SMT can additionally implement this test suite specification in the code base's native language. Passing all tests in the concrete test suite is an indication of correctness and consistency with the reference specification; however, it is not an absolute guarantee.
 
 The tests described in this document are designed to test features common to most Sparse Merkle Tree implementations. Test specifications are agnostic of the implementation details or language, and therefore take a black-box testing approach. A test specification may provide an example of what a compliant test may look like in the form of pseudocode.
 
@@ -18,7 +18,7 @@ A test specification follows the format:
 - Test outputs
 - Example pseudocode
 
-For a concrete test to comply with its corresponding test specification, the System Under Test (SUT) must take in the prescribed inputs. When the SUT produces the prescribed outputs, the test passes. When the SUT produces any result or error that is not prescribed by the speciifcation, the test fails. For a library to comply with the complete specification described herein, it must implement all test specifications, and each test must pass.
+For a concrete test to comply with its corresponding test specification, the System Under Test (SUT) must take in the prescribed inputs. When the SUT produces the prescribed outputs, the test passes. When the SUT produces any result or error that is not prescribed by the specification, the test fails. For a library to comply with the complete specification described herein, it must implement all test specifications, and each test must pass.
 
 All test specifications assume that the Merkle Tree implementation under test uses the SHA-2-256 hashing algorithm as defined in [FIPS PUB 180-4](https://doi.org/10.6028/NIST.FIPS.180-4) to produce its outputs.
 
@@ -33,21 +33,25 @@ All test specifications assume that the Merkle Tree implementation under test us
 5. [Test Update 5](#test-update-5)
 6. [Test Update 10](#test-update-10)
 7. [Test Update 100](#test-update-100)
-8. [Test Update Union](#test-update-union)
-9. [Test Update With Empty](#test-update-with-empty)
-10. [Test Update With Empty Performs Delete](#test-update-with-empty-performs-delete)
-11. [Test Update 1 Delete 1](#test-update-1-delete-1)
-12. [Test Update 2 Delete 1](#test-update-2-delete-1)
-13. [Test Update 10 Delete 5](#test-update-10-delete-5)
-14. [Test Interleaved Update Delete](#test-interleaved-update-delete)
-15. [Test Delete Non-existent Key](#test-delete-non-existent-key)
+8. [Test Update With Repeated Inputs](#test-update-with-repeated-inputs)
+9. [Test Update Overwrite Key](#test-update-overwrite-key)
+10. [Test Update Union](#test-update-union)
+11. [Test Update Sparse Union](#test-update-sparse-union)
+12. [Test Update With Empty Data](#test-update-with-empty-data)
+13. [Test Update With Empty Data Performs Delete](#test-update-with-empty-data-performs-delete)
+14. [Test Update 1 Delete 1](#test-update-1-delete-1)
+15. [Test Update 2 Delete 1](#test-update-2-delete-1)
+16. [Test Update 10 Delete 5](#test-update-10-delete-5)
+17. [Test Delete Non-existent Key](#test-delete-non-existent-key)
+18. [Test Interleaved Update Delete](#test-interleaved-update-delete)
+19. [Test Delete Sparse Union](#test-delete-sparse-union)
 ---
 
 ### Test Empty Root
 
 **Description**:
 
-Tests the default root given no update or delete operations.
+Tests the default root given no update or delete operations. The input set is described by `S = {Ø}`.
 
 
 *NOTE: This test is currently a WIP and subject to change due to a discrepancy in the SMT specification. See https://github.com/celestiaorg/smt/issues/67.*
@@ -229,12 +233,63 @@ expect(hex_encode(root), expected_root).to_be_equal
 ```
 ---
 
+### Test Update With Repeated Inputs
+
+**Description**:
+
+Tests the root after performing two update calls with the same inputs. The resulting input set is described by `S = {A} U {A} = {A}`, where `{A}` is the input. This test expects a root signature identical to that produced by Test Empty Root. This test expects a root signature identical to that produced by [Test Update 1](#test-update-1).
+
+**Inputs**:
+
+1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. Update the tree again with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+
+**Outputs**:
+
+- The expected root signature: `0x39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+smt.update(b"\x00\x00\x00\x00", b"DATA")
+smt.update(b"\x00\x00\x00\x00", b"DATA")
+root = smt.root()
+expected_root = '39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Update Overwrite Key
+
+**Description**:
+
+Tests the root after performing two update calls with the same leaf keys but different leaf data. The second update call is expected to overwrite the data originally written by the first update call.
+
+**Inputs**:
+
+1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. Update the tree again with leaf key `0u32` (4 bytes, big endian) and leaf data `"CHANGE"` (bytes, UTF-8)
+
+**Outputs**:
+
+- The expected root signature: `0xdd97174c80e5e5aa3a31c61b05e279c1495c8a07b2a08bca5dbc9fb9774f9457`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+smt.update(b"\x00\x00\x00\x00", b"DATA")
+smt.update(b"\x00\x00\x00\x00", b"CHANGE")
+root = smt.root()
+expected_root = 'dd97174c80e5e5aa3a31c61b05e279c1495c8a07b2a08bca5dbc9fb9774f9457'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
 ### Test Update Union
 
 **Description**:
 
-Tests the root after performing update calls with discontinuous sets of inputs. The resulting input set is described by
-`[0..5) U [10..15) U [20..25)`.
+Tests the root after performing update calls with discontinuous sets of inputs. The resulting input set is described by `S = [0..5) U [10..15) U [20..25)`.
 
 **Inputs**:
 
@@ -264,11 +319,37 @@ expect(hex_encode(root), expected_root).to_be_equal
 ```
 ---
 
-### Test Update With Empty
+### Test Update Sparse Union
 
 **Description**:
 
-Tests the root after performing one update call with null data. Updating the empty tree with empty data does not change the root, and the expected root remains the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root). 
+Tests the root after performing update calls with discontinuous sets of inputs. The resulting input set is described by `S = [0, 2, 4, 6, 8]`.
+
+**Inputs**:
+
+1. For each `i` in `0..5`, update the tree with leaf key `i * 2` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+
+**Outputs**:
+
+- The expected root signature: `0xe912e97abc67707b2e6027338292943b53d01a7fbd7b244674128c7e468dd696`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+for i in 0..5 {
+    smt.update(&(i as u32 * 2).to_big_endian_bytes(), b"DATA")
+}
+root = smt.root()
+expected_root = 'e02e761efef33aaa7a7027b4f5596c4c860476f299cdd0c4555199292d5041ee'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+---
+
+### Test Update With Empty Data
+
+**Description**:
+
+Tests the root after performing one update call with empty data. Updating the empty tree with empty data does not change the root, and the expected root remains the default root. The resulting input set is described by `S = {Ø} U {Ø} = {Ø}`. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root). 
 
 *NOTE: This test is currently a WIP and subject to change due to a discrepancy in the SMT specification. See https://github.com/celestiaorg/smt/issues/67.*
 
@@ -290,11 +371,11 @@ expect(hex_encode(root), expected_root).to_be_equal
 ```
 ---
 
-### Test Update With Empty Performs Delete 
+### Test Update With Empty Data Performs Delete 
 
 **Description**:
 
-Tests the root after performing one update call with arbitrary data followed by a second update call on the same key with empty data. Updating a key with empty data is equivalent to calling delete. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+Tests the root after performing one update call with arbitrary data followed by a second update call on the same key with empty data. Updating a key with empty data is equivalent to calling delete. By deleting the only key, we have an empty tree and expect to arrive at the default root. The resulting input set is described by `S = {0} - {0} = {Ø}`. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
 
 
 *NOTE: This test is currently a WIP and subject to change due to a discrepancy in the SMT specification. See https://github.com/celestiaorg/smt/issues/67.*
@@ -317,13 +398,14 @@ root = smt.root()
 expected_root = '0000000000000000000000000000000000000000000000000000000000000000'
 expect(hex_encode(root), expected_root).to_be_equal
 ```
+
 ---
 
 ### Test Update 1 Delete 1
 
 **Description**:
 
-Tests the root after performing one update call followed by a subsequent delete call on the same key. By deleting the only key, we have an empty tree and expect to arrive at the default root. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
+Tests the root after performing one update call followed by a subsequent delete call on the same key. By deleting the only key, we have an empty tree and expect to arrive at the default root. The resulting input set is described by `S = {0} - {0} = {Ø}`. This test expects a root signature identical to that produced by [Test Empty Root](#test-empty-root).
 
 
 *NOTE: This test is currently a WIP and subject to change due to a discrepancy in the SMT specification. See https://github.com/celestiaorg/smt/issues/67.*
@@ -406,6 +488,36 @@ expect(hex_encode(root), expected_root).to_be_equal
 ```
 ---
 
+### Test Delete Non-existent Key
+
+**Description**:
+
+Tests the root after performing five update calls followed by a subsequent delete on a key that is not present in the input set. This test expects a root signature identical to that produced by [Test Update 5](#test-update-5).
+
+**Inputs**:
+
+1. For each `i` in `0..5`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+2. Delete leaf key `1024u32` (4 bytes, big endian) from the tree
+
+**Outputs**:
+
+- The expected root signature: `0x108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b`
+
+**Example Pseudocode**:
+```
+smt = SparseMerkleTree.new(Storage.new(), sha256.new())
+for i in 0..5 {
+    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+}
+smt.delete(b"\x00\x00\x04\x00")
+
+root = smt.root()
+expected_root = '108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b'
+expect(hex_encode(root), expected_root).to_be_equal
+```
+
+---
+
 ### Test Interleaved Update Delete
 
 **Description**:
@@ -452,30 +564,31 @@ expect(hex_encode(root), expected_root).to_be_equal
 ```
 ---
 
-### Test Delete Non-existent Key
+### Test Delete Sparse Union
 
 **Description**:
 
-Tests the root after performing five update calls followed by a subsequent delete on a key that is not present in the input set. This test expects a root signature identical to that produced by [Test Update 5](#test-update-5).
+Tests the root after performing delete calls with discontinuous sets of inputs. The resulting input set is described by `S = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] - [1, 3, 5, 7, 9] = [0, 2, 4, 6, 8]`. This test expects a root signature identical to that produced by [Test Update Sparse Union](#test-update-sparse-union).
 
 **Inputs**:
 
-1. For each `i` in `0..5`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Delete leaf key `1024u32` (4 bytes, big endian) from the tree
+1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `0..5`, update the tree with leaf key `i * 2 + 1` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
-- The expected root signature: `0x108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b`
+- The expected root signature: `0xe912e97abc67707b2e6027338292943b53d01a7fbd7b244674128c7e468dd696`
 
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-for i in 0..5 {
+for i in 0..10 {
     smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
 }
-smt.delete(b"\x00\x00\x04\x00")
-
+for i in 0..5 {
+    smt.update(&(i as u32 * 2 + 1).to_big_endian_bytes(), b"DATA")
+}
 root = smt.root()
-expected_root = '108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b'
+expected_root = 'e912e97abc67707b2e6027338292943b53d01a7fbd7b244674128c7e468dd696'
 expect(hex_encode(root), expected_root).to_be_equal
 ```
