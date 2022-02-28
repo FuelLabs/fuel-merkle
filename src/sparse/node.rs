@@ -391,7 +391,10 @@ where
     }
 }
 
-impl<'storage, StorageError> fmt::Debug for StorageNode<'storage, StorageError> {
+impl<'storage, StorageError> fmt::Debug for StorageNode<'storage, StorageError>
+where
+    StorageError: std::error::Error + Clone,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.node.is_node() {
             f.debug_struct("StorageNode (Internal)")
