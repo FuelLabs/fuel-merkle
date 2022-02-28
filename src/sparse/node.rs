@@ -304,7 +304,7 @@ impl fmt::Debug for Node {
 }
 
 type NodeStorage<'storage, StorageError> =
-dyn 'storage + Storage<Bytes32, Buffer, Error = StorageError>;
+    dyn 'storage + Storage<Bytes32, Buffer, Error = StorageError>;
 
 #[derive(Clone)]
 pub(crate) struct StorageNode<'storage, StorageError> {
@@ -313,8 +313,8 @@ pub(crate) struct StorageNode<'storage, StorageError> {
 }
 
 impl<'a, 'storage, StorageError> StorageNode<'storage, StorageError>
-    where
-        StorageError: std::error::Error + Clone,
+where
+    StorageError: std::error::Error + Clone,
 {
     pub fn new(storage: &'storage NodeStorage<'storage, StorageError>, node: Node) -> Self {
         Self { node, storage }
@@ -372,8 +372,8 @@ impl<'a, 'storage, StorageError> StorageNode<'storage, StorageError>
 }
 
 impl<'storage, StorageError> crate::common::Node for StorageNode<'storage, StorageError>
-    where
-        StorageError: std::error::Error + Clone,
+where
+    StorageError: std::error::Error + Clone,
 {
     type Key = Bytes32;
 
@@ -391,8 +391,8 @@ impl<'storage, StorageError> crate::common::Node for StorageNode<'storage, Stora
 }
 
 impl<'storage, StorageError> crate::common::ParentNode for StorageNode<'storage, StorageError>
-    where
-        StorageError: std::error::Error + Clone,
+where
+    StorageError: std::error::Error + Clone,
 {
     fn left_child(&self) -> Self {
         StorageNode::left_child(self).unwrap()
