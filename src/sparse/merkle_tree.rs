@@ -20,7 +20,7 @@ where
         }
     }
 
-    pub fn update(&'a mut self, key: &[u8], data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn update(&'a mut self, key: &Bytes32, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
         if data.is_empty() {
             // If the data is empty, this signifies a delete operation for the given key.
             self.delete(key)?;
@@ -38,14 +38,13 @@ where
         Ok(())
     }
 
-    pub fn delete(&'a mut self, key: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn delete(&'a mut self, key: &Bytes32) -> Result<(), Box<dyn std::error::Error>> {
         if self.root() == *zero_sum() {
             // The zero root signifies that all leaves are empty, including the given key.
             return Ok(());
         }
 
-        let leaf_key = sum(key);
-        if let Some(buffer) = self.storage.get(&leaf_key).unwrap() {
+        if let Some(buffer) = self.storage.get(key).unwrap() {
             let leaf_node = Node::from_buffer(*buffer);
             let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
             self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
@@ -208,6 +207,7 @@ mod test {
     use crate::common::{Bytes32, StorageError, StorageMap};
     use crate::sparse::{Buffer, MerkleTree};
     use hex;
+    use crate::sparse::hash::sum;
 
     #[test]
     fn test_empty_root() {
@@ -225,7 +225,7 @@ mod test {
 
         for i in 0_u32..1 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -240,7 +240,7 @@ mod test {
 
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -255,7 +255,7 @@ mod test {
 
         for i in 0_u32..3 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -270,7 +270,7 @@ mod test {
 
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -285,7 +285,7 @@ mod test {
 
         for i in 0_u32..10 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -300,7 +300,7 @@ mod test {
 
         for i in 0_u32..100 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -315,17 +315,17 @@ mod test {
 
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         for i in 10_u32..15 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         for i in 20_u32..25 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -339,7 +339,7 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         let key = 0_u32.to_be_bytes();
-        tree.update(&key, b"").unwrap();
+        tree.update(&sum(&key), b"").unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -352,8 +352,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         let key = 0_u32.to_be_bytes();
-        tree.update(&key, b"DATA").unwrap();
-        tree.update(&key, b"").unwrap();
+        tree.update(&sum(&key), b"DATA").unwrap();
+        tree.update(&sum(&key), b"").unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -366,8 +366,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         let key = 1_u32.to_be_bytes();
-        tree.update(&key, b"DATA").unwrap();
-        tree.delete(&key).unwrap();
+        tree.update(&sum(&key), b"DATA").unwrap();
+        tree.delete(&sum(&key)).unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -381,11 +381,11 @@ mod test {
 
         for i in 0_u32..2 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let key = 1_u32.to_be_bytes();
-        tree.delete(&key).unwrap();
+        tree.delete(&sum(&key)).unwrap();
 
         let root = tree.root();
         let expected_root = "39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b";
@@ -399,12 +399,12 @@ mod test {
 
         for i in 0_u32..10 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         for i in 5_u32..10 {
             let key = i.to_be_bytes();
-            tree.delete(&key).unwrap();
+            tree.delete(&sum(&key)).unwrap();
         }
 
         let root = tree.root();
@@ -421,32 +421,32 @@ mod test {
 
         for i in 0_u32..10 {
             let key = i.to_be_bytes();
-            tree.update(&key, data).unwrap();
+            tree.update(&sum(&key), data).unwrap();
         }
 
         for i in 5_u32..15 {
             let key = i.to_be_bytes();
-            tree.delete(&key).unwrap();
+            tree.delete(&sum(&key)).unwrap();
         }
 
         for i in 10_u32..20 {
             let key = i.to_be_bytes();
-            tree.update(&key, data).unwrap();
+            tree.update(&sum(&key), data).unwrap();
         }
 
         for i in 15_u32..25 {
             let key = i.to_be_bytes();
-            tree.delete(&key).unwrap();
+            tree.delete(&sum(&key)).unwrap();
         }
 
         for i in 20_u32..30 {
             let key = i.to_be_bytes();
-            tree.update(&key, data).unwrap();
+            tree.update(&sum(&key), data).unwrap();
         }
 
         for i in 25_u32..35 {
             let key = i.to_be_bytes();
-            tree.delete(&key).unwrap();
+            tree.delete(&sum(&key)).unwrap();
         }
 
         let root = tree.root();
@@ -461,11 +461,11 @@ mod test {
 
         for i in 0_u32..5 {
             let key = i.to_be_bytes();
-            tree.update(&key, b"DATA").unwrap();
+            tree.update(&sum(&key), b"DATA").unwrap();
         }
 
         let key = 1024_u32.to_be_bytes();
-        tree.delete(&key).unwrap();
+        tree.delete(&sum(&key)).unwrap();
 
         let root = tree.root();
         let expected_root = "108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b";
