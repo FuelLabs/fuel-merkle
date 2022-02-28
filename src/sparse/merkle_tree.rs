@@ -20,7 +20,11 @@ where
         }
     }
 
-    pub fn update(&'a mut self, key: &Bytes32, data: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn update(
+        &'a mut self,
+        key: &Bytes32,
+        data: &[u8],
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if data.is_empty() {
             // If the data is empty, this signifies a delete operation for the given key.
             self.delete(key)?;
@@ -205,9 +209,9 @@ where
 #[cfg(test)]
 mod test {
     use crate::common::{Bytes32, StorageError, StorageMap};
+    use crate::sparse::hash::sum;
     use crate::sparse::{Buffer, MerkleTree};
     use hex;
-    use crate::sparse::hash::sum;
 
     #[test]
     fn test_empty_root() {
