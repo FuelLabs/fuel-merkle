@@ -348,7 +348,7 @@ where
     }
 
     pub fn right_child(&self) -> Option<Self> {
-        assert!(self.is_node());
+        assert!(self.node.is_node());
         let key = self.node.right_child_key();
         let buffer = self.storage.get(key).unwrap();
         buffer.map(|b| {
