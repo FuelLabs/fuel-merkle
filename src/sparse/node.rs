@@ -396,17 +396,17 @@ where
     StorageError: std::error::Error + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.node.is_node() {
+        if self.is_node() {
             f.debug_struct("StorageNode (Internal)")
                 .field("Height", &self.height())
-                .field("Hash", &hex::encode(self.node.hash()))
+                .field("Hash", &hex::encode(self.hash()))
                 .field("Left child key", &hex::encode(self.node.left_child_key()))
                 .field("Right child key", &hex::encode(self.node.right_child_key()))
                 .finish()
         } else {
             f.debug_struct("StorageNode (Leaf)")
                 .field("Height", &self.height())
-                .field("Hash", &hex::encode(self.node.hash()))
+                .field("Hash", &hex::encode(self.hash()))
                 .field("Leaf key", &hex::encode(self.node.leaf_key()))
                 .field("Leaf data", &hex::encode(self.node.leaf_data()))
                 .finish()
