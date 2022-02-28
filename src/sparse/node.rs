@@ -335,6 +335,9 @@ where
     pub fn left_child(&self) -> Option<Self> {
         assert!(self.is_node());
         let key = self.node.left_child_key();
+        if key == zero_sum() {
+            return Some(Self::new(self.storage, Node::create_placeholder()));
+        }
         let buffer = self.storage.get(key).unwrap();
         buffer.map(|b| {
             let node = Node::from_buffer(*b);
@@ -343,8 +346,11 @@ where
     }
 
     pub fn right_child(&self) -> Option<Self> {
-        assert!(self.node.is_node());
+        assert!(self.is_node());
         let key = self.node.right_child_key();
+        if key == zero_sum() {
+            return Some(Self::new(self.storage, Node::create_placeholder()));
+        }
         let buffer = self.storage.get(key).unwrap();
         buffer.map(|b| {
             let node = Node::from_buffer(*b);
