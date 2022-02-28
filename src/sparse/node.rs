@@ -34,7 +34,7 @@ impl Node {
         let buffer = Self::default_buffer();
         let mut node = Self { buffer };
         node.set_height(0);
-        node.set_prefix(LEAF);
+        node.set_bytes_prefix(&[LEAF]);
         node.set_bytes_lo(key);
         node.set_bytes_hi(&sum(data));
         node
@@ -44,7 +44,7 @@ impl Node {
         let buffer = Self::default_buffer();
         let mut node = Self { buffer };
         node.set_height(left_child.height() + 1);
-        node.set_prefix(NODE);
+        node.set_bytes_prefix(&[NODE]);
         node.set_bytes_lo(&left_child.hash());
         node.set_bytes_hi(&right_child.hash());
         node
@@ -73,11 +73,6 @@ impl Node {
 
     pub fn prefix(&self) -> u8 {
         self.bytes_prefix()[0]
-    }
-
-    pub fn set_prefix(&mut self, prefix: u8) {
-        let bytes = prefix.to_be_bytes();
-        self.set_bytes_prefix(&bytes);
     }
 
     pub fn leaf_key(&self) -> &Bytes32 {
@@ -286,14 +281,12 @@ impl fmt::Debug for Node {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_node() {
             f.debug_struct("Node (Internal)")
-                .field("Height", &self.height())
                 .field("Hash", &hex::encode(self.hash()))
                 .field("Left child key", &hex::encode(self.left_child_key()))
                 .field("Right child key", &hex::encode(self.right_child_key()))
                 .finish()
         } else {
             f.debug_struct("Node (Leaf)")
-                .field("Height", &self.height())
                 .field("Hash", &hex::encode(self.hash()))
                 .field("Leaf key", &hex::encode(self.leaf_key()))
                 .field("Leaf data", &hex::encode(self.leaf_data()))
@@ -342,9 +335,6 @@ where
     pub fn left_child(&self) -> Option<Self> {
         assert!(self.is_node());
         let key = self.node.left_child_key();
-        if key == zero_sum() {
-            return Some(Self::new(self.storage, Node::create_placeholder()));
-        }
         let buffer = self.storage.get(key).unwrap();
         buffer.map(|b| {
             let node = Node::from_buffer(*b);
@@ -355,9 +345,6 @@ where
     pub fn right_child(&self) -> Option<Self> {
         assert!(self.is_node());
         let key = self.node.right_child_key();
-        if key == zero_sum() {
-            return Some(Self::new(self.storage, Node::create_placeholder()));
-        }
         let buffer = self.storage.get(key).unwrap();
         buffer.map(|b| {
             let node = Node::from_buffer(*b);
