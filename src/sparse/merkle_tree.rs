@@ -1,7 +1,6 @@
 use crate::common::{AsPathIterator, Bytes32, Msb, Node as NodeTrait};
 use fuel_storage::Storage;
 
-use crate::sparse::hash::sum;
 use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
 
 pub struct MerkleTree<'storage, StorageError> {
@@ -228,8 +227,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..1 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -243,8 +242,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..2 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -258,8 +257,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..3 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -273,8 +272,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..5 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -288,8 +287,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..10 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -303,8 +302,8 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..100 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -318,18 +317,18 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..5 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 10_u32..15 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 20_u32..25 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         let root = tree.root();
@@ -342,8 +341,8 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
-        let key = 0_u32.to_be_bytes();
-        tree.update(&sum(&key), b"").unwrap();
+        let key = sum(&0_u32.to_be_bytes());
+        tree.update(&key, b"").unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -355,9 +354,9 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
-        let key = 0_u32.to_be_bytes();
-        tree.update(&sum(&key), b"DATA").unwrap();
-        tree.update(&sum(&key), b"").unwrap();
+        let key = sum(&0_u32.to_be_bytes());
+        tree.update(&key, b"DATA").unwrap();
+        tree.update(&key, b"").unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -369,9 +368,9 @@ mod test {
         let mut storage = StorageMap::<Bytes32, Buffer>::new();
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
-        let key = 1_u32.to_be_bytes();
-        tree.update(&sum(&key), b"DATA").unwrap();
-        tree.delete(&sum(&key)).unwrap();
+        let key = sum(&1_u32.to_be_bytes());
+        tree.update(&key, b"DATA").unwrap();
+        tree.delete(&key).unwrap();
 
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -384,12 +383,12 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..2 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
-        let key = 1_u32.to_be_bytes();
-        tree.delete(&sum(&key)).unwrap();
+        let key = sum(&1_u32.to_be_bytes());
+        tree.delete(&key).unwrap();
 
         let root = tree.root();
         let expected_root = "39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b";
@@ -402,13 +401,13 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..10 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 5_u32..10 {
-            let key = i.to_be_bytes();
-            tree.delete(&sum(&key)).unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.delete(&key).unwrap();
         }
 
         let root = tree.root();
@@ -424,33 +423,33 @@ mod test {
         let data = b"DATA";
 
         for i in 0_u32..10 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), data).unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, data).unwrap();
         }
 
         for i in 5_u32..15 {
-            let key = i.to_be_bytes();
-            tree.delete(&sum(&key)).unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.delete(&key).unwrap();
         }
 
         for i in 10_u32..20 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), data).unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, data).unwrap();
         }
 
         for i in 15_u32..25 {
-            let key = i.to_be_bytes();
-            tree.delete(&sum(&key)).unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.delete(&key).unwrap();
         }
 
         for i in 20_u32..30 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), data).unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, data).unwrap();
         }
 
         for i in 25_u32..35 {
-            let key = i.to_be_bytes();
-            tree.delete(&sum(&key)).unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.delete(&key).unwrap();
         }
 
         let root = tree.root();
@@ -464,12 +463,12 @@ mod test {
         let mut tree = MerkleTree::<StorageError>::new(&mut storage);
 
         for i in 0_u32..5 {
-            let key = i.to_be_bytes();
-            tree.update(&sum(&key), b"DATA").unwrap();
+            let key = sum(&i.to_be_bytes());
+            tree.update(&key, b"DATA").unwrap();
         }
 
-        let key = 1024_u32.to_be_bytes();
-        tree.delete(&sum(&key)).unwrap();
+        let key = sum(&1024_u32.to_be_bytes());
+        tree.delete(&key).unwrap();
 
         let root = tree.root();
         let expected_root = "108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b";
