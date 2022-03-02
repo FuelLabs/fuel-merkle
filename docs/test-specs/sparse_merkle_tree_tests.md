@@ -20,7 +20,7 @@ A test specification follows the format:
 
 For a concrete test to comply with its corresponding test specification, the System Under Test (SUT) must take in the prescribed inputs. When the SUT produces the prescribed outputs, the test passes. When the SUT produces any result or error that is not prescribed by the specification, the test fails. For a library to comply with the complete specification described herein, it must implement all test specifications, and each test must pass.
 
-All test specifications assume that the Merkle Tree implementation under test uses the SHA-2-256 hashing algorithm as defined in [FIPS PUB 180-4](https://doi.org/10.6028/NIST.FIPS.180-4) to produce its outputs. The following test cases stipulate a theoretical function `Sum(N)` that takes in a data slice `N` and returns the 32 byte SHA-256 hash of `N`. 
+All test specifications assume that the Merkle Tree implementation under test uses the SHA-2-256 hashing algorithm as defined in [FIPS PUB 180-4](https://doi.org/10.6028/NIST.FIPS.180-4) to produce its outputs. The following test cases stipulate a theoretical function `Sum(N)` that takes in a big endian data slice `N` and returns the 32 byte SHA-256 hash of `N`. 
 
 *NOTE: As of version 0.1.0 of this document, there is discrepancy between the empty root defined by the Celestia specification and the empty root produced by the Celestia SMT implementation. Test specifications within this document that require the definition of the empty root have been marked with a note and are subject to change. There is an outstanding issue in the Celestia repository (https://github.com/celestiaorg/smt/issues/67) to address this discrepancy.*
 
