@@ -274,7 +274,7 @@ Tests the root after performing two update calls with the same leaf keys but dif
 **Inputs**:
 
 1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
-2. Update the tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = "CHANGE"` (bytes, UTF-8)
+2. Update the tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"CHANGE"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -369,7 +369,7 @@ Tests the root after performing one update call with empty data. Updating the em
 
 **Inputs**:
 
-1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and empty leaf data `D = ""` (0 bytes)
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and empty leaf data `D = b""` (0 bytes)
 
 **Outputs**:
 
@@ -397,7 +397,7 @@ Tests the root after performing one update call with arbitrary data followed by 
 **Inputs**:
 
 1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
-2. Update the tree with `(K, D)`, where leaf key `K = Sum(0u32)` and empty leaf data `D = ""` (1 byte)
+2. Update the tree with `(K, D)`, where leaf key `K = Sum(0u32)` and empty leaf data `D = b""` (0 bytes)
 
 **Outputs**:
 
