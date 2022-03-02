@@ -20,7 +20,7 @@ A test specification follows the format:
 
 For a concrete test to comply with its corresponding test specification, the System Under Test (SUT) must take in the prescribed inputs. When the SUT produces the prescribed outputs, the test passes. When the SUT produces any result or error that is not prescribed by the specification, the test fails. For a library to comply with the complete specification described herein, it must implement all test specifications, and each test must pass.
 
-All test specifications assume that the Merkle Tree implementation under test uses the SHA-2-256 hashing algorithm as defined in [FIPS PUB 180-4](https://doi.org/10.6028/NIST.FIPS.180-4) to produce its outputs.
+All test specifications assume that the Merkle Tree implementation under test uses the SHA-2-256 hashing algorithm as defined in [FIPS PUB 180-4](https://doi.org/10.6028/NIST.FIPS.180-4) to produce its outputs. The following test cases stipulate a theoretical function `Sum(N)` that takes in a data slice `N` and returns the 32 byte SHA-256 hash of `N`. 
 
 *NOTE: As of version 0.1.0 of this document, there is discrepancy between the empty root defined by the Celestia specification and the empty root produced by the Celestia SMT implementation. Test specifications within this document that require the definition of the empty root have been marked with a note and are subject to change. There is an outstanding issue in the Celestia repository (https://github.com/celestiaorg/smt/issues/67) to address this discrepancy.*
 
@@ -81,7 +81,7 @@ Tests the root after performing a single update call with the specified input.
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. Update the empty tree with `(K, D)` where leaf key `K = Sum(0u32)` (32 bytes) and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -90,7 +90,7 @@ Tests the root after performing a single update call with the specified input.
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
 root = smt.root()
 expected_root = '39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -105,8 +105,8 @@ Tests the root after performing two update calls with the specified inputs.
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Update the tree with leaf key `1u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. Update the tree with `(K, D)`, where leaf key `K = Sum(1u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -115,8 +115,8 @@ Tests the root after performing two update calls with the specified inputs.
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"DATA")
-smt.update(b"\x00\x00\x00\x01", b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x01"), b"DATA")
 root = smt.root()
 expected_root = '8d0ae412ca9ca0afcb3217af8bcd5a673e798bd6fd1dfacad17711e883f494cb'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -131,9 +131,9 @@ Tests the root after performing three update calls with the specified inputs.
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Update the tree with leaf key `1u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-3. Update the tree with leaf key `2u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. Update the tree with `(K, D)`, where leaf key `K = Sum(1u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+3. Update the tree with `(K, D)`, where leaf key `K = Sum(2u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -142,9 +142,9 @@ Tests the root after performing three update calls with the specified inputs.
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"DATA")
-smt.update(b"\x00\x00\x00\x01", b"DATA")
-smt.update(b"\x00\x00\x00\x02", b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x01"), b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x02"), b"DATA")
 root = smt.root()
 expected_root = '52295e42d8de2505fdc0cc825ff9fead419cbcf540d8b30c7c4b9c9b94c268b7'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -159,11 +159,11 @@ Tests the root after performing five update calls with the specified inputs.
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Update the tree with leaf key `1u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-3. Update the tree with leaf key `2u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-4. Update the tree with leaf key `3u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-5. Update the tree with leaf key `4u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. Update the tree with `(K, D)`, where leaf key `K = Sum(1u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+3. Update the tree with `(K, D)`, where leaf key `K = Sum(2u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+4. Update the tree with `(K, D)`, where leaf key `K = Sum(3u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+5. Update the tree with `(K, D)`, where leaf key `K = Sum(4u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -173,7 +173,9 @@ Tests the root after performing five update calls with the specified inputs.
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..5 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 root = smt.root()
 expected_root = '108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b'
@@ -189,7 +191,7 @@ Tests the root after performing 10 update calls with the specified inputs.
 
 **Inputs**:
 
-1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `0..10`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -199,7 +201,9 @@ Tests the root after performing 10 update calls with the specified inputs.
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..10 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 root = smt.root()
 expected_root = '21ca4917e99da99a61de93deaf88c400d4c082991cb95779e444d43dd13e8849'
@@ -215,7 +219,7 @@ Tests the root after performing 100 update calls with the specified inputs.
 
 **Inputs**:
 
-1. For each `i` in `0..100`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `0..100`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -225,7 +229,9 @@ Tests the root after performing 100 update calls with the specified inputs.
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..100 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 root = smt.root()
 expected_root = '82bf747d455a55e2f7044a03536fc43f1f55d43b855e72c0110c986707a23e4d'
@@ -241,8 +247,8 @@ Tests the root after performing two update calls with the same inputs. The resul
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-1. Update the tree again with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+1. Update the tree again with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -251,8 +257,8 @@ Tests the root after performing two update calls with the same inputs. The resul
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"DATA")
-smt.update(b"\x00\x00\x00\x00", b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
 root = smt.root()
 expected_root = '39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -267,8 +273,8 @@ Tests the root after performing two update calls with the same leaf keys but dif
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Update the tree again with leaf key `0u32` (4 bytes, big endian) and leaf data `"CHANGE"` (bytes, UTF-8)
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. Update the tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = "CHANGE"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -277,8 +283,8 @@ Tests the root after performing two update calls with the same leaf keys but dif
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"DATA")
-smt.update(b"\x00\x00\x00\x00", b"CHANGE")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"CHANGE")
 root = smt.root()
 expected_root = 'dd97174c80e5e5aa3a31c61b05e279c1495c8a07b2a08bca5dbc9fb9774f9457'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -293,9 +299,9 @@ Tests the root after performing update calls with discontinuous sets of inputs. 
 
 **Inputs**:
 
-1. For each `i` in `0..5`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-1. For each `i` in `10..15`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-1. For each `i` in `20..25`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `0..5`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+1. For each `i` in `10..15`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` (4 bytes, big endian) and leaf data `D = b"DATA"` (bytes, UTF-8)
+1. For each `i` in `20..25`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` (4 bytes, big endian) and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -305,13 +311,19 @@ Tests the root after performing update calls with discontinuous sets of inputs. 
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..5 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 for i in 10..15 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 for i in 20..25 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 root = smt.root()
 expected_root = '7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326'
@@ -327,7 +339,7 @@ Tests the root after performing update calls with discontinuous sets of inputs. 
 
 **Inputs**:
 
-1. For each `i` in `0..5`, update the tree with leaf key `i * 2` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `0..5`, update the tree with `(K, D)`, where leaf key `K = Sum(i * 2)` and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
@@ -337,7 +349,9 @@ Tests the root after performing update calls with discontinuous sets of inputs. 
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..5 {
-    smt.update(&(i as u32 * 2).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32 * 2).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 root = smt.root()
 expected_root = 'e02e761efef33aaa7a7027b4f5596c4c860476f299cdd0c4555199292d5041ee'
@@ -355,7 +369,7 @@ Tests the root after performing one update call with empty data. Updating the em
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and empty leaf data `""` (1 byte)
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and empty leaf data `D = ""` (0 bytes)
 
 **Outputs**:
 
@@ -364,7 +378,7 @@ Tests the root after performing one update call with empty data. Updating the em
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"")
 root = smt.root()
 expected_root = '0000000000000000000000000000000000000000000000000000000000000000'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -382,8 +396,8 @@ Tests the root after performing one update call with arbitrary data followed by 
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Update the tree with leaf key `0u32` (4 bytes, big endian) and empty leaf data `""` (1 byte)
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. Update the tree with `(K, D)`, where leaf key `K = Sum(0u32)` and empty leaf data `D = ""` (1 byte)
 
 **Outputs**:
 
@@ -392,8 +406,8 @@ Tests the root after performing one update call with arbitrary data followed by 
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"DATA")
-smt.update(b"\x00\x00\x00\x00", b"")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"")
 root = smt.root()
 expected_root = '0000000000000000000000000000000000000000000000000000000000000000'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -412,8 +426,8 @@ Tests the root after performing one update call followed by a subsequent delete 
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Delete leaf key `0u32` (4 bytes, big endian) from the tree 
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. Delete `(K)` from the tree, where leaf key `K = Sum(0u32)`  
 
 **Outputs**:
 
@@ -422,8 +436,8 @@ Tests the root after performing one update call followed by a subsequent delete 
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"DATA")
-smt.delete(b"\x00\x00\x00\x00")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
+smt.delete(&sum(b"\x00\x00\x00\x00"))
 root = smt.root()
 expected_root = '0000000000000000000000000000000000000000000000000000000000000000'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -438,9 +452,9 @@ Tests the root after performing two update calls followed by a subsequent delete
 
 **Inputs**:
 
-1. Update the empty tree with leaf key `0u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Update the tree with leaf key `1u32` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-3. Delete leaf key `1u32` (4 bytes, big endian) from the tree
+1. Update the empty tree with `(K, D)`, where leaf key `K = Sum(0u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. Update the tree with `(K, D)`, where leaf key `K = Sum(1u32)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+3. Delete `(K)` from the tree, where leaf key `K = Sum(1u32)` 
 
 **Outputs**:
 
@@ -449,9 +463,9 @@ Tests the root after performing two update calls followed by a subsequent delete
 **Example Pseudocode**:
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
-smt.update(b"\x00\x00\x00\x00", b"DATA")
-smt.update(b"\x00\x00\x00\x01", b"DATA")
-smt.delete(b"\x00\x00\x00\x01")
+smt.update(&sum(b"\x00\x00\x00\x00"), b"DATA")
+smt.update(&sum(b"\x00\x00\x00\x01"), b"DATA")
+smt.delete(&sum(b"\x00\x00\x00\x01"))
 root = smt.root()
 expected_root = '39f36a7cb4dfb1b46f03d044265df6a491dffc1034121bc1071a34ddce9bb14b'
 expect(hex_encode(root), expected_root).to_be_equal
@@ -466,8 +480,8 @@ Tests the root after performing 10 update calls followed by 5 subsequent delete 
 
 **Inputs**:
 
-1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. For each `i` in `5..10`, delete leaf key `i` (4 bytes, big endian) from the tree 
+1. For each `i` in `0..10`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. For each `i` in `5..10`, delete `(K)` from the tree, where leaf key `K = Sum(i)` 
 
 **Outputs**:
 
@@ -477,10 +491,13 @@ Tests the root after performing 10 update calls followed by 5 subsequent delete 
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..10 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 for i in 5..10 {
-    smt.delete(&(i as u32).to_big_endian_bytes())
+    key = &(i as u32).to_big_endian_bytes()
+    smt.delete(&sum(key))
 }
 root = smt.root()
 expected_root = '108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b'
@@ -496,8 +513,8 @@ Tests the root after performing five update calls followed by a subsequent delet
 
 **Inputs**:
 
-1. For each `i` in `0..5`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. Delete leaf key `1024u32` (4 bytes, big endian) from the tree
+1. For each `i` in `0..5`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. Delete `(K)` from the tree, where leaf key `K = Sum(1024u32)`
 
 **Outputs**:
 
@@ -507,9 +524,11 @@ Tests the root after performing five update calls followed by a subsequent delet
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..5 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
-smt.delete(b"\x00\x00\x04\x00")
+smt.delete(&sum(b"\x00\x00\x04\x00"))
 
 root = smt.root()
 expected_root = '108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b'
@@ -526,12 +545,12 @@ Tests the root after performing a series of interleaved update and delete calls.
 
 **Inputs**:
 
-1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. For each `i` in `5..15`, delete leaf key `i` (4 bytes, big endian) from the tree 
-3. For each `i` in `10..20`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-4. For each `i` in `15..25`, delete leaf key `i` (4 bytes, big endian) from the tree
-5. For each `i` in `20..30`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-6. For each `i` in `25..35`, delete leaf key `i` (4 bytes, big endian) from the tree
+1. For each `i` in `0..10`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. For each `i` in `5..15`, delete `(K)` from the tree, where leaf key `K = Sum(i)` from the tree 
+3. For each `i` in `10..20`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+4. For each `i` in `15..25`, delete `(K)` from the tree, where leaf key `K = Sum(i)` from the tree
+5. For each `i` in `20..30`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+6. For each `i` in `25..35`, delete `(K)` from the tree, where leaf key `K = Sum(i)` from the tree
 
 **Outputs**:
 
@@ -541,22 +560,31 @@ Tests the root after performing a series of interleaved update and delete calls.
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..10 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 for i in 5..15 {
-    smt.delete(&(i as u32).to_big_endian_bytes())
+    key = &(i as u32).to_big_endian_bytes()
+    smt.delete(&sum(key))
 }
 for i in 10..20 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA)
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 for i in 15..25 {
-    smt.delete(&(i as u32).to_big_endian_bytes())
+    key = &(i as u32).to_big_endian_bytes()
+    smt.delete(&sum(key))
 }
 for i in 20..30 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA)
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 for i in 25..35 {
-    smt.delete(&(i as u32).to_big_endian_bytes())
+    key = &(i as u32).to_big_endian_bytes()
+    smt.delete(&sum(key))
 }
 root = smt.root()
 expected_root = '7e6643325042cfe0fc76626c043b97062af51c7e9fc56665f12b479034bce326'
@@ -572,8 +600,8 @@ Tests the root after performing delete calls with discontinuous sets of inputs. 
 
 **Inputs**:
 
-1. For each `i` in `0..10`, update the tree with leaf key `i` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
-2. For each `i` in `0..5`, update the tree with leaf key `i * 2 + 1` (4 bytes, big endian) and leaf data `"DATA"` (bytes, UTF-8)
+1. For each `i` in `0..10`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+2. For each `i` in `0..5`, delete `(K)` from the tree, where leaf key `K = Sum(i * 2 + 1)`
 
 **Outputs**:
 
@@ -583,10 +611,13 @@ Tests the root after performing delete calls with discontinuous sets of inputs. 
 ```
 smt = SparseMerkleTree.new(Storage.new(), sha256.new())
 for i in 0..10 {
-    smt.update(&(i as u32).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32).to_big_endian_bytes()
+    data = b"DATA"
+    smt.update(&sum(key), data)
 }
 for i in 0..5 {
-    smt.update(&(i as u32 * 2 + 1).to_big_endian_bytes(), b"DATA")
+    key = &(i as u32 * 2 + 1).to_big_endian_bytes()
+    smt.delete(&sum(key))
 }
 root = smt.root()
 expected_root = 'e912e97abc67707b2e6027338292943b53d01a7fbd7b244674128c7e468dd696'
