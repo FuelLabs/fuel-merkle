@@ -300,8 +300,8 @@ Tests the root after performing update calls with discontinuous sets of inputs. 
 **Inputs**:
 
 1. For each `i` in `0..5`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
-1. For each `i` in `10..15`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` (4 bytes, big endian) and leaf data `D = b"DATA"` (bytes, UTF-8)
-1. For each `i` in `20..25`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` (4 bytes, big endian) and leaf data `D = b"DATA"` (bytes, UTF-8)
+1. For each `i` in `10..15`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
+1. For each `i` in `20..25`, update the tree with `(K, D)`, where leaf key `K = Sum(i)` and leaf data `D = b"DATA"` (bytes, UTF-8)
 
 **Outputs**:
 
