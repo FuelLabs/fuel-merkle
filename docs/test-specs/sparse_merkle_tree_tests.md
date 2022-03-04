@@ -354,7 +354,7 @@ for i in 0..5 {
     smt.update(&sum(key), data)
 }
 root = smt.root()
-expected_root = 'e02e761efef33aaa7a7027b4f5596c4c860476f299cdd0c4555199292d5041ee'
+expected_root = 'e912e97abc67707b2e6027338292943b53d01a7fbd7b244674128c7e468dd696'
 expect(hex_encode(root), expected_root).to_be_equal
 ```
 ---
