@@ -412,7 +412,6 @@ root = smt.root()
 expected_root = '0000000000000000000000000000000000000000000000000000000000000000'
 expect(hex_encode(root), expected_root).to_be_equal
 ```
-
 ---
 
 ### Test Update 1 Delete 1
@@ -534,7 +533,6 @@ root = smt.root()
 expected_root = '108f731f2414e33ae57e584dc26bd276db07874436b2264ca6e520c658185c6b'
 expect(hex_encode(root), expected_root).to_be_equal
 ```
-
 ---
 
 ### Test Interleaved Update Delete
