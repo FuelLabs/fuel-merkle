@@ -369,7 +369,7 @@ mod test {
         tree.update(&sum(b"\x00\x00\x00\x08"), b"DATA").unwrap();
 
         let root = tree.root();
-        let expected_root = "0xe912e97abc67707b2e6027338292943b53d01a7fbd7b244674128c7e468dd696";
+        let expected_root = "e912e97abc67707b2e6027338292943b53d01a7fbd7b244674128c7e468dd696";
         assert_eq!(hex::encode(root), expected_root);
     }
 
