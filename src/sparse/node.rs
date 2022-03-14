@@ -1,4 +1,5 @@
 use fuel_storage::Storage;
+use std::borrow::Borrow;
 use std::convert::TryInto;
 use std::fmt;
 use std::mem::size_of;
@@ -303,20 +304,33 @@ impl fmt::Debug for Node {
     }
 }
 
-type NodeStorage<'storage, StorageError> =
-    dyn 'storage + Storage<Bytes32, Buffer, Error = StorageError>;
+use std::cell::RefCell;
+use std::rc::Rc;
 
-#[derive(Clone)]
-pub(crate) struct StorageNode<'storage, StorageError> {
-    storage: &'storage NodeStorage<'storage, StorageError>,
+type StorageT<T> = Rc<RefCell<T>>;
+
+// #[derive(Clone)]
+pub(crate) struct StorageNode<T> {
+    storage: StorageT<T>,
     node: Node,
 }
 
-impl<'a, 'storage, StorageError> StorageNode<'storage, StorageError>
+impl<T> Clone for StorageNode<T> {
+    fn clone(&self) -> Self {
+        Self {
+            storage: Rc::clone(&self.storage),
+            node: self.node.clone(),
+        }
+    }
+}
+
+impl<T> StorageNode<T>
 where
-    StorageError: std::error::Error + Clone,
+    T: fuel_storage::Storage<Bytes32, Buffer>,
+    // where
+    //     StorageError: std::error::Error + Clone,
 {
-    pub fn new(storage: &'storage NodeStorage<'storage, StorageError>, node: Node) -> Self {
+    pub fn new(storage: StorageT<T>, node: Node) -> Self {
         Self { node, storage }
     }
 
@@ -344,12 +358,13 @@ where
         assert!(self.is_node());
         let key = self.node.left_child_key();
         if key == zero_sum() {
-            return Some(Self::new(self.storage, Node::create_placeholder()));
+            return Some(Self::new(self.storage.clone(), Node::create_placeholder()));
         }
-        let buffer = self.storage.get(key).unwrap();
+        let borrow = RefCell::borrow(&self.storage);
+        let buffer = borrow.get(key).unwrap();
         buffer.map(|b| {
             let node = Node::from_buffer(*b);
-            Self::new(self.storage, node)
+            Self::new(self.storage.clone(), node)
         })
     }
 
@@ -357,12 +372,13 @@ where
         assert!(self.is_node());
         let key = self.node.right_child_key();
         if key == zero_sum() {
-            return Some(Self::new(self.storage, Node::create_placeholder()));
+            return Some(Self::new(self.storage.clone(), Node::create_placeholder()));
         }
-        let buffer = self.storage.get(key).unwrap();
+        let borrow = RefCell::borrow(&self.storage);
+        let buffer = borrow.get(key).unwrap();
         buffer.map(|b| {
             let node = Node::from_buffer(*b);
-            Self::new(self.storage, node)
+            Self::new(self.storage.clone(), node)
         })
     }
 
@@ -371,9 +387,11 @@ where
     }
 }
 
-impl<'storage, StorageError> crate::common::Node for StorageNode<'storage, StorageError>
+impl<T> crate::common::Node for StorageNode<T>
 where
-    StorageError: std::error::Error + Clone,
+    T: fuel_storage::Storage<Bytes32, Buffer>,
+    // where
+    //     StorageError: std::error::Error + Clone,
 {
     type Key = Bytes32;
 
@@ -390,9 +408,11 @@ where
     }
 }
 
-impl<'storage, StorageError> crate::common::ParentNode for StorageNode<'storage, StorageError>
+impl<T> crate::common::ParentNode for StorageNode<T>
 where
-    StorageError: std::error::Error + Clone,
+    T: fuel_storage::Storage<Bytes32, Buffer>,
+    // where
+    //     StorageError: std::error::Error + Clone,
 {
     fn left_child(&self) -> Self {
         StorageNode::left_child(self).unwrap()
@@ -403,9 +423,11 @@ where
     }
 }
 
-impl<'storage, StorageError> fmt::Debug for StorageNode<'storage, StorageError>
+impl<T> fmt::Debug for StorageNode<T>
 where
-    StorageError: std::error::Error + Clone,
+    T: fuel_storage::Storage<Bytes32, Buffer>,
+    // where
+    //     StorageError: std::error::Error + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_node() {
@@ -594,24 +616,29 @@ mod test_node {
 mod test_storage_node {
     use crate::common::{Bytes32, StorageError, StorageMap};
     use crate::sparse::hash::sum;
-    use crate::sparse::node::Buffer;
+    use crate::sparse::node::{Buffer, StorageT};
     use crate::sparse::{Node, StorageNode};
     use fuel_storage::Storage;
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    type S = StorageMap<Bytes32, Buffer>;
 
     #[test]
     fn test_node_left_child_returns_the_left_child() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
+        // let mut s = StorageMap::<Bytes32, Buffer>::new();
+        let s = Rc::new(RefCell::new(S::new()));
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&leaf_0.hash(), leaf_0.as_buffer());
 
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.hash(), leaf_1.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&leaf_1.hash(), leaf_1.as_buffer());
 
         let node_0 = Node::create_node(&leaf_0, &leaf_1);
-        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&node_0.hash(), node_0.as_buffer());
 
-        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let storage_node = StorageNode::<S>::new(s, node_0);
         let child = storage_node.left_child().unwrap();
 
         assert_eq!(child.hash(), leaf_0.hash());
@@ -619,18 +646,18 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_the_right_child() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
+        let s = Rc::new(RefCell::new(S::new()));
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&leaf_0.hash(), leaf_0.as_buffer());
 
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.hash(), leaf_1.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&leaf_1.hash(), leaf_1.as_buffer());
 
         let node_0 = Node::create_node(&leaf_0, &leaf_1);
-        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&node_0.hash(), node_0.as_buffer());
 
-        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let storage_node = StorageNode::<S>::new(s, node_0);
         let child = storage_node.right_child().unwrap();
 
         assert_eq!(child.hash(), leaf_1.hash());
@@ -638,15 +665,16 @@ mod test_storage_node {
 
     #[test]
     fn test_node_left_child_returns_placeholder_when_key_is_zero_sum() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
+        // let mut s = StorageMap::<Bytes32, Buffer>::new();
+        let mut s = Rc::new(RefCell::new(S::new()));
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf.hash(), leaf.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&leaf.hash(), leaf.as_buffer());
 
         let node_0 = Node::create_node(&Node::create_placeholder(), &leaf);
-        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&node_0.hash(), node_0.as_buffer());
 
-        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let storage_node = StorageNode::<S>::new(s, node_0);
         let child = storage_node.left_child().unwrap();
 
         assert!(child.node.is_placeholder());
@@ -654,15 +682,16 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_placeholder_when_key_is_zero_sum() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
+        // let mut s = StorageMap::<Bytes32, Buffer>::new();
+        let mut s = Rc::new(RefCell::new(S::new()));
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf.hash(), leaf.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&leaf.hash(), leaf.as_buffer());
 
         let node_0 = Node::create_node(&leaf, &Node::create_placeholder());
-        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
+        let _ = RefCell::borrow_mut(&s).insert(&node_0.hash(), node_0.as_buffer());
 
-        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let storage_node = StorageNode::<S>::new(s, node_0);
         let child = storage_node.right_child().unwrap();
 
         assert!(child.node.is_placeholder());
