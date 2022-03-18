@@ -53,7 +53,7 @@ where
             return Ok(());
         }
 
-        if let Some(buffer) = self.storage.get(&key).unwrap() {
+        if let Some(buffer) = self.storage.get(key).unwrap() {
             let leaf_node = Node::from_buffer(*buffer);
             let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
             self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
@@ -131,7 +131,8 @@ where
             let ancestor_depth = requested_leaf_node.common_path_length(actual_leaf_node);
             let stale_depth = std::cmp::max(side_nodes.len(), ancestor_depth);
             let placeholders_count = stale_depth - side_nodes.len();
-            let placeholders = std::iter::repeat(Node::create_placeholder()).take(placeholders_count);
+            let placeholders =
+                std::iter::repeat(Node::create_placeholder()).take(placeholders_count);
             for placeholder in placeholders {
                 current_node = Node::create_node_on_path(path, &current_node, &placeholder);
                 self.storage
