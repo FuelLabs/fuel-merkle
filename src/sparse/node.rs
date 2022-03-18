@@ -309,7 +309,6 @@ use std::rc::Rc;
 
 type StorageT<T> = Rc<RefCell<T>>;
 
-// #[derive(Clone)]
 pub(crate) struct StorageNode<T> {
     storage: StorageT<T>,
     node: Node,

@@ -1,14 +1,12 @@
-use crate::common::{AsPathIterator, Bytes32, Msb, Node as NodeTrait, StorageMap};
-use fuel_storage::Storage;
-
-use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
-
-// type StorageType<StorageError> = dyn Storage<Bytes32, Buffer, Error = StorageError>;
-type StorageType = StorageMap<Bytes32, Buffer>;
-type StorageTypeRef = Rc<RefCell<StorageType>>;
-
 use std::cell::RefCell;
 use std::rc::Rc;
+use fuel_storage::Storage;
+
+use crate::common::{AsPathIterator, Bytes32, Msb, Node as NodeTrait, StorageMap};
+use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
+
+type StorageType = StorageMap<Bytes32, Buffer>;
+type StorageTypeRef = Rc<RefCell<StorageType>>;
 
 pub struct MerkleTree {
     root_node: Node,
