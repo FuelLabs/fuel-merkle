@@ -13,6 +13,12 @@ lazy_static! {
     static ref ZERO_SUM: Bytes32 = [0; 32];
 }
 
+// Merkle Tree hash of an empty list
+// MTH({}) = Hash()
+pub fn empty_sum() -> &'static Bytes32 {
+    &*EMPTY_SUM
+}
+
 pub fn zero_sum() -> &'static Bytes32 {
     &*ZERO_SUM
 }

@@ -38,12 +38,12 @@ impl Node {
         Node::key_size_in_bits()
     }
 
-    pub fn create_leaf(key: &[u8], data: &[u8]) -> Self {
+    pub fn create_leaf(key: &Bytes32, data: &[u8]) -> Self {
         let buffer = Self::default_buffer();
         let mut node = Self { buffer };
         node.set_height(0);
         node.set_prefix(LEAF);
-        node.set_bytes_lo(&sum(key));
+        node.set_bytes_lo(key);
         node.set_bytes_hi(&sum(data));
         node
     }
