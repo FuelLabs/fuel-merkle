@@ -117,7 +117,7 @@ where
         // We can determine if we are updating an existing leaf node, or if we are creating a new
         // leaf node, by comparing the paths of the requested leaf node and the leaf node at the
         // start of the path set. When the paths are equal, it means the leaf nodes occupy the same
-        // address, and we are updating an existing leaf. Otherwise, it means we are adding a new
+        // location, and we are updating an existing leaf. Otherwise, it means we are adding a new
         // leaf node.
         if requested_leaf_node.leaf_key() != actual_leaf_node.leaf_key() {
             // Merge leaves
@@ -190,6 +190,7 @@ where
             // non-placeholder node was found in the side node collection, merge it with the first
             // side node. This guarantees that the current node will be an internal node, and
             // not a leaf, by the time we start merging the remaining side nodes.
+            // See https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.find.
             if let Some(side_node) = side_nodes_iter.find(|side_node| !side_node.is_placeholder()) {
                 current_node = Node::create_node_on_path(path, &current_node, side_node);
                 self.storage
