@@ -1,20 +1,23 @@
+use fuel_storage::Storage;
 use std::cell::RefCell;
 use std::rc::Rc;
-use fuel_storage::Storage;
 
-use crate::common::{AsPathIterator, Bytes32, Msb, Node as NodeTrait, StorageMap};
+use crate::common::{AsPathIterator, Bytes32, Msb, Node as NodeTrait};
 use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
 
-type StorageType = StorageMap<Bytes32, Buffer>;
-type StorageTypeRef = Rc<RefCell<StorageType>>;
+type StorageTypeRef<T> = Rc<RefCell<T>>;
 
-pub struct MerkleTree {
+pub struct MerkleTree<T> {
     root_node: Node,
-    storage: StorageTypeRef,
+    storage: StorageTypeRef<T>,
 }
 
-impl<'a> MerkleTree {
-    pub fn new(storage: StorageTypeRef) -> Self {
+impl<'a, T> MerkleTree<T>
+where
+    T: Storage<Bytes32, Buffer>,
+    T::Error: 'static
+{
+    pub fn new(storage: StorageTypeRef<T>) -> Self {
         Self {
             root_node: Node::create_placeholder(),
             storage,
@@ -53,9 +56,9 @@ impl<'a> MerkleTree {
             return Ok(());
         }
 
-        let borrow = self.storage.as_ref().borrow();
-        let buffer = borrow.get(key);
-        if let Some(buffer) = buffer.unwrap() {
+        let storage = self.storage.as_ref().borrow();
+        let buffer = storage.get(key)?;
+        if let Some(buffer) = buffer {
             let leaf_node = Node::from_buffer(*buffer);
             drop(borrow);
             let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
@@ -81,8 +84,8 @@ impl<'a> MerkleTree {
 
     fn path_set(&'a self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
         let root_node = self.root_node().clone();
-        let root_storage_node = StorageNode::<StorageType>::new(self.storage.clone(), root_node);
-        let leaf_storage_node = StorageNode::<StorageType>::new(self.storage.clone(), leaf_node);
+        let root_storage_node = StorageNode::<T>::new(self.storage.clone(), root_node);
+        let leaf_storage_node = StorageNode::<T>::new(self.storage.clone(), leaf_node);
         let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = root_storage_node
             .as_path_iter(&leaf_storage_node)
             .map(|(node, side_node)| (node.into_node(), side_node.into_node()))
@@ -232,7 +235,7 @@ mod test {
 
     #[test]
     fn test_empty_root() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let tree = MerkleTree::new(storage);
         let root = tree.root();
         let expected_root = "0000000000000000000000000000000000000000000000000000000000000000";
@@ -241,7 +244,7 @@ mod test {
 
     #[test]
     fn test_update_1() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -253,7 +256,7 @@ mod test {
 
     #[test]
     fn test_update_2() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -266,7 +269,7 @@ mod test {
 
     #[test]
     fn test_update_3() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -280,7 +283,7 @@ mod test {
 
     #[test]
     fn test_update_5() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -296,7 +299,7 @@ mod test {
 
     #[test]
     fn test_update_10() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         for i in 0_u32..10 {
@@ -311,7 +314,7 @@ mod test {
 
     #[test]
     fn test_update_100() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         for i in 0_u32..100 {
@@ -326,7 +329,7 @@ mod test {
 
     #[test]
     fn test_update_with_repeated_inputs() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -339,7 +342,7 @@ mod test {
 
     #[test]
     fn test_update_overwrite_key() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -352,7 +355,7 @@ mod test {
 
     #[test]
     fn test_update_union() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         for i in 0_u32..5 {
@@ -377,7 +380,7 @@ mod test {
 
     #[test]
     fn test_update_sparse_union() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -393,7 +396,7 @@ mod test {
 
     #[test]
     fn test_update_with_empty_data() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"").unwrap();
@@ -405,7 +408,7 @@ mod test {
 
     #[test]
     fn test_update_with_empty_performs_delete() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -418,7 +421,7 @@ mod test {
 
     #[test]
     fn test_update_1_delete_1() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -431,7 +434,7 @@ mod test {
 
     #[test]
     fn test_update_2_delete_1() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -445,7 +448,7 @@ mod test {
 
     #[test]
     fn test_update_10_delete_5() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         for i in 0_u32..10 {
@@ -465,7 +468,7 @@ mod test {
 
     #[test]
     fn test_delete_non_existent_key() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
@@ -482,7 +485,7 @@ mod test {
 
     #[test]
     fn test_interleaved_update_delete() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         for i in 0_u32..10 {
@@ -522,7 +525,7 @@ mod test {
 
     #[test]
     fn test_delete_sparse_union() {
-        let mut storage = Rc::new(RefCell::new(S::new()));
+        let storage = Rc::new(RefCell::new(S::new()));
         let mut tree = MerkleTree::new(storage);
 
         for i in 0_u32..10 {

@@ -1,5 +1,4 @@
 use fuel_storage::Storage;
-use std::borrow::Borrow;
 use std::convert::TryInto;
 use std::fmt;
 use std::mem::size_of;
@@ -307,10 +306,10 @@ impl fmt::Debug for Node {
 use std::cell::RefCell;
 use std::rc::Rc;
 
-type StorageT<T> = Rc<RefCell<T>>;
+type StorageTypeRef<T> = Rc<RefCell<T>>;
 
 pub(crate) struct StorageNode<T> {
-    storage: StorageT<T>,
+    storage: StorageTypeRef<T>,
     node: Node,
 }
 
@@ -325,11 +324,9 @@ impl<T> Clone for StorageNode<T> {
 
 impl<T> StorageNode<T>
 where
-    T: fuel_storage::Storage<Bytes32, Buffer>,
-    // where
-    //     StorageError: std::error::Error + Clone,
+    T: Storage<Bytes32, Buffer>,
 {
-    pub fn new(storage: StorageT<T>, node: Node) -> Self {
+    pub fn new(storage: StorageTypeRef<T>, node: Node) -> Self {
         Self { node, storage }
     }
 
@@ -388,9 +385,7 @@ where
 
 impl<T> crate::common::Node for StorageNode<T>
 where
-    T: fuel_storage::Storage<Bytes32, Buffer>,
-    // where
-    //     StorageError: std::error::Error + Clone,
+    T: Storage<Bytes32, Buffer>,
 {
     type Key = Bytes32;
 
@@ -409,9 +404,7 @@ where
 
 impl<T> crate::common::ParentNode for StorageNode<T>
 where
-    T: fuel_storage::Storage<Bytes32, Buffer>,
-    // where
-    //     StorageError: std::error::Error + Clone,
+    T: Storage<Bytes32, Buffer>,
 {
     fn left_child(&self) -> Self {
         StorageNode::left_child(self).unwrap()
@@ -424,9 +417,7 @@ where
 
 impl<T> fmt::Debug for StorageNode<T>
 where
-    T: fuel_storage::Storage<Bytes32, Buffer>,
-    // where
-    //     StorageError: std::error::Error + Clone,
+    T: Storage<Bytes32, Buffer>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_node() {
@@ -613,9 +604,9 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
-    use crate::common::{Bytes32, StorageError, StorageMap};
+    use crate::common::{Bytes32, StorageMap};
     use crate::sparse::hash::sum;
-    use crate::sparse::node::{Buffer, StorageT};
+    use crate::sparse::node::{Buffer};
     use crate::sparse::{Node, StorageNode};
     use fuel_storage::Storage;
     use std::cell::RefCell;
@@ -665,7 +656,7 @@ mod test_storage_node {
     #[test]
     fn test_node_left_child_returns_placeholder_when_key_is_zero_sum() {
         // let mut s = StorageMap::<Bytes32, Buffer>::new();
-        let mut s = Rc::new(RefCell::new(S::new()));
+        let s = Rc::new(RefCell::new(S::new()));
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let _ = RefCell::borrow_mut(&s).insert(&leaf.hash(), leaf.as_buffer());
@@ -682,7 +673,7 @@ mod test_storage_node {
     #[test]
     fn test_node_right_child_returns_placeholder_when_key_is_zero_sum() {
         // let mut s = StorageMap::<Bytes32, Buffer>::new();
-        let mut s = Rc::new(RefCell::new(S::new()));
+        let s = Rc::new(RefCell::new(S::new()));
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let _ = RefCell::borrow_mut(&s).insert(&leaf.hash(), leaf.as_buffer());
