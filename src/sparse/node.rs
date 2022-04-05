@@ -103,7 +103,7 @@ impl Node {
         debug_assert!(self.is_leaf());
         debug_assert!(other.is_leaf());
 
-        // If either of the nodes are placeholders, the common path length is defined to be 0. This
+        // If either of the nodes is a placeholder, the common path length is defined to be 0. This
         // is needed to prevent a 0 bit in the placeholder's key from producing an erroneous match
         // with a 0 bit in the leaf's key.
         if self.is_placeholder() || other.is_placeholder() {

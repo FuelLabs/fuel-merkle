@@ -20,4 +20,6 @@ sha2 = "0.9"
 thiserror = "1.0"
 
 [dev-dependencies]
+datatest = "0.7.0"
 fuel-merkle-test-helpers = { path = "test-helpers" }
+serde = { version = "1.0.136", features = ["derive"] }

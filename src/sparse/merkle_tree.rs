@@ -1,7 +1,6 @@
 use crate::common::{AsPathIterator, Bytes32};
 use fuel_storage::Storage;
 
-use crate::sparse::hash::sum;
 use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
 
 pub struct MerkleTree<'storage, StorageError> {
