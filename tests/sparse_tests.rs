@@ -1,8 +1,6 @@
 #![feature(custom_test_frameworks)]
 #![test_runner(datatest::runner)]
 
-extern crate core;
-
 use fuel_merkle::common::{Bytes32, StorageError, StorageMap};
 use fuel_merkle::sparse::MerkleTree;
 use serde::Deserialize;
@@ -84,9 +82,14 @@ impl Test {
     }
 }
 
+impl ToString for Test {
+    fn to_string(&self) -> String {
+        self.name.clone()
+    }
+}
+
 #[datatest::data("tests/smt_test_spec.yaml")]
 #[test]
 fn test_data(test: Test) {
-    println!("{}", test.name);
     test.execute()
 }
