@@ -5,6 +5,7 @@ use fuel_merkle::common::{Bytes32, StorageError, StorageMap};
 use fuel_merkle::sparse::MerkleTree;
 use serde::Deserialize;
 use std::convert::TryInto;
+use std::fmt::{Display, Formatter};
 
 const BUFFER_SIZE: usize = 69;
 pub type Buffer = [u8; BUFFER_SIZE];
@@ -22,7 +23,7 @@ impl EncodedValue {
             "utf-8" => self.value.into_bytes(),
 
             // Unsupported encoding
-            _ => panic!("unsupported!"),
+            _ => panic!("unsupported encoding!"),
         }
     }
 }
@@ -82,9 +83,9 @@ impl Test {
     }
 }
 
-impl ToString for Test {
-    fn to_string(&self) -> String {
-        self.name.clone()
+impl Display for Test {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 
@@ -93,3 +94,14 @@ impl ToString for Test {
 fn test_data(test: Test) {
     test.execute()
 }
+
+/*#[test]
+fn test_data() {
+    let f = std::fs::File::open("tests/smt_test_spec.yaml").unwrap();
+    let tests: Vec<Test> = serde_yaml::from_reader(f).unwrap();
+    for test in tests {
+        println!("Executing test {}...", &test);
+        test.execute();
+    }
+}
+*/
