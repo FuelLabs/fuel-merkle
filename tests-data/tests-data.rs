@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fs::File, path::Path};
 
 use fuel_merkle::common::{Bytes32, StorageError, StorageMap};
 use fuel_merkle::sparse::MerkleTree;
@@ -109,8 +109,8 @@ impl Display for Test {
 }
 
 fn test(path: &Path) -> datatest_stable::Result<()> {
-    let data_file = std::fs::File::open(path).unwrap();
-    let test: Test = serde_yaml::from_reader(data_file).unwrap();
+    let data_file = File::open(path)?;
+    let test: Test = serde_yaml::from_reader(data_file)?;
     test.execute()
 }
 
