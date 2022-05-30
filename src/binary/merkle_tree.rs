@@ -200,8 +200,6 @@ mod test {
     use crate::common::StorageMap;
     use fuel_merkle_test_helpers::TEST_DATA;
 
-    // type MT<'a> = MerkleTree<'a, StorageMap>;
-
     #[test]
     fn test_push_builds_internal_tree_structure() {
         let mut storage_map = StorageMap::<u64, Node>::new();
