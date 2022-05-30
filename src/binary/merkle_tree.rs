@@ -18,6 +18,7 @@ pub enum MerkleTreeError<StorageError> {
     )]
     LoadError(u64),
 
+    #[cfg_attr(feature = "std", error("a storage error was thrown: {0}"))]
     StorageError(StorageError),
 }
 
