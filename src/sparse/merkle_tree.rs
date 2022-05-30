@@ -16,8 +16,13 @@ pub enum MerkleTreeError<StorageError> {
     )]
     LoadError(String),
 
-    #[error("a storage error was thrown: {0}")]
-    StorageError(#[from] StorageError),
+    StorageError(StorageError),
+}
+
+impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
+    fn from(err: StorageError) -> MerkleTreeError<StorageError> {
+        MerkleTreeError::StorageError(err)
+    }
 }
 
 // type StorageType<StorageError> = dyn Storage<Bytes32, Buffer, Error = StorageError>;

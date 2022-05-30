@@ -18,8 +18,13 @@ pub enum MerkleTreeError<StorageError> {
     )]
     LoadError(u64),
 
-    #[error("a storage error was thrown: {0}")]
-    StorageError(#[from] StorageError),
+    StorageError(StorageError),
+}
+
+impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
+    fn from(err: StorageError) -> MerkleTreeError<StorageError> {
+        MerkleTreeError::StorageError(err)
+    }
 }
 
 type ProofSet = Vec<Bytes32>;
@@ -191,7 +196,7 @@ where
 mod test {
     use super::{MerkleTree, Storage};
     use crate::binary::{empty_sum, leaf_sum, node_sum, Node};
-    use crate::common::{StorageMap, StorageMapError};
+    use crate::common::StorageMap;
     use fuel_merkle_test_helpers::TEST_DATA;
 
     // type MT<'a> = MerkleTree<'a, StorageMap>;
