@@ -643,7 +643,7 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
-    use crate::common::{Bytes32, StorageError, StorageMap};
+    use crate::common::{Bytes32, StorageMapError, StorageMap};
     use crate::sparse::hash::sum;
     use crate::sparse::node::Buffer;
     use crate::sparse::{Node, StorageNode};
@@ -662,7 +662,7 @@ mod test_storage_node {
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
         let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
-        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let storage_node = StorageNode::<StorageMapError>::new(&mut s, node_0);
         let child = storage_node.left_child().unwrap();
 
         assert_eq!(child.hash(), leaf_0.hash());
@@ -681,7 +681,7 @@ mod test_storage_node {
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
         let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
-        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let storage_node = StorageNode::<StorageMapError>::new(&mut s, node_0);
         let child = storage_node.right_child().unwrap();
 
         assert_eq!(child.hash(), leaf_1.hash());
@@ -697,7 +697,7 @@ mod test_storage_node {
         let node_0 = Node::create_node(&Node::create_placeholder(), &leaf, 1);
         let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
-        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let storage_node = StorageNode::<StorageMapError>::new(&mut s, node_0);
         let child = storage_node.left_child().unwrap();
 
         assert!(child.node.is_placeholder());
@@ -713,7 +713,7 @@ mod test_storage_node {
         let node_0 = Node::create_node(&leaf, &Node::create_placeholder(), 1);
         let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
-        let storage_node = StorageNode::<StorageError>::new(&mut s, node_0);
+        let storage_node = StorageNode::<StorageMapError>::new(&mut s, node_0);
         let child = storage_node.right_child().unwrap();
 
         assert!(child.node.is_placeholder());
