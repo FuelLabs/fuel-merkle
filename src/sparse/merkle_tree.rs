@@ -119,8 +119,8 @@ where
 
     fn path_set(&'a self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
         let root_node = self.root_node().clone();
-        let root_storage_node = StorageNode::<StorageError>::new(self.storage, root_node);
-        let leaf_storage_node = StorageNode::<StorageError>::new(self.storage, leaf_node);
+        let root_storage_node = StorageNode::new(self.storage, root_node);
+        let leaf_storage_node = StorageNode::new(self.storage, leaf_node);
         let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = root_storage_node
             .as_path_iter(&leaf_storage_node)
             .map(|(node, side_node)| (node.into_node(), side_node.into_node()))
