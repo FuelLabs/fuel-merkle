@@ -643,7 +643,7 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
-    use crate::common::{Bytes32, StorageMapError, StorageMap};
+    use crate::common::{Bytes32, StorageMap, StorageMapError};
     use crate::sparse::hash::sum;
     use crate::sparse::node::Buffer;
     use crate::sparse::{Node, StorageNode};

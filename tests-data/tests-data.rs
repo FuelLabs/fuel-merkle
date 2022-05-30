@@ -1,6 +1,6 @@
 use std::{fs::File, path::Path};
 
-use fuel_merkle::common::{Bytes32, StorageMapError, StorageMap};
+use fuel_merkle::common::{Bytes32, StorageMap, StorageMapError};
 use fuel_merkle::sparse::MerkleTree as SparseMerkleTree;
 use serde::Deserialize;
 use std::convert::TryInto;
@@ -22,7 +22,6 @@ const BUFFER_SIZE: usize = 69;
 type Buffer = [u8; BUFFER_SIZE];
 type Storage = StorageMap<Bytes32, Buffer>;
 type MerkleTree<'a> = SparseMerkleTree<'a, Storage>;
-
 
 // Supported actions:
 const ACTION_UPDATE: &str = "update";
@@ -78,10 +77,7 @@ enum Action {
 }
 
 impl Step {
-    pub fn execute(
-        self,
-        tree: &mut MerkleTree,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn execute(self, tree: &mut MerkleTree) -> Result<(), Box<dyn std::error::Error>> {
         match self.action_type()? {
             Action::Update(encoded_key, encoded_data) => {
                 let key_bytes = encoded_key.to_bytes()?;

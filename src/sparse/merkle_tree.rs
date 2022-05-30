@@ -54,7 +54,11 @@ where
         Ok(tree)
     }
 
-    pub fn update(&'a mut self, key: &Bytes32, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
+    pub fn update(
+        &'a mut self,
+        key: &Bytes32,
+        data: &[u8],
+    ) -> Result<(), MerkleTreeError<StorageError>> {
         if data.is_empty() {
             // If the data is empty, this signifies a delete operation for the
             // given key.
@@ -254,7 +258,7 @@ where
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod test {
-    use crate::common::{Bytes32, StorageMapError, StorageMap};
+    use crate::common::{Bytes32, StorageMap, StorageMapError};
     use crate::sparse::hash::sum;
     use crate::sparse::{Buffer, MerkleTree};
     use hex;
@@ -610,8 +614,7 @@ mod test {
 
         let root = {
             // Create a Merkle tree by loading the generated storage and root.
-            let mut tree =
-                MerkleTree::load(&mut storage_to_load, &root_to_load).unwrap();
+            let mut tree = MerkleTree::load(&mut storage_to_load, &root_to_load).unwrap();
             // Build up the loaded tree using the additional set of `update` data so its
             // root matches the expected root. This verifies that the loaded tree has
             // successfully wrapped the given storage backing and assumed the correct state

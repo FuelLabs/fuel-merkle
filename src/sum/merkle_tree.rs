@@ -118,7 +118,7 @@ where
 mod test {
     use fuel_merkle_test_helpers::TEST_DATA;
 
-    use crate::common::{Bytes32, StorageMapError, StorageMap};
+    use crate::common::{Bytes32, StorageMap, StorageMapError};
     use crate::sum::{empty_sum, leaf_sum, node_sum, MerkleTree, Node};
 
     type MT<'storage> = MerkleTree<'storage, StorageMapError>;

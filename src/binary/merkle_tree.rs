@@ -68,7 +68,10 @@ where
         Ok(root)
     }
 
-    pub fn prove(&mut self, proof_index: u64) -> Result<(Bytes32, ProofSet), MerkleTreeError<StorageError>> {
+    pub fn prove(
+        &mut self,
+        proof_index: u64,
+    ) -> Result<(Bytes32, ProofSet), MerkleTreeError<StorageError>> {
         if proof_index + 1 > self.leaves_count {
             return Err(MerkleTreeError::InvalidProofIndex(proof_index).into());
         }
@@ -188,7 +191,7 @@ where
 mod test {
     use super::{MerkleTree, Storage};
     use crate::binary::{empty_sum, leaf_sum, node_sum, Node};
-    use crate::common::{StorageMapError, StorageMap};
+    use crate::common::{StorageMap, StorageMapError};
     use fuel_merkle_test_helpers::TEST_DATA;
 
     // type MT<'a> = MerkleTree<'a, StorageMap>;
