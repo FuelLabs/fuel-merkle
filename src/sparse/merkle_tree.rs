@@ -264,7 +264,7 @@ where
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod test {
-    use crate::common::{Bytes32, StorageMap, StorageMapError};
+    use crate::common::{Bytes32, StorageMap};
     use crate::sparse::hash::sum;
     use crate::sparse::{Buffer, MerkleTree};
     use hex;

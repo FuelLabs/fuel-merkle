@@ -1,6 +1,6 @@
 use std::{fs::File, path::Path};
 
-use fuel_merkle::common::{Bytes32, StorageMap, StorageMapError};
+use fuel_merkle::common::{Bytes32, StorageMap};
 use fuel_merkle::sparse::MerkleTree as SparseMerkleTree;
 use serde::Deserialize;
 use std::convert::TryInto;
