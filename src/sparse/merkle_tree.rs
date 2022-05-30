@@ -26,8 +26,6 @@ impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
     }
 }
 
-// type StorageType<StorageError> = dyn Storage<Bytes32, Buffer, Error = StorageError>;
-
 pub struct MerkleTree<'storage, StorageType> {
     root_node: Node,
     storage: &'storage mut StorageType,
