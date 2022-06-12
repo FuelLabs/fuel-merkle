@@ -74,7 +74,7 @@ impl Iterator for PositionPathIter {
                 // If we previously encountered a side node corresponding to an
                 // invalid path node, we observe that the next valid path node
                 // always pairs with this side node. Once the path and side node
-                // have been paired, we continue to pair path  and side nodes
+                // have been paired, we continue to pair path and side nodes
                 // normally.
                 side = self.current_side_node.take().unwrap_or(side);
 
@@ -90,8 +90,8 @@ impl Iterator for PositionPathIter {
 
                 return Some((path, side));
             } else {
-                // If the path node is invalid, save reference to the the corresponding side
-                // node.
+                // If the path node is invalid, save reference to the
+                // corresponding side node.
                 if self.current_side_node.is_none() {
                     self.current_side_node = Some(side);
                 }

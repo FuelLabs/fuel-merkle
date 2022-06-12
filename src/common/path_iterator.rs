@@ -63,7 +63,9 @@ use crate::common::Msb;
 /// Starting at the tree's root at index `07`, we can follow the instructions
 /// encoded by the binary representation of leaf `6` (`0b110`). In combination
 /// with our in-order index rules for descending nodes, we evaluate the
-/// following: 1. The first bit is `1`; move right from `07` to `11`.
+/// following:
+///
+/// 1. The first bit is `1`; move right from `07` to `11`.
 /// 2. The next bit is `1`; move right from `11` to `13`.
 /// 3. The next and final bit is `0`; move left from `13` to `12`.
 ///
