@@ -2,30 +2,29 @@ use crate::common::Bytes32;
 use crate::sparse::Buffer;
 use crate::{common, sparse};
 
-use std::pin::Pin;
-use std::ptr::NonNull;
+use core::pin::Pin;
+use core::ptr::NonNull;
 
 type StorageMap = common::StorageMap<Bytes32, Buffer>;
 type SparseMerkleTree<'a> = sparse::MerkleTree<'a, StorageMap>;
 
 pub struct MerkleTree<'a> {
     storage: StorageMap,
-    tree_ptr: *mut SparseMerkleTree<'a>,
+    tree: Option<SparseMerkleTree<'a>>,
 }
 
 impl<'a> MerkleTree<'a> {
     pub fn new() -> Pin<Box<Self>> {
         let res = Self {
             storage: StorageMap::new(),
-            tree_ptr: std::ptr::null_mut(),
+            tree: None,
         };
 
         let mut boxed = Box::pin(res);
 
         unsafe {
             let mut storage = NonNull::from(&boxed.storage);
-            let mut tree = Box::pin(SparseMerkleTree::new(storage.as_mut()));
-            boxed.tree_ptr = tree.as_mut().get_unchecked_mut();
+            boxed.tree = Some(SparseMerkleTree::new(storage.as_mut()));
         }
 
         boxed
@@ -33,7 +32,7 @@ impl<'a> MerkleTree<'a> {
 
     pub fn update(&mut self, key: &Bytes32, data: &[u8]) {
         unsafe {
-            self.tree_ptr
+            self.tree
                 .as_mut()
                 .unwrap_unchecked()
                 .update(key, data)
@@ -43,7 +42,7 @@ impl<'a> MerkleTree<'a> {
 
     pub fn delete(&mut self, key: &Bytes32) {
         unsafe {
-            self.tree_ptr
+            self.tree
                 .as_mut()
                 .unwrap_unchecked()
                 .delete(key)
