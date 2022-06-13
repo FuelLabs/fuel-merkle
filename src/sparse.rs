@@ -1,6 +1,7 @@
 mod hash;
 mod merkle_tree;
 mod node;
+mod in_memory;
 
 pub use merkle_tree::{MerkleTree, MerkleTreeError};
 
