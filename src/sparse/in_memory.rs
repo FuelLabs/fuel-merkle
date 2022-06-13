@@ -2,6 +2,7 @@ use crate::common::Bytes32;
 use crate::sparse::Buffer;
 use crate::{common, sparse};
 
+use alloc::boxed::Box;
 use core::pin::Pin;
 use core::ptr::NonNull;
 
