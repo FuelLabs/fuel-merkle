@@ -10,14 +10,14 @@ type SparseMerkleTree<'a> = sparse::MerkleTree<'a, StorageMap>;
 
 pub struct MerkleTree<'a> {
     storage: StorageMap,
-    tree: *mut SparseMerkleTree<'a>,
+    tree_ptr: *mut SparseMerkleTree<'a>,
 }
 
 impl<'a> MerkleTree<'a> {
     pub fn new() -> Pin<Box<Self>> {
         let res = Self {
             storage: StorageMap::new(),
-            tree: std::ptr::null_mut(),
+            tree_ptr: std::ptr::null_mut(),
         };
 
         let mut boxed = Box::pin(res);
@@ -25,7 +25,7 @@ impl<'a> MerkleTree<'a> {
         unsafe {
             let mut storage = NonNull::from(&boxed.storage);
             let mut tree = Box::pin(SparseMerkleTree::new(storage.as_mut()));
-            boxed.tree = tree.as_mut().get_unchecked_mut();
+            boxed.tree_ptr = tree.as_mut().get_unchecked_mut();
         }
 
         boxed
@@ -33,7 +33,7 @@ impl<'a> MerkleTree<'a> {
 
     pub fn update(&mut self, key: &Bytes32, data: &[u8]) {
         unsafe {
-            self.tree
+            self.tree_ptr
                 .as_mut()
                 .unwrap_unchecked()
                 .update(key, data)
@@ -43,7 +43,7 @@ impl<'a> MerkleTree<'a> {
 
     pub fn delete(&mut self, key: &Bytes32) {
         unsafe {
-            self.tree
+            self.tree_ptr
                 .as_mut()
                 .unwrap_unchecked()
                 .delete(key)
