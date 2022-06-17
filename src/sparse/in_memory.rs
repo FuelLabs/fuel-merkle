@@ -3,9 +3,9 @@ use crate::sparse::Buffer;
 use crate::{common, sparse};
 
 use alloc::boxed::Box;
+use core::marker::PhantomPinned;
 use core::pin::Pin;
 use core::ptr::NonNull;
-use core::marker::PhantomPinned;
 
 type StorageMap = common::StorageMap<Bytes32, Buffer>;
 type SparseMerkleTree<'a> = sparse::MerkleTree<'a, StorageMap>;
