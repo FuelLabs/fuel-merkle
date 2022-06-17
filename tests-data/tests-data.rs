@@ -19,11 +19,6 @@ pub enum TestError {
     UnsupportedEncoding(String),
 }
 
-// const BUFFER_SIZE: usize = 69;
-// type Buffer = [u8; BUFFER_SIZE];
-// type Storage = StorageMap<Bytes32, Buffer>;
-// type MerkleTree<'a> = SparseMerkleTree<'a, Storage>;
-
 // Supported actions:
 const ACTION_UPDATE: &str = "update";
 const ACTION_DELETE: &str = "delete";
