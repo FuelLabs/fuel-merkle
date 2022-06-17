@@ -5,7 +5,7 @@ use crate::{common, sparse};
 use alloc::boxed::Box;
 use core::pin::Pin;
 use core::ptr::NonNull;
-use std::marker::PhantomPinned;
+use core::marker::PhantomPinned;
 
 type StorageMap = common::StorageMap<Bytes32, Buffer>;
 type SparseMerkleTree<'a> = sparse::MerkleTree<'a, StorageMap>;
