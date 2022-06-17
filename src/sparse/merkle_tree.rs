@@ -26,17 +26,17 @@ impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
     }
 }
 
-pub struct MerkleTree<'storage, StorageType> {
+pub struct MerkleTree<StorageType> {
     root_node: Node,
-    storage: &'storage mut StorageType,
+    storage: StorageType,
 }
 
-impl<'a, 'storage, StorageType, StorageError> MerkleTree<'storage, StorageType>
+impl<'a, StorageType, StorageError> MerkleTree<StorageType>
 where
     StorageType: Storage<Bytes32, Buffer, Error = StorageError>,
     StorageError: fmt::Debug + Clone + 'static,
 {
-    pub fn new(storage: &'storage mut StorageType) -> Self {
+    pub fn new(storage: StorageType) -> Self {
         Self {
             root_node: Node::create_placeholder(),
             storage,
@@ -44,7 +44,7 @@ where
     }
 
     pub fn load(
-        storage: &'storage mut StorageType,
+        storage: StorageType,
         root: &Bytes32,
     ) -> Result<Self, MerkleTreeError<StorageError>> {
         let buffer = storage
@@ -119,8 +119,8 @@ where
 
     fn path_set(&'a self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
         let root_node = self.root_node().clone();
-        let root_storage_node = StorageNode::new(self.storage, root_node);
-        let leaf_storage_node = StorageNode::new(self.storage, leaf_node);
+        let root_storage_node = StorageNode::new(&self.storage, root_node);
+        let leaf_storage_node = StorageNode::new(&self.storage, leaf_node);
         let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = root_storage_node
             .as_path_iter(&leaf_storage_node)
             .map(|(node, side_node)| (node.into_node(), side_node.into_node()))

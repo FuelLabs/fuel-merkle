@@ -1,12 +1,9 @@
-use std::{fs::File, path::Path};
-
-use core::pin::Pin;
-use fuel_merkle::common::{Bytes32, StorageMap};
+use fuel_merkle::common::Bytes32;
 use fuel_merkle::sparse::in_memory;
 use serde::Deserialize;
 use std::convert::TryInto;
 use std::fmt::{Display, Formatter};
-
+use std::{fs::File, path::Path};
 use thiserror::Error;
 
 #[derive(Clone, Debug, Error)]
@@ -122,11 +119,11 @@ impl Step {
     }
 }
 
-struct InMemoryMerkleTreeTestAdaptor<'a> {
-    tree: Pin<Box<in_memory::MerkleTree<'a>>>,
+struct InMemoryMerkleTreeTestAdaptor {
+    tree: Box<in_memory::MerkleTree>,
 }
 
-impl<'a> MerkleTreeTestAdaptor for InMemoryMerkleTreeTestAdaptor<'a> {
+impl<'a> MerkleTreeTestAdaptor for InMemoryMerkleTreeTestAdaptor {
     fn update(&mut self, key: &Bytes32, data: &[u8]) {
         self.tree.as_mut().update(key, data)
     }
@@ -149,7 +146,7 @@ struct Test {
 
 impl Test {
     pub fn execute(self) -> Result<(), Box<dyn std::error::Error>> {
-        let mut tree = in_memory::MerkleTree::new();
+        let tree = Box::new(in_memory::MerkleTree::new());
         let mut tree = InMemoryMerkleTreeTestAdaptor { tree };
 
         for step in self.steps {
