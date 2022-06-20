@@ -70,7 +70,6 @@ impl Node {
             } else {
                 Node::create_node(side_node, path_node, parent_height)
             }
-            // parent_node
         } else {
             // When joining two nodes, or a node and a leaf, the joined node is
             // the direct parent of the node with the greater height and an
@@ -83,7 +82,6 @@ impl Node {
             } else {
                 Node::create_node(side_node, path_node, parent_height)
             }
-            // parent_node
         }
     }
 
