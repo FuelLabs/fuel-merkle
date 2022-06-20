@@ -1,6 +1,5 @@
 use crate::binary::{self, Node};
 use crate::common::{Bytes32, Position, Subtree};
-
 use fuel_storage::Storage;
 
 use alloc::boxed::Box;
