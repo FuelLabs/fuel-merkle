@@ -130,7 +130,7 @@ mod test {
         let mut tree = MT::new(&mut storage_map);
 
         let root = tree.root().unwrap();
-        assert_eq!(root, (0, empty_sum().clone()));
+        assert_eq!(root, (0, *empty_sum()));
     }
 
     #[test]
@@ -139,10 +139,10 @@ mod test {
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0];
-        let _ = tree.push(FEE, &data);
+        let _ = tree.push(FEE, data);
         let root = tree.root().unwrap();
 
-        let expected = (FEE, leaf_sum(FEE, &data));
+        let expected = (FEE, leaf_sum(FEE, data));
         assert_eq!(root, expected);
     }
 
@@ -164,10 +164,10 @@ mod test {
         //  /  \    /  \
         // L0  L1  L2  L3
 
-        let leaf_0 = leaf_sum(FEE, &data[0]);
-        let leaf_1 = leaf_sum(FEE, &data[1]);
-        let leaf_2 = leaf_sum(FEE, &data[2]);
-        let leaf_3 = leaf_sum(FEE, &data[3]);
+        let leaf_0 = leaf_sum(FEE, data[0]);
+        let leaf_1 = leaf_sum(FEE, data[1]);
+        let leaf_2 = leaf_sum(FEE, data[2]);
+        let leaf_3 = leaf_sum(FEE, data[3]);
 
         let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
         let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
@@ -197,11 +197,11 @@ mod test {
         //  /  \    /  \   \
         // L0  L1  L2  L3  L4
 
-        let leaf_0 = leaf_sum(FEE, &data[0]);
-        let leaf_1 = leaf_sum(FEE, &data[1]);
-        let leaf_2 = leaf_sum(FEE, &data[2]);
-        let leaf_3 = leaf_sum(FEE, &data[3]);
-        let leaf_4 = leaf_sum(FEE, &data[4]);
+        let leaf_0 = leaf_sum(FEE, data[0]);
+        let leaf_1 = leaf_sum(FEE, data[1]);
+        let leaf_2 = leaf_sum(FEE, data[2]);
+        let leaf_3 = leaf_sum(FEE, data[3]);
+        let leaf_4 = leaf_sum(FEE, data[4]);
 
         let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
         let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
@@ -235,13 +235,13 @@ mod test {
         //  /  \    /  \    /  \   \
         // L0  L1  L2  L3  L4  L5  L6
 
-        let leaf_0 = leaf_sum(FEE, &data[0]);
-        let leaf_1 = leaf_sum(FEE, &data[1]);
-        let leaf_2 = leaf_sum(FEE, &data[2]);
-        let leaf_3 = leaf_sum(FEE, &data[3]);
-        let leaf_4 = leaf_sum(FEE, &data[4]);
-        let leaf_5 = leaf_sum(FEE, &data[5]);
-        let leaf_6 = leaf_sum(FEE, &data[6]);
+        let leaf_0 = leaf_sum(FEE, data[0]);
+        let leaf_1 = leaf_sum(FEE, data[1]);
+        let leaf_2 = leaf_sum(FEE, data[2]);
+        let leaf_3 = leaf_sum(FEE, data[3]);
+        let leaf_4 = leaf_sum(FEE, data[4]);
+        let leaf_5 = leaf_sum(FEE, data[5]);
+        let leaf_6 = leaf_sum(FEE, data[6]);
 
         let node_0 = node_sum(FEE * 1, &leaf_0, FEE * 1, &leaf_1);
         let node_1 = node_sum(FEE * 1, &leaf_2, FEE * 1, &leaf_3);
