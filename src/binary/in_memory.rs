@@ -1,10 +1,13 @@
-use crate::binary::{MerkleTreeError, Node};
+use core::convert::Infallible;
+
+use crate::binary::Node;
 use crate::common::{Bytes32, ProofSet};
 use crate::{binary, common};
 use fuel_storage::Storage;
 
 type StorageMap = common::StorageMap<u64, Node>;
 type StorageMapError = <StorageMap as Storage<u64, Node>>::Error;
+type MerkleTreeError = binary::MerkleTreeError<StorageMapError>;
 type BinaryMerkleTree = binary::MerkleTree<StorageMap>;
 
 pub struct MerkleTree {
@@ -26,10 +29,7 @@ impl MerkleTree {
         self.tree.root().unwrap()
     }
 
-    pub fn prove(
-        &mut self,
-        proof_index: u64,
-    ) -> Result<(Bytes32, ProofSet), MerkleTreeError<StorageMapError>> {
+    pub fn prove(&mut self, proof_index: u64) -> Result<(Bytes32, ProofSet), MerkleTreeError> {
         self.tree.prove(proof_index)
     }
 }
@@ -112,11 +112,6 @@ mod test {
 
         let proof = tree.prove(0);
         assert!(proof.is_err());
-        assert!(proof
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("proof index 0 is not valid"));
     }
 
     #[test]
@@ -130,11 +125,6 @@ mod test {
 
         let proof = tree.prove(10);
         assert!(proof.is_err());
-        assert!(proof
-            .err()
-            .unwrap()
-            .to_string()
-            .contains("proof index 10 is not valid"));
     }
 
     #[test]

@@ -25,6 +25,7 @@ pub type Bytes8 = [u8; 8];
 pub type Bytes16 = [u8; 16];
 pub type Bytes32 = [u8; 32];
 
+use alloc::vec::Vec;
 pub type ProofSet = Vec<Bytes32>;
 
 // Merkle Tree hash of an empty list
