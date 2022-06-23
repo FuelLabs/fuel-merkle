@@ -112,7 +112,11 @@ mod test {
 
         let proof = tree.prove(0);
         assert!(proof.is_err());
-        assert!(proof.err().unwrap().to_string().contains("proof index 0 is not valid"));
+        assert!(proof
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("proof index 0 is not valid"));
     }
 
     #[test]
@@ -126,7 +130,11 @@ mod test {
 
         let proof = tree.prove(10);
         assert!(proof.is_err());
-        assert!(proof.err().unwrap().to_string().contains("proof index 10 is not valid"));
+        assert!(proof
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("proof index 10 is not valid"));
     }
 
     #[test]
