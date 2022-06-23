@@ -102,7 +102,7 @@ mod test {
     }
 
     #[test]
-    fn prove_returns_invalid_proof_index_error_for_0_leaves() {
+    fn prove_returns_none_for_0_leaves() {
         let mut tree = MerkleTree::new();
 
         let proof = tree.prove(0);
@@ -110,7 +110,7 @@ mod test {
     }
 
     #[test]
-    fn prove_returns_invalid_proof_index_error_when_index_is_greater_than_number_of_leaves() {
+    fn prove_returns_none_when_index_is_greater_than_number_of_leaves() {
         let mut tree = MerkleTree::new();
 
         let data = &TEST_DATA[0..5]; // 5 leaves
