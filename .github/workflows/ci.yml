@@ -53,7 +53,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all --verbose -- -D warnings
+          args: --all-targets --all-features --verbose -- -D warnings
 
   build-and-test:
     runs-on: ubuntu-latest
