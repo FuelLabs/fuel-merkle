@@ -48,11 +48,12 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+
       - name: Check Clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --verbose -- -D warnings
+          args: --all --verbose -- -D warnings
 
   build-and-test:
     runs-on: ubuntu-latest
