@@ -1,3 +1,4 @@
 [submodule "fuel-specs"]
 	path = fuel-specs
 	url = https://github.com/FuelLabs/fuel-specs
+	branch = bvrooman-docs-add-smt-test-specs

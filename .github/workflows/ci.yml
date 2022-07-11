@@ -60,7 +60,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: true
 
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
@@ -94,7 +96,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          submodules: true
 
         # Using thumbv6m-none-eabi as ARMv6-M arbitrary common choice for a bare-minimum target.
         # More info: https://docs.rs/cortex-m-rt/latest/cortex_m_rt/
