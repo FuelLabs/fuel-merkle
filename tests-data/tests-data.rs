@@ -174,4 +174,4 @@ fn test(path: &Path) -> datatest_stable::Result<()> {
     test.execute()
 }
 
-datatest_stable::harness!(test, "./tests-data/fixtures", r"^.*/*");
+datatest_stable::harness!(test, "./fuel-specs/fixtures/sparse_merkle_tree", r"^.*/*");
