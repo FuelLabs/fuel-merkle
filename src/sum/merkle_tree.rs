@@ -1,7 +1,7 @@
 use crate::common::{Bytes32, Subtree};
 use crate::sum::{empty_sum, Node};
 
-use fuel_storage::Storage;
+use fuel_storage::{Mappable, Storage};
 
 use alloc::boxed::Box;
 use core::fmt;
@@ -18,9 +18,19 @@ pub struct MerkleTree<StorageType> {
     head: Option<Box<Subtree<Node>>>,
 }
 
+pub struct MerkleSumNodes;
+
+impl Mappable for MerkleSumNodes {
+    /// The 32 bytes unique key of the merkle node.
+    type Key = Bytes32;
+    /// The merkle sum node data with information to iterate over the tree.
+    type SetValue = Node;
+    type GetValue = Self::SetValue;
+}
+
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
-    StorageType: Storage<Bytes32, Node, Error = StorageError>,
+    StorageType: Storage<MerkleSumNodes, Error = StorageError>,
     StorageError: fmt::Debug + Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
@@ -117,17 +127,18 @@ where
 
 #[cfg(test)]
 mod test {
+    use super::MerkleSumNodes;
     use fuel_merkle_test_helpers::TEST_DATA;
 
-    use crate::common::{Bytes32, StorageMap};
-    use crate::sum::{empty_sum, leaf_sum, node_sum, MerkleTree, Node};
+    use crate::common::StorageMap;
+    use crate::sum::{empty_sum, leaf_sum, node_sum, MerkleTree};
 
-    type MT<'storage> = MerkleTree<&'storage mut StorageMap<Bytes32, Node>>;
+    type MT<'storage> = MerkleTree<&'storage mut StorageMap<MerkleSumNodes>>;
     const FEE: u64 = 100;
 
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Bytes32, Node>::new();
+        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let root = tree.root().unwrap();
@@ -136,7 +147,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
-        let mut storage_map = StorageMap::<Bytes32, Node>::new();
+        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0];
@@ -149,7 +160,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Bytes32, Node>::new();
+        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..4]; // 4 leaves
@@ -180,7 +191,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Bytes32, Node>::new();
+        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..5]; // 5 leaves
@@ -215,7 +226,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<Bytes32, Node>::new();
+        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..7]; // 7 leaves

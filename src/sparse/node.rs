@@ -5,6 +5,7 @@ use crate::sparse::zero_sum;
 
 use fuel_storage::Storage;
 
+use crate::sparse::merkle_tree::MerkleNodes;
 use core::mem::size_of;
 use core::ops::Range;
 use core::{cmp, fmt};
@@ -359,7 +360,7 @@ pub(crate) struct StorageNode<'storage, StorageType> {
 
 impl<'storage, StorageType, StorageError> Clone for StorageNode<'storage, StorageType>
 where
-    StorageType: Storage<Bytes32, Buffer, Error = StorageError>,
+    StorageType: Storage<MerkleNodes, Error = StorageError>,
     StorageError: fmt::Debug + Clone,
 {
     fn clone(&self) -> Self {
@@ -372,7 +373,7 @@ where
 
 impl<'storage, StorageType, StorageError> StorageNode<'storage, StorageType>
 where
-    StorageType: Storage<Bytes32, Buffer, Error = StorageError>,
+    StorageType: Storage<MerkleNodes, Error = StorageError>,
     StorageError: fmt::Debug + Clone,
 {
     pub fn new(storage: &'storage StorageType, node: Node) -> Self {
@@ -432,7 +433,7 @@ where
 
 impl<'storage, StorageType, StorageError> crate::common::Node for StorageNode<'storage, StorageType>
 where
-    StorageType: Storage<Bytes32, Buffer, Error = StorageError>,
+    StorageType: Storage<MerkleNodes, Error = StorageError>,
     StorageError: fmt::Debug + Clone,
 {
     type Key = Bytes32;
@@ -453,7 +454,7 @@ where
 impl<'storage, StorageType, StorageError> crate::common::ParentNode
     for StorageNode<'storage, StorageType>
 where
-    StorageType: Storage<Bytes32, Buffer, Error = StorageError>,
+    StorageType: Storage<MerkleNodes, Error = StorageError>,
     StorageError: fmt::Debug + Clone,
 {
     fn left_child(&self) -> Self {
@@ -467,7 +468,7 @@ where
 
 impl<'storage, StorageType, StorageError> fmt::Debug for StorageNode<'storage, StorageType>
 where
-    StorageType: Storage<Bytes32, Buffer, Error = StorageError>,
+    StorageType: Storage<MerkleNodes, Error = StorageError>,
     StorageError: fmt::Debug + Clone,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -655,15 +656,15 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
-    use crate::common::{Bytes32, StorageMap};
+    use crate::common::StorageMap;
     use crate::sparse::hash::sum;
-    use crate::sparse::node::Buffer;
+    use crate::sparse::merkle_tree::MerkleNodes;
     use crate::sparse::{Node, StorageNode};
-    use fuel_storage::Storage;
+    use fuel_storage::StorageMutate;
 
     #[test]
     fn test_node_left_child_returns_the_left_child() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
+        let mut s = StorageMap::<MerkleNodes>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
@@ -682,7 +683,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_the_right_child() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
+        let mut s = StorageMap::<MerkleNodes>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
@@ -701,7 +702,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_left_child_returns_placeholder_when_key_is_zero_sum() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
+        let mut s = StorageMap::<MerkleNodes>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let _ = s.insert(&leaf.hash(), leaf.as_buffer());
@@ -717,7 +718,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_placeholder_when_key_is_zero_sum() {
-        let mut s = StorageMap::<Bytes32, Buffer>::new();
+        let mut s = StorageMap::<MerkleNodes>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let _ = s.insert(&leaf.hash(), leaf.as_buffer());

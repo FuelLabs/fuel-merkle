@@ -1,8 +1,7 @@
 use crate::common::Bytes32;
-use crate::sparse::Buffer;
 use crate::{common, sparse};
 
-type StorageMap = common::StorageMap<Bytes32, Buffer>;
+type StorageMap = common::StorageMap<sparse::merkle_tree::MerkleNodes>;
 type SparseMerkleTree = sparse::MerkleTree<StorageMap>;
 
 pub struct MerkleTree {
