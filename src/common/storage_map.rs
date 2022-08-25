@@ -37,7 +37,7 @@ where
 {
     fn get(&self, key: &Type::Key) -> Result<Option<Cow<Type::GetValue>>, Self::Error> {
         let result = self.map.get(key);
-        let value = result.map(|value| Cow::Borrowed(value));
+        let value = result.map(Cow::Borrowed);
         Ok(value)
     }
 
