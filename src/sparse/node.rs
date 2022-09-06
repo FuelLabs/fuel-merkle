@@ -359,7 +359,7 @@ pub(crate) struct StorageNode<'storage, StorageType> {
     node: Node,
 }
 
-impl<'storage, StorageType> Clone for StorageNode<'storage, StorageType> {
+impl<StorageType> Clone for StorageNode<'_, StorageType> {
     fn clone(&self) -> Self {
         Self {
             storage: self.storage,
@@ -368,11 +368,13 @@ impl<'storage, StorageType> Clone for StorageNode<'storage, StorageType> {
     }
 }
 
-impl<'storage, StorageType> StorageNode<'storage, StorageType> {
-    pub fn new(storage: &'storage StorageType, node: Node) -> Self {
+impl<'s, StorageType> StorageNode<'s, StorageType> {
+    pub fn new(storage: &'s StorageType, node: Node) -> Self {
         Self { node, storage }
     }
+}
 
+impl<StorageType> StorageNode<'_, StorageType> {
     pub fn is_leaf(&self) -> bool {
         self.node.is_leaf()
     }
@@ -398,7 +400,7 @@ impl<'storage, StorageType> StorageNode<'storage, StorageType> {
     }
 }
 
-impl<'storage, StorageType> StorageNode<'storage, StorageType>
+impl<StorageType> StorageNode<'_, StorageType>
 where
     StorageType: StorageInspect<MerkleNodes>,
     StorageType::Error: fmt::Debug,
@@ -430,7 +432,7 @@ where
     }
 }
 
-impl<'storage, StorageType> crate::common::Node for StorageNode<'storage, StorageType> {
+impl<StorageType> crate::common::Node for StorageNode<'_, StorageType> {
     type Key = Bytes32;
 
     fn height(&self) -> u32 {
@@ -446,7 +448,7 @@ impl<'storage, StorageType> crate::common::Node for StorageNode<'storage, Storag
     }
 }
 
-impl<'storage, StorageType> crate::common::ParentNode for StorageNode<'storage, StorageType>
+impl<StorageType> crate::common::ParentNode for StorageNode<'_, StorageType>
 where
     StorageType: StorageInspect<MerkleNodes>,
     StorageType::Error: fmt::Debug,
@@ -460,7 +462,7 @@ where
     }
 }
 
-impl<'storage, StorageType> fmt::Debug for StorageNode<'storage, StorageType>
+impl<StorageType> fmt::Debug for StorageNode<'_, StorageType>
 where
     StorageType: StorageInspect<MerkleNodes>,
     StorageType::Error: fmt::Debug,
