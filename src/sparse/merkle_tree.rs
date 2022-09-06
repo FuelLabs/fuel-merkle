@@ -1,6 +1,6 @@
 use crate::common::{AsPathIterator, Bytes32};
 use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
-use fuel_storage::{Mappable, Storage};
+use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -42,7 +42,7 @@ impl Mappable for MerkleNodes {
 
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
-    StorageType: Storage<MerkleNodes, Error = StorageError>,
+    StorageType: StorageMutate<MerkleNodes, Error = StorageError>,
     StorageError: fmt::Debug + Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {

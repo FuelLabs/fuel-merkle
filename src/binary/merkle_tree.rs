@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::binary::{self, Node};
 use crate::common::{Bytes32, Position, ProofSet, Subtree};
-use fuel_storage::{Mappable, Storage};
+use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -47,7 +47,7 @@ impl Mappable for NodesArray {
 
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
-    StorageType: Storage<NodesArray, Error = StorageError>,
+    StorageType: StorageMutate<NodesArray, Error = StorageError>,
     StorageError: fmt::Debug + Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {

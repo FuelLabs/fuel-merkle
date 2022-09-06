@@ -1,7 +1,7 @@
 use crate::common::{Bytes32, Subtree};
 use crate::sum::{empty_sum, Node};
 
-use fuel_storage::{Mappable, Storage};
+use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::boxed::Box;
 use core::fmt;
@@ -30,7 +30,7 @@ impl Mappable for MerkleSumNodes {
 
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
-    StorageType: Storage<MerkleSumNodes, Error = StorageError>,
+    StorageType: StorageMutate<MerkleSumNodes, Error = StorageError>,
     StorageError: fmt::Debug + Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {

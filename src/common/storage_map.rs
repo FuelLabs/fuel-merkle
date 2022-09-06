@@ -1,4 +1,4 @@
-use fuel_storage::{Mappable, StorageError, StorageInspect, StorageMutate};
+use fuel_storage::{Mappable, StorageInspect, StorageMutate};
 
 use alloc::borrow::Cow;
 use hashbrown::HashMap;
@@ -22,19 +22,14 @@ impl<Type: Mappable> StorageMap<Type> {
     }
 }
 
-impl<Type> StorageError<Type> for StorageMap<Type>
-where
-    Type: Mappable,
-{
-    type Error = core::convert::Infallible;
-}
-
 impl<Type> StorageInspect<Type> for StorageMap<Type>
 where
     Type: Mappable,
     Type::Key: Eq + core::hash::Hash + Clone,
     Type::GetValue: Clone,
 {
+    type Error = core::convert::Infallible;
+
     fn get(&self, key: &Type::Key) -> Result<Option<Cow<Type::GetValue>>, Self::Error> {
         let result = self.map.get(key);
         let value = result.map(Cow::Borrowed);

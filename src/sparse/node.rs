@@ -3,7 +3,8 @@ use crate::common::{Bytes1, Bytes32, Bytes4, Msb, LEAF, NODE};
 use crate::sparse::hash::sum;
 use crate::sparse::zero_sum;
 
-use fuel_storage::Storage;
+// TODO: Return errors instead of `unwrap` during work with storage.
+use fuel_storage::StorageInspect;
 
 use crate::sparse::merkle_tree::MerkleNodes;
 use core::mem::size_of;
@@ -358,11 +359,7 @@ pub(crate) struct StorageNode<'storage, StorageType> {
     node: Node,
 }
 
-impl<'storage, StorageType, StorageError> Clone for StorageNode<'storage, StorageType>
-where
-    StorageType: Storage<MerkleNodes, Error = StorageError>,
-    StorageError: fmt::Debug + Clone,
-{
+impl<'storage, StorageType> Clone for StorageNode<'storage, StorageType> {
     fn clone(&self) -> Self {
         Self {
             storage: self.storage,
@@ -371,11 +368,7 @@ where
     }
 }
 
-impl<'storage, StorageType, StorageError> StorageNode<'storage, StorageType>
-where
-    StorageType: Storage<MerkleNodes, Error = StorageError>,
-    StorageError: fmt::Debug + Clone,
-{
+impl<'storage, StorageType> StorageNode<'storage, StorageType> {
     pub fn new(storage: &'storage StorageType, node: Node) -> Self {
         Self { node, storage }
     }
@@ -400,6 +393,16 @@ where
         self.node.height()
     }
 
+    pub fn into_node(self) -> Node {
+        self.node
+    }
+}
+
+impl<'storage, StorageType> StorageNode<'storage, StorageType>
+where
+    StorageType: StorageInspect<MerkleNodes>,
+    StorageType::Error: fmt::Debug,
+{
     pub fn left_child(&self) -> Option<Self> {
         assert!(self.is_node());
         let key = self.node.left_child_key();
@@ -425,17 +428,9 @@ where
             Self::new(self.storage, node)
         })
     }
-
-    pub fn into_node(self) -> Node {
-        self.node
-    }
 }
 
-impl<'storage, StorageType, StorageError> crate::common::Node for StorageNode<'storage, StorageType>
-where
-    StorageType: Storage<MerkleNodes, Error = StorageError>,
-    StorageError: fmt::Debug + Clone,
-{
+impl<'storage, StorageType> crate::common::Node for StorageNode<'storage, StorageType> {
     type Key = Bytes32;
 
     fn height(&self) -> u32 {
@@ -451,11 +446,10 @@ where
     }
 }
 
-impl<'storage, StorageType, StorageError> crate::common::ParentNode
-    for StorageNode<'storage, StorageType>
+impl<'storage, StorageType> crate::common::ParentNode for StorageNode<'storage, StorageType>
 where
-    StorageType: Storage<MerkleNodes, Error = StorageError>,
-    StorageError: fmt::Debug + Clone,
+    StorageType: StorageInspect<MerkleNodes>,
+    StorageType::Error: fmt::Debug,
 {
     fn left_child(&self) -> Self {
         StorageNode::left_child(self).unwrap()
@@ -466,10 +460,10 @@ where
     }
 }
 
-impl<'storage, StorageType, StorageError> fmt::Debug for StorageNode<'storage, StorageType>
+impl<'storage, StorageType> fmt::Debug for StorageNode<'storage, StorageType>
 where
-    StorageType: Storage<MerkleNodes, Error = StorageError>,
-    StorageError: fmt::Debug + Clone,
+    StorageType: StorageInspect<MerkleNodes>,
+    StorageType::Error: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.is_node() {
