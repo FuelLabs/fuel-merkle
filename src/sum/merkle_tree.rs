@@ -41,7 +41,7 @@ pub struct MerkleTree<StorageType> {
     head: Option<Box<Subtree<Node>>>,
 }
 
-/// The table of the binary merkle's sum tree nodes. The storage key is the `Byte32` hash
+/// The table of the Binary Merkle Sum Tree's nodes. The storage key is the `Byte32` hash
 /// (see description of [`MerkleTree`]) and value is the [`Node`](crate::sum::Node).
 pub struct NodesTable;
 

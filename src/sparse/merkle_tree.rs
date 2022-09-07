@@ -30,7 +30,7 @@ pub struct MerkleTree<StorageType> {
     storage: StorageType,
 }
 
-/// The table of the sparse merkle's tree nodes. [`MerkleTree`] works with it as a sparse merkle
+/// The table of the Sparse Merkle tree's nodes. [`MerkleTree`] works with it as a sparse merkle
 /// tree, where the storage key is `Bytes32` and the value is the [`Buffer`](crate::sparse::Buffer)
 /// (raw presentation of the [`Node`](crate::sparse::Node)).
 pub struct NodesTable;
