@@ -1,7 +1,7 @@
 use crate::common::{Bytes32, ProofSet};
 use crate::{binary, common};
 
-type StorageMap = common::StorageMap<binary::merkle_tree::NodesArray>;
+type StorageMap = common::StorageMap<binary::merkle_tree::NodesTable>;
 type BinaryMerkleTree = binary::MerkleTree<StorageMap>;
 
 pub struct MerkleTree {

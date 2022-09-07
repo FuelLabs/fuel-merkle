@@ -6,7 +6,7 @@ use crate::sparse::zero_sum;
 // TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::StorageInspect;
 
-use crate::sparse::merkle_tree::MerkleNodes;
+use crate::sparse::merkle_tree::NodesTable;
 use core::mem::size_of;
 use core::ops::Range;
 use core::{cmp, fmt};
@@ -402,7 +402,7 @@ impl<StorageType> StorageNode<'_, StorageType> {
 
 impl<StorageType> StorageNode<'_, StorageType>
 where
-    StorageType: StorageInspect<MerkleNodes>,
+    StorageType: StorageInspect<NodesTable>,
     StorageType::Error: fmt::Debug,
 {
     pub fn left_child(&self) -> Option<Self> {
@@ -450,7 +450,7 @@ impl<StorageType> crate::common::Node for StorageNode<'_, StorageType> {
 
 impl<StorageType> crate::common::ParentNode for StorageNode<'_, StorageType>
 where
-    StorageType: StorageInspect<MerkleNodes>,
+    StorageType: StorageInspect<NodesTable>,
     StorageType::Error: fmt::Debug,
 {
     fn left_child(&self) -> Self {
@@ -464,7 +464,7 @@ where
 
 impl<StorageType> fmt::Debug for StorageNode<'_, StorageType>
 where
-    StorageType: StorageInspect<MerkleNodes>,
+    StorageType: StorageInspect<NodesTable>,
     StorageType::Error: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -654,13 +654,13 @@ mod test_node {
 mod test_storage_node {
     use crate::common::StorageMap;
     use crate::sparse::hash::sum;
-    use crate::sparse::merkle_tree::MerkleNodes;
+    use crate::sparse::merkle_tree::NodesTable;
     use crate::sparse::{Node, StorageNode};
     use fuel_storage::StorageMutate;
 
     #[test]
     fn test_node_left_child_returns_the_left_child() {
-        let mut s = StorageMap::<MerkleNodes>::new();
+        let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
@@ -679,7 +679,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_the_right_child() {
-        let mut s = StorageMap::<MerkleNodes>::new();
+        let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
@@ -698,7 +698,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_left_child_returns_placeholder_when_key_is_zero_sum() {
-        let mut s = StorageMap::<MerkleNodes>::new();
+        let mut s = StorageMap::<NodesTable>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let _ = s.insert(&leaf.hash(), leaf.as_buffer());
@@ -714,7 +714,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_placeholder_when_key_is_zero_sum() {
-        let mut s = StorageMap::<MerkleNodes>::new();
+        let mut s = StorageMap::<NodesTable>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let _ = s.insert(&leaf.hash(), leaf.as_buffer());

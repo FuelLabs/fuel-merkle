@@ -13,14 +13,39 @@ pub enum MerkleTreeError {
     InvalidProofIndex(u64),
 }
 
+/// The Binary Merkle Sum Tree is an extension to the existing Binary [`MerkleTree`](crate::binary::MerkleTree).
+/// A node (leaf or internal node) in the tree is defined as having:
+/// - a fee (u64, 8 bytes)
+/// - a digest (array of bytes)
+///
+/// Therefore, a node's data is now a data pair formed by `(fee, digest)`. The data pair of a node
+/// with two or more leaves is defined as:
+///
+/// (left.fee + right.fee, hash(0x01 ++ left.fee ++ left.digest ++ right.fee ++ right.digest))
+///
+/// This is in contrast to the Binary Merkle Tree node, where a node has only a digest.
+///
+/// See the [specification](https://github.com/FuelLabs/fuel-specs/blob/master/specs/protocol/cryptographic_primitives.md#merkle-trees)
+/// for more details.
+///
+/// **Details**
+///
+/// When joining subtrees `a` and `b`, the joined subtree is now defined as:
+///
+/// fee: a.fee + b.fee
+/// data: node_sum(a.fee, a.data, b.fee, b.data)
+///
+/// where `node_sum` is defined as the hash function described in the data pair description above.
 pub struct MerkleTree<StorageType> {
     storage: StorageType,
     head: Option<Box<Subtree<Node>>>,
 }
 
-pub struct MerkleSumNodes;
+/// The table of the binary merkle's sum tree nodes. The storage key is the `Byte32` hash
+/// (see description of [`MerkleTree`]) and value is the [`Node`](crate::sum::Node).
+pub struct NodesTable;
 
-impl Mappable for MerkleSumNodes {
+impl Mappable for NodesTable {
     /// The 32 bytes unique key of the merkle node.
     type Key = Bytes32;
     /// The merkle sum node data with information to iterate over the tree.
@@ -30,7 +55,7 @@ impl Mappable for MerkleSumNodes {
 
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
-    StorageType: StorageMutate<MerkleSumNodes, Error = StorageError>,
+    StorageType: StorageMutate<NodesTable, Error = StorageError>,
     StorageError: fmt::Debug + Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
@@ -127,18 +152,18 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::MerkleSumNodes;
+    use super::NodesTable;
     use fuel_merkle_test_helpers::TEST_DATA;
 
     use crate::common::StorageMap;
     use crate::sum::{empty_sum, leaf_sum, node_sum, MerkleTree};
 
-    type MT<'storage> = MerkleTree<&'storage mut StorageMap<MerkleSumNodes>>;
+    type MT<'storage> = MerkleTree<&'storage mut StorageMap<NodesTable>>;
     const FEE: u64 = 100;
 
     #[test]
     fn root_returns_the_hash_of_the_empty_string_when_no_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
+        let mut storage_map = StorageMap::<NodesTable>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let root = tree.root().unwrap();
@@ -147,7 +172,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_leaf_when_one_leaf_is_pushed() {
-        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
+        let mut storage_map = StorageMap::<NodesTable>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0];
@@ -160,7 +185,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_4_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
+        let mut storage_map = StorageMap::<NodesTable>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..4]; // 4 leaves
@@ -191,7 +216,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_5_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
+        let mut storage_map = StorageMap::<NodesTable>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..5]; // 5 leaves
@@ -226,7 +251,7 @@ mod test {
 
     #[test]
     fn root_returns_the_hash_of_the_head_when_7_leaves_are_pushed() {
-        let mut storage_map = StorageMap::<MerkleSumNodes>::new();
+        let mut storage_map = StorageMap::<NodesTable>::new();
         let mut tree = MT::new(&mut storage_map);
 
         let data = &TEST_DATA[0..7]; // 7 leaves
