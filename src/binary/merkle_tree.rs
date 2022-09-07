@@ -35,7 +35,7 @@ pub struct MerkleTree<StorageType> {
     leaves_count: u64,
 }
 
-/// The table of the binary merkle's tree nodes. [`MerkleTree`] works with it as a binary array,
+/// The table of the Binary Merkle Tree's nodes. [`MerkleTree`] works with it as a binary array,
 /// where the storage key of the node is the `u64` index and value is the
 /// [`Node`](crate::binary::Node).
 pub struct NodesTable;
