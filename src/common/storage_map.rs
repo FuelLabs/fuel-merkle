@@ -76,9 +76,9 @@ mod test {
     #[derive(Debug, Copy, Clone, PartialEq, Eq)]
     struct TestValue(u32);
 
-    struct Tests;
+    struct TestTable;
 
-    impl Mappable for Tests {
+    impl Mappable for TestTable {
         type Key = TestKey;
         type SetValue = TestValue;
         type GetValue = Self::SetValue;
@@ -87,7 +87,7 @@ mod test {
     #[test]
     fn test_get_returns_value_for_given_key() {
         let key = TestKey(0);
-        let mut store = StorageMap::<Tests>::new();
+        let mut store = StorageMap::<TestTable>::new();
         let _ = store.insert(&key, &TestValue(0));
 
         assert_eq!(store.get(&key).unwrap(), Some(Cow::Borrowed(&TestValue(0))));
@@ -96,7 +96,7 @@ mod test {
     fn test_get_returns_none_for_invalid_key() {
         let key = TestKey(0);
         let invalid_key = TestKey(1);
-        let mut store = StorageMap::<Tests>::new();
+        let mut store = StorageMap::<TestTable>::new();
         let _ = store.insert(&key, &TestValue(0));
 
         assert_eq!(store.get(&invalid_key).unwrap(), None);
@@ -105,7 +105,7 @@ mod test {
     #[test]
     fn test_insert_existing_key_updates_value_for_given_key() {
         let key = TestKey(0);
-        let mut store = StorageMap::<Tests>::new();
+        let mut store = StorageMap::<TestTable>::new();
         let _ = store.insert(&key, &TestValue(0));
         let _ = store.insert(&key, &TestValue(1));
 
@@ -115,7 +115,7 @@ mod test {
     #[test]
     fn test_remove_deletes_the_value_for_given_key() {
         let key = TestKey(0);
-        let mut store = StorageMap::<Tests>::new();
+        let mut store = StorageMap::<TestTable>::new();
         let _ = store.insert(&key, &TestValue(0));
         let _ = store.remove(&key);
 
@@ -125,7 +125,7 @@ mod test {
     #[test]
     fn test_remove_returns_the_deleted_value_for_given_key() {
         let key = TestKey(0);
-        let mut store = StorageMap::<Tests>::new();
+        let mut store = StorageMap::<TestTable>::new();
         let _ = store.insert(&key, &TestValue(0));
 
         assert_eq!(store.remove(&key).unwrap(), Some(TestValue(0)));
@@ -134,7 +134,7 @@ mod test {
     #[test]
     fn test_remove_returns_none_for_invalid_key() {
         let invalid_key = TestKey(0);
-        let mut store = StorageMap::<Tests>::new();
+        let mut store = StorageMap::<TestTable>::new();
 
         assert_eq!(store.remove(&invalid_key).unwrap(), None);
     }
@@ -142,7 +142,7 @@ mod test {
     #[test]
     fn test_contains_key_returns_true_for_valid_key() {
         let key = TestKey(0);
-        let mut store = StorageMap::<Tests>::new();
+        let mut store = StorageMap::<TestTable>::new();
         let _ = store.insert(&key, &TestValue(0));
 
         assert_eq!(store.contains_key(&key).unwrap(), true);
@@ -151,7 +151,7 @@ mod test {
     #[test]
     fn test_contains_key_returns_false_for_invalid_key() {
         let invalid_key = TestKey(0);
-        let store = StorageMap::<Tests>::new();
+        let store = StorageMap::<TestTable>::new();
 
         assert_eq!(store.contains_key(&invalid_key).unwrap(), false);
     }
