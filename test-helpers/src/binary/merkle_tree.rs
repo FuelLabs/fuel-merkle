@@ -3,6 +3,7 @@ use crate::binary::{empty_sum, leaf_sum, node_sum, Data, Node};
 type DataNode = Node<Data>;
 type ProofSet = Vec<Data>;
 
+#[derive(Clone)]
 pub struct MerkleTree {
     head: Option<Box<DataNode>>,
     leaves_count: u64,
@@ -82,7 +83,11 @@ impl MerkleTree {
             current = current.take_next().unwrap();
         }
 
-        (self.root(), self.proof_set)
+        // The first item in the proof set is the leaf to be proven. By definition, it should not
+        // be included in the proof set.
+        let root = self.root();
+        self.proof_set.remove(0);
+        (root, self.proof_set)
     }
 
     //
@@ -305,8 +310,7 @@ mod test {
         let node_3 = node_sum(&node_1, &node_2);
 
         assert_eq!(root, node_3);
-        assert_eq!(set[0], leaf_1);
-        assert_eq!(set[1], leaf_2);
+        assert_eq!(set[0], leaf_2);
     }
 
     #[test]
@@ -344,10 +348,9 @@ mod test {
         let node_4 = node_sum(&node_3, &leaf_5);
 
         assert_eq!(root, node_4);
-        assert_eq!(set[0], leaf_3);
-        assert_eq!(set[1], leaf_4);
-        assert_eq!(set[2], node_1);
-        assert_eq!(set[3], leaf_5);
+        assert_eq!(set[0], leaf_4);
+        assert_eq!(set[1], node_1);
+        assert_eq!(set[2], leaf_5);
     }
 
     #[test]
@@ -385,8 +388,7 @@ mod test {
         let node_4 = node_sum(&node_3, &leaf_5);
 
         assert_eq!(root, node_4);
-        assert_eq!(set[0], leaf_5);
-        assert_eq!(set[1], node_3);
+        assert_eq!(set[0], node_3);
     }
 
     #[test]
