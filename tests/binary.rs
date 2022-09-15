@@ -9,7 +9,8 @@ use fuel_merkle_test_helpers::binary::MerkleTree as ReferenceMerkleTree;
 /// ReferenceTest
 /// A ReferenceTest instantiates an instance of the system under test as well as
 /// an instance of a reference system. Executing the ReferenceTest is done by
-/// calling one of its compare methods.
+/// calling one of its `compare` methods: the test calls the same method on both
+/// the SUT and the reference and compares the results.
 struct ReferenceTest {
     test_tree: MerkleTree,
     reference_tree: ReferenceMerkleTree,
