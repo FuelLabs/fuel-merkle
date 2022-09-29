@@ -553,4 +553,44 @@ mod test {
         assert_eq!(path_positions, expected_path);
         assert_eq!(side_positions, expected_side);
     }
+
+    #[test]
+    fn test_path_set_returns_path_and_side_nodes_for_9_leaves() {
+        //
+        //                   15
+        //                  /  \
+        //                 /    \
+        //               07      \
+        //              /  \      \
+        //             /    \      \
+        //            /      \      \
+        //           /        \      \
+        //          /          \      \
+        //         /            \      \
+        //       03              11     \
+        //      /  \            /  \     \
+        //     /    \          /    \     \
+        //   01      05      09      13    \
+        //  /  \    /  \    /  \    /  \    \
+        // 00  02  04  06  08  10  12  14   16
+        // 00  01  02  03  04  05  06  07   08
+
+        let root = Position::from_in_order_index(15);
+
+        let leaf = Position::from_leaf_index(8);
+        let (path_positions, side_positions): (Vec<Position>, Vec<Position>) =
+            root.path(&leaf, 9).iter().unzip();
+        // let expected_path = [
+        //     Position::from_in_order_index(7),
+        //     Position::from_in_order_index(3),
+        //     Position::from_in_order_index(1),
+        //     Position::from_in_order_index(0),
+        // ];
+        let expected_side = [
+            Position::from_in_order_index(15),
+            Position::from_in_order_index(7),
+        ];
+        // assert_eq!(path_positions, expected_path);
+        assert_eq!(side_positions, expected_side);
+    }
 }

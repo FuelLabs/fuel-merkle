@@ -4,6 +4,7 @@ use crate::binary::{self, Node};
 use crate::common::{Bytes32, Position, ProofSet, Subtree};
 use fuel_storage::{Mappable, StorageMutate};
 
+use crate::Binary;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
@@ -136,18 +137,76 @@ where
     //
 
     fn build(&mut self) -> Result<(), MerkleTreeError<StorageError>> {
-        let keys = (0..self.leaves_count).map(|i| Position::from_leaf_index(i).in_order_index());
-        for key in keys {
+        // let keys = (0..self.leaves_count).map(|i| Position::from_leaf_index(i).in_order_index());
+        // for key in keys {
+        //     let node = self
+        //         .storage
+        //         .get(&key)?
+        //         .ok_or(MerkleTreeError::LoadError(key))?
+        //         .into_owned();
+        //     let next = self.head.take();
+        //     let head = Box::new(Subtree::<Node>::new(node, next));
+        //     self.head = Some(head);
+        //     self.join_all_subtrees()?;
+        // }
+
+        let leaves_count = self.leaves_count;
+
+        println!("leaves: {}", leaves_count);
+        // let mut peaks = vec![];
+
+        // let index = leaves_count.prev_p2() - 1;
+        // let first_peak = Position::from_in_order_index(index);
+        //
+        // let last_leaf = Position::from_leaf_index(self.leaves_count);
+        //
+        // let mut current = first_peak;
+        // while !current.is_leaf() {
+        //     peaks.push(current);
+        //     current = current.nephew();
+        // }
+        //
+        // peaks.push(current);
+
+        let leaf_position = Position::from_leaf_index(leaves_count);
+        println!("leaf: {:?}", leaf_position);
+
+        let root_index = (leaves_count + 1).next_p2() - 1;
+        let root_position = Position::from_in_order_index(root_index);
+        println!("root: {:?}", root_position);
+
+        let (_, mut peaks): (Vec<_>, Vec<_>) = root_position
+            .path(&leaf_position, leaves_count + 1)
+            .iter()
+            .unzip();
+
+        peaks.reverse(); // Reorder side positions from leaf to root.
+        peaks.pop(); // The last side position is the root; remove it.
+        peaks.reverse(); // Reorder side positions from leaf to root.
+
+        println!("Peaks: {:?}", peaks);
+
+        let mut current_head = None;
+
+        for peak in peaks.as_slice().iter() {
+            let key = peak.in_order_index();
             let node = self
                 .storage
                 .get(&key)?
                 .ok_or(MerkleTreeError::LoadError(key))?
                 .into_owned();
-            let next = self.head.take();
-            let head = Box::new(Subtree::<Node>::new(node, next));
-            self.head = Some(head);
-            self.join_all_subtrees()?;
+            let next = Box::new(Subtree::<Node>::new(node, current_head));
+            current_head = Some(next);
         }
+
+        self.head = current_head;
+        self.join_all_subtrees()?;
+
+        // let mut head = self.head.take();
+        // while head.is_some() {
+        //     println!("Head: {:?}", head.as_ref().unwrap().node());
+        //     head = head.unwrap().take_next();
+        // }
 
         Ok(())
     }
@@ -207,9 +266,29 @@ where
 mod test {
     use super::{MerkleTree, NodesTable};
     use crate::binary::{empty_sum, leaf_sum, node_sum};
-    use crate::common::StorageMap;
+    use crate::common::{Position, StorageMap};
+    use crate::Binary;
     use fuel_merkle_test_helpers::TEST_DATA;
     use fuel_storage::StorageInspect;
+
+    #[test]
+    fn test_things() {
+        let leaves_count = 7u64;
+        let mut peaks = vec![];
+
+        let index = leaves_count.prev_p2() - 1;
+        let first_peak = Position::from_in_order_index(index);
+
+        let mut current = first_peak;
+        while !current.is_leaf() {
+            peaks.push(current);
+            current = current.nephew();
+        }
+
+        peaks.push(current);
+
+        println!("{:?}", peaks);
+    }
 
     #[test]
     fn test_push_builds_internal_tree_structure() {
@@ -275,21 +354,27 @@ mod test {
 
     #[test]
     fn load_returns_a_valid_tree() {
-        const LEAVES_COUNT: u64 = 7;
+        const LEAVES_COUNT: u64 = 987541;
 
         let mut storage_map = StorageMap::<NodesTable>::new();
 
         let root_1 = {
             let mut tree = MerkleTree::new(&mut storage_map);
-            let data = &TEST_DATA[0..LEAVES_COUNT as usize];
+            let data = (0u64..LEAVES_COUNT)
+                .map(|i| i.to_be_bytes())
+                .collect::<Vec<_>>();
             for datum in data.iter() {
                 let _ = tree.push(datum);
             }
+            println!("Head: {:?}", tree.head.as_ref().unwrap().node());
+            println!();
             tree.root().unwrap()
         };
 
         let root_2 = {
             let mut tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
+            println!("Head: {:?}", tree.head.as_ref().unwrap().node());
+            println!();
             tree.root().unwrap()
         };
 
@@ -381,6 +466,102 @@ mod test {
 
         let root = tree.root().unwrap();
         assert_eq!(root, node_7);
+    }
+
+    #[test]
+    fn root_returns_the_merkle_root_for_8_leaves() {
+        let mut storage_map = StorageMap::<NodesTable>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let data = &TEST_DATA[0..8]; // 7 leaves
+        for datum in data.iter() {
+            let _ = tree.push(datum);
+        }
+
+        //               07
+        //              /  \
+        //             /    \
+        //            /      \
+        //           /        \
+        //          /          \
+        //         /            \
+        //       03              11
+        //      /  \            /  \
+        //     /    \          /    \
+        //   01      05      09      13
+        //  /  \    /  \    /  \    /  \
+        // 00  02  04  06  08  10  12  14
+        // 00  01  02  03  04  05  06  07
+
+        let leaf_0 = leaf_sum(data[0]);
+        let leaf_1 = leaf_sum(data[1]);
+        let leaf_2 = leaf_sum(data[2]);
+        let leaf_3 = leaf_sum(data[3]);
+        let leaf_4 = leaf_sum(data[4]);
+        let leaf_5 = leaf_sum(data[5]);
+        let leaf_6 = leaf_sum(data[6]);
+        let leaf_7 = leaf_sum(data[7]);
+
+        let node_1 = node_sum(&leaf_0, &leaf_1);
+        let node_5 = node_sum(&leaf_2, &leaf_3);
+        let node_3 = node_sum(&node_1, &node_5);
+        let node_9 = node_sum(&leaf_4, &leaf_5);
+        let node_13 = node_sum(&leaf_6, &leaf_7);
+        let node_11 = node_sum(&node_9, &node_13);
+        let node_7 = node_sum(&node_3, &node_11);
+
+        let root = tree.root().unwrap();
+        assert_eq!(root, node_7);
+    }
+
+    #[test]
+    fn root_returns_the_merkle_root_for_9_leaves() {
+        let mut storage_map = StorageMap::<NodesTable>::new();
+        let mut tree = MerkleTree::new(&mut storage_map);
+
+        let data = &TEST_DATA[0..9]; // 9 leaves
+        for datum in data.iter() {
+            let _ = tree.push(datum);
+        }
+        //                   15
+        //                  /  \
+        //                 /    \
+        //               07      \
+        //              /  \      \
+        //             /    \      \
+        //            /      \      \
+        //           /        \      \
+        //          /          \      \
+        //         /            \      \
+        //       03              11     \
+        //      /  \            /  \     \
+        //     /    \          /    \     \
+        //   01      05      09      13    \
+        //  /  \    /  \    /  \    /  \    \
+        // 00  02  04  06  08  10  12  14   16
+        // 00  01  02  03  04  05  06  07   08
+
+        let leaf_0 = leaf_sum(data[0]);
+        let leaf_1 = leaf_sum(data[1]);
+        let leaf_2 = leaf_sum(data[2]);
+        let leaf_3 = leaf_sum(data[3]);
+        let leaf_4 = leaf_sum(data[4]);
+        let leaf_5 = leaf_sum(data[5]);
+        let leaf_6 = leaf_sum(data[6]);
+        let leaf_7 = leaf_sum(data[7]);
+        let leaf_8 = leaf_sum(data[8]);
+
+        let node_1 = node_sum(&leaf_0, &leaf_1);
+        let node_5 = node_sum(&leaf_2, &leaf_3);
+        let node_3 = node_sum(&node_1, &node_5);
+        let node_9 = node_sum(&leaf_4, &leaf_5);
+        let node_13 = node_sum(&leaf_6, &leaf_7);
+        let node_11 = node_sum(&node_9, &node_13);
+        let node_7 = node_sum(&node_3, &node_11);
+        let node_15 = node_sum(&node_7, &leaf_8);
+
+        let root = tree.root().unwrap();
+        assert_eq!(root, node_15);
     }
 
     #[test]
