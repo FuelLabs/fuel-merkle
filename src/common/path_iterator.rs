@@ -1,7 +1,7 @@
 use crate::common::node::ParentNode;
 use crate::common::Msb;
 
-/// #Path Iterator
+/// # Path Iterator
 ///
 /// A naturally arising property of binary trees is that a leaf index encodes
 /// the unique path needed to traverse from the root of the tree to that leaf.
@@ -73,6 +73,7 @@ use crate::common::Msb;
 /// leaf index `6`. Indeed, following the instructions at each bit has produced
 /// the same list of positional indices that we observed earlier: `07, 11, 13,
 /// 12`.
+///
 pub struct PathIter<T> {
     leaf: T,
     current: Option<(T, T)>,
