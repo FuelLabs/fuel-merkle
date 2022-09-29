@@ -107,7 +107,7 @@ where
             return Ok(());
         }
 
-        if let Some(buffer) = self.storage.get(key).unwrap() {
+        if let Some(buffer) = self.storage.get(key)? {
             let leaf_node = Node::from_buffer(*buffer);
             let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
             self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
@@ -141,7 +141,8 @@ where
             .unzip();
         path_nodes.reverse();
         side_nodes.reverse();
-        side_nodes.pop(); // The last element in the side nodes list is the root; remove it.
+        side_nodes.pop(); // The last element in the side nodes list is the
+                          // root; remove it.
 
         (path_nodes, side_nodes)
     }
@@ -241,18 +242,18 @@ where
                 side_nodes_iter.next();
                 current_node = first_side_node.clone();
 
-                // Advance the side node iterator to the next non-placeholder node.
-                // This may be either another leaf node or an internal node. If only
-                // placeholder nodes exist beyond the first leaf node, then that
-                // leaf node is, in fact, the new root node.
+                // Advance the side node iterator to the next non-placeholder
+                // node. This may be either another leaf node or an internal
+                // node. If only placeholder nodes exist beyond the first leaf
+                // node, then that leaf node is, in fact, the new root node.
                 //
                 // Using `find(..)` advances the iterator beyond the next
                 // non-placeholder side node and returns it. Therefore, we must
-                // consume the side node at this point. If another non-placeholder
-                // node was found in the side node collection, merge it with the
-                // first side node. This guarantees that the current node will be an
-                // internal node, and not a leaf, by the time we start merging the
-                // remaining side nodes.
+                // consume the side node at this point. If another non-
+                // placeholder node was found in the side node collection, merge
+                // it with the first side node. This guarantees that the current
+                // node will be an internal node, and not a leaf, by the time we
+                // start merging the remaining side nodes.
                 // See https://doc.rust-lang.org/std/iter/trait.Iterator.html#method.find.
                 if let Some(side_node) =
                     side_nodes_iter.find(|side_node| !side_node.is_placeholder())

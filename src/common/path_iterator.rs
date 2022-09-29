@@ -63,7 +63,9 @@ use crate::common::Msb;
 /// Starting at the tree's root at index `07`, we can follow the instructions
 /// encoded by the binary representation of leaf `6` (`0b110`). In combination
 /// with our in-order index rules for descending nodes, we evaluate the
-/// following: 1. The first bit is `1`; move right from `07` to `11`.
+/// following:
+///
+/// 1. The first bit is `1`; move right from `07` to `11`.
 /// 2. The next bit is `1`; move right from `11` to `13`.
 /// 3. The next and final bit is `0`; move left from `13` to `12`.
 ///
@@ -84,7 +86,7 @@ where
     pub fn new(root: &T, leaf: &T) -> Self {
         let initial = (root.clone(), root.clone());
 
-        // The initial offset from the MSB.
+        // The initial offset from the most significant bit (MSB).
         //
         // The offset from the MSB indicates which bit to read when deducing the
         // path from the root to the leaf. As we descend down the tree,
@@ -146,8 +148,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         let value = self.current.clone();
 
-        if let Some(ref path_node_side_node) = self.current {
-            let path_node = &path_node_side_node.0;
+        if let Some((ref path_node, _)) = self.current {
             if !path_node.is_leaf() {
                 let path = self.leaf.leaf_key();
                 let instruction = path
