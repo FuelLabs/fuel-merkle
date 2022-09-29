@@ -137,36 +137,9 @@ where
     //
 
     fn build(&mut self) -> Result<(), MerkleTreeError<StorageError>> {
-        // let keys = (0..self.leaves_count).map(|i| Position::from_leaf_index(i).in_order_index());
-        // for key in keys {
-        //     let node = self
-        //         .storage
-        //         .get(&key)?
-        //         .ok_or(MerkleTreeError::LoadError(key))?
-        //         .into_owned();
-        //     let next = self.head.take();
-        //     let head = Box::new(Subtree::<Node>::new(node, next));
-        //     self.head = Some(head);
-        //     self.join_all_subtrees()?;
-        // }
-
         let leaves_count = self.leaves_count;
 
         println!("leaves: {}", leaves_count);
-        // let mut peaks = vec![];
-
-        // let index = leaves_count.prev_p2() - 1;
-        // let first_peak = Position::from_in_order_index(index);
-        //
-        // let last_leaf = Position::from_leaf_index(self.leaves_count);
-        //
-        // let mut current = first_peak;
-        // while !current.is_leaf() {
-        //     peaks.push(current);
-        //     current = current.nephew();
-        // }
-        //
-        // peaks.push(current);
 
         let leaf_position = Position::from_leaf_index(leaves_count);
         println!("leaf: {:?}", leaf_position);
@@ -180,15 +153,11 @@ where
             .iter()
             .unzip();
 
-        peaks.reverse(); // Reorder side positions from leaf to root.
-        peaks.pop(); // The last side position is the root; remove it.
-        peaks.reverse(); // Reorder side positions from leaf to root.
-
         println!("Peaks: {:?}", peaks);
 
         let mut current_head = None;
 
-        for peak in peaks.as_slice().iter() {
+        for peak in peaks.as_slice()[1..].iter() {
             let key = peak.in_order_index();
             let node = self
                 .storage
