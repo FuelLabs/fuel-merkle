@@ -1,12 +1,11 @@
-use core::fmt;
-
 use crate::binary::{self, Node};
 use crate::common::{Bytes32, Position, ProofSet, Subtree};
+
 use fuel_storage::{Mappable, StorageMutate};
 
-use crate::Binary;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::fmt;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
@@ -137,23 +136,17 @@ where
     //
 
     fn build(&mut self) -> Result<(), MerkleTreeError<StorageError>> {
-        let leaves_count = self.leaves_count;
+        let leaves_count = self.leaves_count + 1;
 
-        println!("leaves: {}", leaves_count);
+        let leaf_position = Position::from_leaf_index(leaves_count - 1);
 
-        let leaf_position = Position::from_leaf_index(leaves_count);
-        println!("leaf: {:?}", leaf_position);
-
-        let root_index = (leaves_count + 1).next_p2() - 1;
+        let root_index = leaves_count.next_power_of_two() - 1;
         let root_position = Position::from_in_order_index(root_index);
-        println!("root: {:?}", root_position);
 
-        let (_, mut peaks): (Vec<_>, Vec<_>) = root_position
-            .path(&leaf_position, leaves_count + 1)
+        let (_, peaks): (Vec<_>, Vec<_>) = root_position
+            .path(&leaf_position, leaves_count)
             .iter()
             .unzip();
-
-        println!("Peaks: {:?}", peaks);
 
         let mut current_head = None;
 
@@ -169,13 +162,6 @@ where
         }
 
         self.head = current_head;
-        self.join_all_subtrees()?;
-
-        // let mut head = self.head.take();
-        // while head.is_some() {
-        //     println!("Head: {:?}", head.as_ref().unwrap().node());
-        //     head = head.unwrap().take_next();
-        // }
 
         Ok(())
     }
@@ -235,29 +221,9 @@ where
 mod test {
     use super::{MerkleTree, NodesTable};
     use crate::binary::{empty_sum, leaf_sum, node_sum};
-    use crate::common::{Position, StorageMap};
-    use crate::Binary;
+    use crate::common::StorageMap;
     use fuel_merkle_test_helpers::TEST_DATA;
     use fuel_storage::StorageInspect;
-
-    #[test]
-    fn test_things() {
-        let leaves_count = 7u64;
-        let mut peaks = vec![];
-
-        let index = leaves_count.prev_p2() - 1;
-        let first_peak = Position::from_in_order_index(index);
-
-        let mut current = first_peak;
-        while !current.is_leaf() {
-            peaks.push(current);
-            current = current.nephew();
-        }
-
-        peaks.push(current);
-
-        println!("{:?}", peaks);
-    }
 
     #[test]
     fn test_push_builds_internal_tree_structure() {
@@ -323,7 +289,7 @@ mod test {
 
     #[test]
     fn load_returns_a_valid_tree() {
-        const LEAVES_COUNT: u64 = 987541;
+        const LEAVES_COUNT: u64 = (1 << 16) - 1;
 
         let mut storage_map = StorageMap::<NodesTable>::new();
 
@@ -335,15 +301,11 @@ mod test {
             for datum in data.iter() {
                 let _ = tree.push(datum);
             }
-            println!("Head: {:?}", tree.head.as_ref().unwrap().node());
-            println!();
             tree.root().unwrap()
         };
 
         let root_2 = {
             let mut tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
-            println!("Head: {:?}", tree.head.as_ref().unwrap().node());
-            println!();
             tree.root().unwrap()
         };
 
