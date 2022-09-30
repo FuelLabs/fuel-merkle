@@ -98,7 +98,10 @@ where
         let root_node = self.root_node()?.unwrap();
         let root_position = root_node.position();
         let leaf_position = Position::from_leaf_index(proof_index);
-        let leaf_node = self.storage.get(&leaf_position.in_order_index())?.unwrap();
+        let leaf_node = self
+            .storage
+            .get(&leaf_position.in_order_index())?
+            .ok_or(MerkleTreeError::LoadError(proof_index))?;
         proof_set.push(*leaf_node.hash());
 
         let (_, mut side_positions): (Vec<_>, Vec<_>) = root_position
@@ -110,7 +113,10 @@ where
 
         for side_position in side_positions {
             let key = side_position.in_order_index();
-            let node = self.storage.get(&key)?.unwrap();
+            let node = self
+                .storage
+                .get(&key)?
+                .ok_or(MerkleTreeError::LoadError(key))?;
             proof_set.push(*node.hash());
         }
 
