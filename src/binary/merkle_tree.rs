@@ -228,6 +228,7 @@ mod test {
     use super::{MerkleTree, NodesTable};
     use crate::binary::{empty_sum, leaf_sum, node_sum};
     use crate::common::StorageMap;
+    use alloc::vec::Vec;
     use fuel_merkle_test_helpers::TEST_DATA;
     use fuel_storage::StorageInspect;
 
