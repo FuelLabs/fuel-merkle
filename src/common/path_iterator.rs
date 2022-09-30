@@ -6,8 +6,8 @@ use crate::common::Msb;
 /// A naturally arising property of binary trees is that a leaf index encodes
 /// the unique path needed to traverse from the root of the tree to that leaf.
 /// The index's binary representation can be read left to right as a sequence of
-/// traversal instructions: a 0 bit means "descend left" and a 1 bit means "
-/// descend right". By following the `x` bits composing the index, starting at
+/// traversal instructions: a `0` bit means "descend left" and a `1` bit means
+/// "descend right". By following the `x` bits composing the index, starting at
 /// the root, descending to the left child at each `0`, descending to the right
 /// child at each `1`, we arrive at the leaf position, having touched every node
 /// position along the path formed by this index. Note that this algorithm does
