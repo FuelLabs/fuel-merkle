@@ -140,10 +140,6 @@ impl Position {
         self.child(RIGHT_CHILD_DIRECTION)
     }
 
-    pub fn nephew(self) -> Self {
-        self.sibling().left_child()
-    }
-
     /// The height of the index in a binary tree.
     /// Leaf nodes represent height 0. A leaf's parent represents height 1.
     /// Height values monotonically increase as you ascend the tree.
