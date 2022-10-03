@@ -35,9 +35,9 @@ pub struct MerkleTree<StorageType> {
     leaves_count: u64,
 }
 
-/// The table of the Binary Merkle Tree's nodes. [`MerkleTree`] works with it as a binary array,
-/// where the storage key of the node is the `u64` index and value is the
-/// [`Node`](crate::binary::Node).
+/// The table of the Binary Merkle Tree's nodes. [`MerkleTree`] works with it as
+/// a binary array, where the storage key of the node is the `u64` index and
+/// value is the [`Node`](crate::binary::Node).
 pub struct NodesTable;
 
 impl Mappable for NodesTable {
@@ -141,11 +141,100 @@ where
     // PRIVATE
     //
 
+    /// A binary Merkle tree can be built from a collection of Merkle Mountain
+    /// Range (MMR) peaks. The MMR structure can be accurately defined by the
+    /// number of leaves in the leaf row.
+    ///
+    /// Consider a binary Merkle tree with seven leaves, producing the following
+    /// MMR structure:
+    ///
+    /// ```text
+    ///       03
+    ///      /  \
+    ///     /    \
+    ///   01      05      09
+    ///  /  \    /  \    /  \
+    /// 00  02  04  06  08  10  12
+    /// ```
+    ///
+    /// We observe that the tree has three peaks at positions `03`, `09`, and
+    /// `12`. These peak positions are recorded in the order that they appear,
+    /// reading left to right in the tree structure, and only descend in height.
+    /// These peak positions communicate everything needed to determine the
+    /// remaining internal nodes building upwards to the root position:
+    ///
+    /// ```text
+    ///               07
+    ///              /  \
+    ///             /    \
+    ///            /      \
+    ///           /        \
+    ///          /          \
+    ///         /            \
+    ///       03              11
+    ///      /  \            /  \
+    ///    ...  ...         /    \
+    ///                   09      \
+    ///                  /  \      \
+    ///                ...  ...    12
+    ///
+    /// ```
+    ///
+    /// No additional intermediate nodes or leaves are required to calculate
+    /// the root position.
+    ///
+    /// The positions of the MMR peaks can be deterministically calculated as a
+    /// function of `n + 1` where `n` is the number of leaves in the tree. By
+    /// appending an additional leaf node to the tree, we generate a new tree
+    /// structure with additional internal nodes (N.B.: this may also change the
+    /// root position if the tree is already balanced).
+    ///
+    /// In our example, we add an additional leaf at leaf index `7` (in-order
+    /// index `14`).
+    ///
+    /// ```text
+    ///               07
+    ///              /  \
+    ///             /    \
+    ///            /      \
+    ///           /        \
+    ///          /          \
+    ///         /            \
+    ///       03              11
+    ///      /  \            /  \
+    ///    ...  ...         /    \
+    ///                   09      13
+    ///                  /  \    /  \
+    ///                ...  ... 12  14
+    /// ```
+    ///
+    /// We observe that the path from the root position to our new leaf position
+    /// yields a set of side positions that includes our original peak
+    /// positions (see [Path Iterator](crate::common::path_iterator::PathIter)):
+    ///
+    /// | Path position | Side position |
+    /// |---------------|---------------|
+    /// |            07 |            07 |
+    /// |            11 |            03 |
+    /// |            13 |            09 |
+    /// |            14 |            12 |
+    ///
+    /// By excluding the root position `07`, we have established the set of
+    /// side positions `03`, `09`, and `12`, matching our set of MMR peaks.
+    ///
     fn build(&mut self) -> Result<(), MerkleTreeError<StorageError>> {
+        // Define a new tree with a leaf count 1 greater than the current leaf
+        // count.
         let leaves_count = self.leaves_count + 1;
 
+        // Get the rightmost leaf position of the new tree. The rightmost leaf
+        // position is always the position with leaf index N - 1, where N is
+        // the number of leaves.
         let leaf_position = Position::from_leaf_index(leaves_count - 1);
 
+        // The root position of a tree will always have an in-order index equal
+        // to `n - 1`, where `n` is the leaves count rounded (or equal) to the
+        // next power of 2.
         let root_index = leaves_count.next_power_of_two() - 1;
         let root_position = Position::from_in_order_index(root_index);
 
