@@ -244,8 +244,8 @@ where
             .unzip();
 
         let mut current_head = None;
-
-        for peak in peaks.as_slice()[1..].iter() {
+        let peaks = &peaks.as_slice()[1..]; // Omit the root.
+        for peak in peaks.iter() {
             let key = peak.in_order_index();
             let node = self
                 .storage
