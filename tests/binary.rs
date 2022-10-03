@@ -3,8 +3,10 @@ extern crate core;
 use rand::{seq::IteratorRandom, thread_rng, Rng};
 use sha2::{Digest, Sha256};
 
-use fuel_merkle::common::StorageMap;
-use fuel_merkle::{binary::MerkleTree, common::Bytes32};
+use fuel_merkle::{
+    binary::MerkleTree,
+    common::{Bytes32, StorageMap},
+};
 use fuel_merkle_test_helpers::binary::MerkleTree as ReferenceMerkleTree;
 
 // During test setup, we randomly sample the pool of test data to generate the
