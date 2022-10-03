@@ -233,8 +233,8 @@ where
         let leaf_position = Position::from_leaf_index(leaves_count - 1);
 
         // The root position of a tree will always have an in-order index equal
-        // to `n - 1`, where `n` is the leaves count rounded (or equal) to the
-        // next power of 2.
+        // to N - 1, where N is the leaves count rounded (or equal) to the next
+        // power of 2.
         let root_index = leaves_count.next_power_of_two() - 1;
         let root_position = Position::from_in_order_index(root_index);
 
