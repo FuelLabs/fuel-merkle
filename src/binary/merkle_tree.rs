@@ -164,20 +164,19 @@ where
     /// remaining internal nodes building upwards to the root position:
     ///
     /// ```text
-    ///               07
-    ///              /  \
-    ///             /    \
-    ///            /      \
-    ///           /        \
-    ///          /          \
-    ///         /            \
-    ///       03              11
-    ///      /  \            /  \
-    ///    ...  ...         /    \
-    ///                   09      \
-    ///                  /  \      \
-    ///                ...  ...    12
-    ///
+    ///            07
+    ///           /  \
+    ///          /    \
+    ///         /      \
+    ///        /        \
+    ///       /          \
+    ///      /            \
+    ///    03              11
+    ///   /  \            /  \
+    /// ...  ...         /    \
+    ///                09      \
+    ///               /  \      \
+    ///             ...  ...    12
     /// ```
     ///
     /// No additional intermediate nodes or leaves are required to calculate
@@ -190,22 +189,22 @@ where
     /// root position if the tree is already balanced).
     ///
     /// In our example, we add an additional leaf at leaf index `7` (in-order
-    /// index `14`).
+    /// index `14`):
     ///
     /// ```text
-    ///               07
-    ///              /  \
-    ///             /    \
-    ///            /      \
-    ///           /        \
-    ///          /          \
-    ///         /            \
-    ///       03              11
-    ///      /  \            /  \
-    ///    ...  ...         /    \
-    ///                   09      13
-    ///                  /  \    /  \
-    ///                ...  ... 12  14
+    ///            07
+    ///           /  \
+    ///          /    \
+    ///         /      \
+    ///        /        \
+    ///       /          \
+    ///      /            \
+    ///    03              11
+    ///   /  \            /  \
+    /// ...  ...         /    \
+    ///                09      13
+    ///               /  \    /  \
+    ///             ...  ... 12  14
     /// ```
     ///
     /// We observe that the path from the root position to our new leaf position
@@ -227,14 +226,13 @@ where
         // count.
         let leaves_count = self.leaves_count + 1;
 
-        // Get the rightmost leaf position of the new tree. The rightmost leaf
-        // position is always the position with leaf index N - 1, where N is
-        // the number of leaves.
+        // The rightmost leaf position of a tree will always have a leaf index
+        // N - 1, where N is the number of leaves.
         let leaf_position = Position::from_leaf_index(leaves_count - 1);
 
         // The root position of a tree will always have an in-order index equal
-        // to N - 1, where N is the leaves count rounded (or equal) to the next
-        // power of 2.
+        // to N' - 1, where N is the leaves count and N` is N rounded (or equal)
+        // to the next power of 2.
         let root_index = leaves_count.next_power_of_two() - 1;
         let root_position = Position::from_in_order_index(root_index);
 
@@ -385,11 +383,11 @@ mod test {
 
     #[test]
     fn load_returns_a_valid_tree() {
-        const LEAVES_COUNT: u64 = (1 << 16) - 1;
+        const LEAVES_COUNT: u64 = 2u64.pow(16) - 1;
 
         let mut storage_map = StorageMap::new();
 
-        let root_1 = {
+        let expected_root = {
             let mut tree = MerkleTree::new(&mut storage_map);
             let data = (0u64..LEAVES_COUNT)
                 .map(|i| i.to_be_bytes())
@@ -400,30 +398,45 @@ mod test {
             tree.root().unwrap()
         };
 
-        let root_2 = {
+        let root = {
             let mut tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
             tree.root().unwrap()
         };
 
-        assert_eq!(root_1, root_2);
+        assert_eq!(expected_root, root);
+    }
+
+    #[test]
+    fn load_returns_empty_tree_for_0_leaves() {
+        const LEAVES_COUNT: u64 = 0;
+
+        let expected_root = empty_sum().clone();
+
+        let root = {
+            let mut storage_map = StorageMap::new();
+            let mut tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
+            tree.root().unwrap()
+        };
+
+        assert_eq!(expected_root, root);
     }
 
     #[test]
     fn load_returns_a_load_error_if_the_storage_is_not_valid_for_the_leaves_count() {
+        const LEAVES_COUNT: u64 = 5;
+
         let mut storage_map = StorageMap::new();
 
-        {
-            let mut tree = MerkleTree::new(&mut storage_map);
-            let data = &TEST_DATA[0..5];
-            for datum in data.iter() {
-                let _ = tree.push(datum);
-            }
+        let mut tree = MerkleTree::new(&mut storage_map);
+        let data = (0u64..LEAVES_COUNT)
+            .map(|i| i.to_be_bytes())
+            .collect::<Vec<_>>();
+        for datum in data.iter() {
+            let _ = tree.push(datum);
         }
 
-        {
-            let tree = MerkleTree::load(&mut storage_map, 10);
-            assert!(tree.is_err());
-        }
+        let tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT * 2);
+        assert!(tree.is_err());
     }
 
     #[test]
