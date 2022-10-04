@@ -410,7 +410,7 @@ mod test {
     fn load_returns_empty_tree_for_0_leaves() {
         const LEAVES_COUNT: u64 = 0;
 
-        let expected_root = empty_sum().clone();
+        let expected_root = *empty_sum();
 
         let root = {
             let mut storage_map = StorageMap::new();
