@@ -77,8 +77,8 @@ impl Iterator for PositionPathIter {
                 // always pairs with this side node. Once the path and side node
                 // have been paired, we continue to pair path and side nodes
                 // normally.
-                if self.current_side_node.is_some() {
-                    side = self.current_side_node.take().unwrap()
+                if let Some(node) = self.current_side_node.take() {
+                    side = node;
                 }
 
                 // A side node with an in-order index greater than the index of
