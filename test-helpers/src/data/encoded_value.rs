@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::data::TestError;
 
 // Supported value encodings:
+pub const ENCODING_BASE_64: &str = "base64";
 pub const ENCODING_HEX: &str = "hex";
 pub const ENCODING_UTF8: &str = "utf-8";
 
@@ -13,30 +14,48 @@ pub struct EncodedValue {
 }
 
 enum Encoding {
+    Base64,
     Hex,
     Utf8,
 }
 
 impl EncodedValue {
-    pub fn new(value: String, encoding: String) -> Self {
-        Self { value, encoding }
+    pub fn new(value: String, encoding: &str) -> Self {
+        Self {
+            value,
+            encoding: encoding.to_string(),
+        }
+    }
+
+    pub fn from_raw<T: AsRef<[u8]>>(value: T, encoding: &str) -> Result<Self, TestError> {
+        let encoded_value = match Self::encoding_type(encoding)? {
+            Encoding::Base64 => base64::encode(value),
+            Encoding::Hex => hex::encode(value),
+            Encoding::Utf8 => String::from_utf8_lossy(value.as_ref()).to_string(),
+        };
+        Ok(Self {
+            value: encoded_value,
+            encoding: encoding.to_string(),
+        })
     }
 
     pub fn into_bytes(self) -> Result<Vec<u8>, TestError> {
-        match self.encoding_type()? {
+        match Self::encoding_type(&self.encoding)? {
+            Encoding::Base64 => Ok(base64::decode(self.value).unwrap()),
             Encoding::Hex => Ok(hex::decode(self.value).unwrap()),
             Encoding::Utf8 => Ok(self.value.into_bytes()),
         }
     }
 
     // Translate the encoding string found in the value definition to an Encoding enum variant.
-    fn encoding_type(&self) -> Result<Encoding, TestError> {
-        match self.encoding.as_str() {
+    fn encoding_type(encoding: &str) -> Result<Encoding, TestError> {
+        match encoding {
+            ENCODING_BASE_64 => Ok(Encoding::Base64),
             ENCODING_HEX => Ok(Encoding::Hex),
             ENCODING_UTF8 => Ok(Encoding::Utf8),
 
             // Unsupported encoding
-            _ => Err(TestError::UnsupportedEncoding(self.encoding.clone())),
+            _ => Err(TestError::UnsupportedEncoding(encoding.to_string())),
         }
     }
 }

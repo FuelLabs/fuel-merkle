@@ -3,7 +3,6 @@ use std::fs::File;
 use std::path::Path;
 
 use fuel_merkle_test_helpers::data::binary::ProofTest;
-use fuel_merkle_test_helpers::data::TestError;
 
 fn test(path: &Path) -> datatest_stable::Result<()> {
     let data_file = File::open(path)?;

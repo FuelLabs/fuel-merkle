@@ -102,6 +102,7 @@ pub struct ProofTest {
     pub name: String,
     pub root: EncodedValue,
     pub proof_set: Vec<EncodedValue>,
+    pub proof_data: EncodedValue,
     pub proof_index: u64,
     pub num_leaves: u64,
     pub expected_verification: bool,
