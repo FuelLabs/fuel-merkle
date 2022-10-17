@@ -95,6 +95,7 @@ fn main() {
     let test = generate_test("1024_leaves_index_512".to_string(), &sample_data, index);
     write_test(&test);
 
+    // 0 leaves; should fail
     let test = ProofTest {
         name: "0_leaves".to_string(),
         root: EncodedValue::new(hex::encode(empty_sum_sha256()), ENCODING_HEX),
@@ -106,11 +107,30 @@ fn main() {
     };
     write_test(&test);
 
+    // Invalid proof index; should fail
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let index = 0;
     let mut test = generate_test("1_leaf_index_1".to_string(), &sample_data, index);
     test.proof_index = 1;
+    test.expected_verification = false;
+    write_test(&test);
+
+    // Invalid root; should fail
+    let samples = 1;
+    let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
+    let index = 0;
+    let mut test = generate_test("1_leaf_invalid_root".to_string(), &sample_data, index);
+    test.root = EncodedValue::new(hex::encode(sum(b"invalid")), ENCODING_HEX);
+    test.expected_verification = false;
+    write_test(&test);
+
+    // Invalid root; should fail
+    let samples = 1024;
+    let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
+    let index = 512;
+    let mut test = generate_test("1024_leaves_invalid_root".to_string(), &sample_data, index);
+    test.root = EncodedValue::new(hex::encode(sum(b"invalid")), ENCODING_HEX);
     test.expected_verification = false;
     write_test(&test);
 }
