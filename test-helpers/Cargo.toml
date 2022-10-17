@@ -6,8 +6,8 @@ edition = "2021"
 
 [dependencies]
 base64 = "0.13"
-fuel-merkle = { path = "../" }
 digest = "0.9"
+fuel-merkle = { path = "../" }
 hex = "0.4"
 rand = "0.8"
 rand_chacha = "0.3"
