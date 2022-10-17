@@ -71,65 +71,74 @@ fn main() {
 
     let mut rng = ChaCha8Rng::seed_from_u64(90210);
 
+    let name = "10_leaves_index_4".to_string();
     let samples = 10;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
-    let index = 4;
-    let test = generate_test("10_leaves_index_4".to_string(), &sample_data, index);
+    let proof_index = 4;
+    let test = generate_test(name, &sample_data, proof_index);
     write_test(&test);
 
+    let name = "1_leaf_index_0".to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
-    let index = 0;
-    let test = generate_test("1_leaf_index_0".to_string(), &sample_data, index);
+    let proof_index = 0;
+    let test = generate_test(name, &sample_data, proof_index);
     write_test(&test);
 
+    let name = "100_leaves_index_10".to_string();
     let samples = 100;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
-    let index = 10;
-    let test = generate_test("100_leaves_index_10".to_string(), &sample_data, index);
+    let proof_index = 10;
+    let test = generate_test(name, &sample_data, proof_index);
     write_test(&test);
 
+    let name = "1024_leaves_index_512".to_string();
     let samples = 1024;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
-    let index = 512;
-    let test = generate_test("1024_leaves_index_512".to_string(), &sample_data, index);
+    let proof_index = 512;
+    let test = generate_test(name, &sample_data, proof_index);
     write_test(&test);
 
     // 0 leaves; should fail
+    let name = "0_leaves".to_string();
+    let proof_index = 0;
     let test = ProofTest {
-        name: "0_leaves".to_string(),
+        name,
         root: EncodedValue::new(hex::encode(empty_sum_sha256()), ENCODING_HEX),
         proof_set: vec![],
         proof_data: EncodedValue::new("".to_string(), ENCODING_BASE_64),
-        proof_index: 0,
+        proof_index,
         num_leaves: 0,
         expected_verification: false,
     };
     write_test(&test);
 
     // Invalid proof index; should fail
+    let name = "1_leaf_invalid_proof_index".to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
-    let index = 0;
-    let mut test = generate_test("1_leaf_index_1".to_string(), &sample_data, index);
+    let proof_index = 0;
+    let mut test = generate_test(name, &sample_data, proof_index);
     test.proof_index = 1;
     test.expected_verification = false;
     write_test(&test);
 
     // Invalid root; should fail
+    let name = "1_leaf_invalid_root".to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
-    let index = 0;
-    let mut test = generate_test("1_leaf_invalid_root".to_string(), &sample_data, index);
+    let proof_index = 0;
+    let mut test = generate_test(name, &sample_data, proof_index);
     test.root = EncodedValue::new(hex::encode(sum(b"invalid")), ENCODING_HEX);
     test.expected_verification = false;
     write_test(&test);
 
     // Invalid root; should fail
+    let name = "1024_leaves_invalid_root".to_string();
     let samples = 1024;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let index = 512;
-    let mut test = generate_test("1024_leaves_invalid_root".to_string(), &sample_data, index);
+    let mut test = generate_test(name, &sample_data, index);
     test.root = EncodedValue::new(hex::encode(sum(b"invalid")), ENCODING_HEX);
     test.expected_verification = false;
     write_test(&test);
