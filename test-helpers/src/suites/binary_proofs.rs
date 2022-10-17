@@ -1,5 +1,5 @@
 use fuel_merkle::binary::MerkleTree;
-use fuel_merkle::common::{Bytes32, StorageMap};
+use fuel_merkle::common::{empty_sum_sha256, Bytes32, StorageMap};
 
 use fuel_merkle_test_helpers::data::{
     binary::ProofTest, EncodedValue, ENCODING_BASE_64, ENCODING_HEX,
@@ -7,7 +7,8 @@ use fuel_merkle_test_helpers::data::{
 
 use digest::Digest;
 use rand::seq::IteratorRandom;
-use rand::thread_rng;
+use rand::SeedableRng;
+use rand_chacha::ChaCha8Rng;
 use sha2::Sha256;
 use std::convert::TryInto;
 
@@ -26,20 +27,20 @@ fn generate_test(name: String, sample_data: &Vec<Bytes32>, proof_index: u64) -> 
         for datum in sample_data.iter() {
             test_tree.push(datum).unwrap();
         }
-        // Safety: prove(i) is guaranteed to return a valid proof if the proof
+        // SAFETY: prove(i) is guaranteed to return a valid proof if the proof
         // index is within the range of valid leaves. proof_index will always
         // be selected from this range.
         test_tree.prove(proof_index).unwrap()
     };
 
-    // Safety: All EncodedValues are specified with a valid encoding.
+    // SAFETY: All EncodedValues are specified with a valid encoding.
     let encoded_root = EncodedValue::from_raw(&root, ENCODING_HEX).unwrap();
     let encoded_proof_set = proof_set
         .iter()
         .map(|v| EncodedValue::from_raw(&v, ENCODING_HEX).unwrap())
         .collect::<Vec<_>>();
     let proof_data =
-        EncodedValue::from_raw(&sample_data[proof_index as usize], ENCODING_HEX).unwrap();
+        EncodedValue::from_raw(&sample_data[proof_index as usize], ENCODING_BASE_64).unwrap();
     let num_leaves = sample_data.len() as u64;
 
     ProofTest {
@@ -55,10 +56,9 @@ fn generate_test(name: String, sample_data: &Vec<Bytes32>, proof_index: u64) -> 
 
 fn write_test(test: &ProofTest) {
     let yaml = serde_yaml::to_string(test).expect("Unable to serialize test!");
-
     std::fs::write(
         format!("../tests-data-binary/fixtures/{}.yaml", test.name),
-        yaml.clone(),
+        yaml,
     )
     .expect("Unable to write file!");
 }
@@ -69,7 +69,7 @@ fn main() {
         .map(|i| sum(&i.to_be_bytes()))
         .collect::<Vec<Bytes32>>();
 
-    let mut rng = thread_rng();
+    let mut rng = ChaCha8Rng::seed_from_u64(90210);
 
     let samples = 10;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
@@ -87,5 +87,30 @@ fn main() {
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let index = 10;
     let test = generate_test("100_leaves_index_10".to_string(), &sample_data, index);
+    write_test(&test);
+
+    let samples = 1024;
+    let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
+    let index = 512;
+    let test = generate_test("1024_leaves_index_512".to_string(), &sample_data, index);
+    write_test(&test);
+
+    let test = ProofTest {
+        name: "0_leaves".to_string(),
+        root: EncodedValue::new(hex::encode(empty_sum_sha256()), ENCODING_HEX),
+        proof_set: vec![],
+        proof_data: EncodedValue::new("".to_string(), ENCODING_BASE_64),
+        proof_index: 0,
+        num_leaves: 0,
+        expected_verification: false,
+    };
+    write_test(&test);
+
+    let samples = 1;
+    let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
+    let index = 0;
+    let mut test = generate_test("1_leaf_index_1".to_string(), &sample_data, index);
+    test.proof_index = 1;
+    test.expected_verification = false;
     write_test(&test);
 }
