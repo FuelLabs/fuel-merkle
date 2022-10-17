@@ -105,9 +105,11 @@ impl Test {
         let root = tree.root();
         let expected_root: Bytes32 = self.expected_root.into_bytes()?.try_into().unwrap();
 
-        assert_eq!(root, expected_root);
-
-        Ok(())
+        if root == expected_root {
+            Ok(())
+        } else {
+            Err(TestError::Failed(self.name))
+        }
     }
 }
 

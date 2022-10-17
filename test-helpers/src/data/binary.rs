@@ -120,8 +120,10 @@ impl ProofTest {
 
         let verification = verify(&root, &proof_set, self.proof_index, self.num_leaves);
 
-        assert_eq!(verification, self.expected_verification);
-
-        Ok(())
+        if verification == self.expected_verification {
+            Ok(())
+        } else {
+            Err(TestError::Failed(self.name))
+        }
     }
 }
