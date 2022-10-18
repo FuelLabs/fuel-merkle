@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
-use fuel_merkle::{binary::in_memory, common::Bytes32};
+use fuel_merkle::common::Bytes32;
 
 use crate::{
     binary::verify,
