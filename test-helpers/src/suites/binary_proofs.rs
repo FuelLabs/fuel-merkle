@@ -39,15 +39,12 @@ fn generate_test(name: String, sample_data: &Vec<Bytes32>, proof_index: u64) -> 
         .iter()
         .map(|v| EncodedValue::from_raw(&v, ENCODING_HEX).unwrap())
         .collect::<Vec<_>>();
-    let proof_data =
-        EncodedValue::from_raw(&sample_data[proof_index as usize], ENCODING_BASE_64).unwrap();
     let num_leaves = sample_data.len() as u64;
 
     ProofTest {
         name,
         root: encoded_root,
         proof_set: encoded_proof_set,
-        proof_data,
         proof_index,
         num_leaves,
         expected_verification: true,
@@ -105,8 +102,10 @@ fn main() {
     let test = ProofTest {
         name,
         root: EncodedValue::new(hex::encode(empty_sum_sha256()), ENCODING_HEX),
-        proof_set: vec![],
-        proof_data: EncodedValue::new("".to_string(), ENCODING_BASE_64),
+        proof_set: vec![EncodedValue::new(
+            hex::encode(empty_sum_sha256()),
+            ENCODING_HEX,
+        )],
         proof_index,
         num_leaves: 0,
         expected_verification: false,
