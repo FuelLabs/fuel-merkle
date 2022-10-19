@@ -2,7 +2,6 @@ use fuel_merkle::common::Bytes32;
 use fuel_merkle::sparse::in_memory;
 use serde::Deserialize;
 use std::convert::TryInto;
-use std::fmt::{Display, Formatter};
 
 use crate::data::EncodedValue;
 use crate::data::TestError;
@@ -110,11 +109,5 @@ impl Test {
         } else {
             Err(TestError::Failed(self.name))
         }
-    }
-}
-
-impl Display for Test {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name)
     }
 }

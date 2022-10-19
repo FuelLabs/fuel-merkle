@@ -1,9 +1,7 @@
 use fuel_merkle::binary::MerkleTree;
 use fuel_merkle::common::{empty_sum_sha256, Bytes32, StorageMap};
 
-use fuel_merkle_test_helpers::data::{
-    binary::ProofTest, EncodedValue, ENCODING_BASE_64, ENCODING_HEX,
-};
+use fuel_merkle_test_helpers::data::{binary::ProofTest, EncodedValue, Encoding};
 
 use digest::Digest;
 use rand::seq::IteratorRandom;
@@ -34,10 +32,10 @@ fn generate_test(name: String, sample_data: &Vec<Bytes32>, proof_index: u64) -> 
     };
 
     // SAFETY: All EncodedValues are specified with a valid encoding.
-    let encoded_root = EncodedValue::from_raw(&root, ENCODING_HEX).unwrap();
+    let encoded_root = EncodedValue::from_raw(&root, Encoding::Hex);
     let encoded_proof_set = proof_set
         .iter()
-        .map(|v| EncodedValue::from_raw(&v, ENCODING_HEX).unwrap())
+        .map(|v| EncodedValue::from_raw(&v, Encoding::Hex))
         .collect::<Vec<_>>();
     let num_leaves = sample_data.len() as u64;
 
@@ -101,10 +99,10 @@ fn main() {
     let proof_index = 0;
     let test = ProofTest {
         name,
-        root: EncodedValue::new(hex::encode(empty_sum_sha256()), ENCODING_HEX),
+        root: EncodedValue::new(hex::encode(empty_sum_sha256()), Encoding::Hex),
         proof_set: vec![EncodedValue::new(
             hex::encode(empty_sum_sha256()),
-            ENCODING_HEX,
+            Encoding::Hex,
         )],
         proof_index,
         num_leaves: 0,
@@ -128,7 +126,7 @@ fn main() {
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 0;
     let mut test = generate_test(name, &sample_data, proof_index);
-    test.root = EncodedValue::new(hex::encode(sum(b"invalid")), ENCODING_HEX);
+    test.root = EncodedValue::new(hex::encode(sum(b"invalid")), Encoding::Hex);
     test.expected_verification = false;
     write_test(&test);
 
@@ -138,7 +136,7 @@ fn main() {
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let index = 512;
     let mut test = generate_test(name, &sample_data, index);
-    test.root = EncodedValue::new(hex::encode(sum(b"invalid")), ENCODING_HEX);
+    test.root = EncodedValue::new(hex::encode(sum(b"invalid")), Encoding::Hex);
     test.expected_verification = false;
     write_test(&test);
 }

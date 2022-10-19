@@ -6,6 +6,6 @@ pub enum TestError {
     Failed(String),
     #[error("Unsupported action {0}")]
     UnsupportedAction(String),
-    #[error("Unsupported encoding {0}")]
-    UnsupportedEncoding(String),
+    #[error("Failed to decode encoded value")]
+    DecodingError,
 }
