@@ -66,28 +66,28 @@ fn main() {
 
     let mut rng = ChaCha8Rng::seed_from_u64(90210);
 
-    let name = "10_leaves_index_4".to_string();
+    let name = "Test 10 Leaves Index 4".to_string();
     let samples = 10;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 4;
     let test = generate_test(name, &sample_data, proof_index);
     write_test(&test);
 
-    let name = "1_leaf_index_0".to_string();
+    let name = "Test 1 Leaf Index 0".to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 0;
     let test = generate_test(name, &sample_data, proof_index);
     write_test(&test);
 
-    let name = "100_leaves_index_10".to_string();
+    let name = "Test 100 Leaves Index 10".to_string();
     let samples = 100;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 10;
     let test = generate_test(name, &sample_data, proof_index);
     write_test(&test);
 
-    let name = "1024_leaves_index_512".to_string();
+    let name = "Test 1024 Leaves Index 512".to_string();
     let samples = 1024;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 512;
@@ -95,7 +95,7 @@ fn main() {
     write_test(&test);
 
     // 0 leaves; should fail
-    let name = "0_leaves".to_string();
+    let name = "Test 0 Leaves".to_string();
     let proof_index = 0;
     let test = ProofTest {
         name,
@@ -111,7 +111,7 @@ fn main() {
     write_test(&test);
 
     // Invalid proof index; should fail
-    let name = "1_leaf_invalid_proof_index".to_string();
+    let name = "Test 1 Leaf Invalid Proof Index".to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 0;
@@ -121,7 +121,7 @@ fn main() {
     write_test(&test);
 
     // Invalid root; should fail
-    let name = "1_leaf_invalid_root".to_string();
+    let name = "Test 1 Leaf Invalid Root".to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 0;
@@ -131,7 +131,7 @@ fn main() {
     write_test(&test);
 
     // Invalid root; should fail
-    let name = "1024_leaves_invalid_root".to_string();
+    let name = "Test 1024 Leaves Invalid Root".to_string();
     let samples = 1024;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let index = 512;
