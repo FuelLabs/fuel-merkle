@@ -1,9 +1,10 @@
 name: Test 1 Leaf Invalid Proof Index
+description: Build a proof from a binary Merkle tree consisting of 1 leaf and manually set the leaf index to 1. Because the leaf index is zero-based, leaf index 1 refers to a position outside the range of the source tree. This proof is invalid because the leaf index is out of range. Verification is expected to fail.
 root:
-  value: 15a30d811ab10b3a09d53bb26d5f5e4819cea1882fb3aab68e81182ab138ee87
+  value: c714c335c095894606b61af9f6d40745e50bb00f909073b8484d05f69d3f9072
   encoding: hex
 proof_set:
-- value: 15a30d811ab10b3a09d53bb26d5f5e4819cea1882fb3aab68e81182ab138ee87
+- value: c714c335c095894606b61af9f6d40745e50bb00f909073b8484d05f69d3f9072
   encoding: hex
 proof_index: 1
 num_leaves: 1

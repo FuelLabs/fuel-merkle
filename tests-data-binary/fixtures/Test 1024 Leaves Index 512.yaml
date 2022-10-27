@@ -1,4 +1,5 @@
 name: Test 1024 Leaves Index 512
+description: Build a proof from a binary Merkle tree consisting of 1024 leaves and leaf index 512. This proof is valid and verification is expected to pass.
 root:
   value: bc3a3be33992cb39d4b9a40c2f9097e43ce405c1ec18751883e777dffeb14a40
   encoding: hex

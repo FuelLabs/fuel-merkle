@@ -1,5 +1,5 @@
 use fuel_merkle::binary::MerkleTree;
-use fuel_merkle::common::{empty_sum_sha256, Bytes32, StorageMap};
+use fuel_merkle::common::{Bytes32, StorageMap};
 
 use fuel_merkle_test_helpers::data::{binary::ProofTest, EncodedValue, Encoding};
 
@@ -18,7 +18,12 @@ pub fn sum(data: &[u8]) -> Bytes32 {
     hash.finalize().try_into().unwrap()
 }
 
-fn generate_test(name: String, sample_data: &Vec<Bytes32>, proof_index: u64) -> ProofTest {
+fn generate_test(
+    name: String,
+    description: String,
+    sample_data: &Vec<Bytes32>,
+    proof_index: u64,
+) -> ProofTest {
     let (root, proof_set) = {
         let storage = StorageMap::new();
         let mut test_tree = MerkleTree::new(storage);
@@ -41,6 +46,7 @@ fn generate_test(name: String, sample_data: &Vec<Bytes32>, proof_index: u64) -> 
 
     ProofTest {
         name,
+        description,
         root: encoded_root,
         proof_set: encoded_proof_set,
         proof_index,
@@ -67,75 +73,109 @@ fn main() {
     let mut rng = ChaCha8Rng::seed_from_u64(90210);
 
     let name = "Test 10 Leaves Index 4".to_string();
+    let description = "\
+        Build a proof from a binary Merkle tree consisting of 10 leaves and leaf index 4. \
+        This proof is valid and verification is expected to pass."
+        .to_string();
     let samples = 10;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 4;
-    let test = generate_test(name, &sample_data, proof_index);
+    let test = generate_test(name, description, &sample_data, proof_index);
     write_test(&test);
 
     let name = "Test 1 Leaf Index 0".to_string();
+    let description = "\
+        Build a proof from a binary Merkle tree consisting of 1 leaf and leaf index 0. \
+        This proof is valid and verification is expected to pass."
+        .to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 0;
-    let test = generate_test(name, &sample_data, proof_index);
+    let test = generate_test(name, description, &sample_data, proof_index);
     write_test(&test);
 
     let name = "Test 100 Leaves Index 10".to_string();
+    let description = "\
+        Build a proof from a binary Merkle tree consisting of 100 leaves and leaf index 10. \
+        This proof is valid and verification is expected to pass."
+        .to_string();
     let samples = 100;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 10;
-    let test = generate_test(name, &sample_data, proof_index);
+    let test = generate_test(name, description, &sample_data, proof_index);
     write_test(&test);
 
     let name = "Test 1024 Leaves Index 512".to_string();
+    let description = "\
+        Build a proof from a binary Merkle tree consisting of 1024 leaves and leaf index 512. \
+        This proof is valid and verification is expected to pass."
+        .to_string();
     let samples = 1024;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 512;
-    let test = generate_test(name, &sample_data, proof_index);
+    let test = generate_test(name, description, &sample_data, proof_index);
     write_test(&test);
 
     // 0 leaves; should fail
     let name = "Test 0 Leaves".to_string();
+    let description = "\
+        Build a proof from a binary Merkle tree and manual set the number of leaves to 0. \
+        Setting the number of leaves to 0 implies that the source tree is empty. \
+        This proof is invalid because empty trees cannot produce a proof. \
+        Verification is expected to fail."
+        .to_string();
+    let samples = 1;
+    let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 0;
-    let test = ProofTest {
-        name,
-        root: EncodedValue::new(hex::encode(empty_sum_sha256()), Encoding::Hex),
-        proof_set: vec![EncodedValue::new(
-            hex::encode(empty_sum_sha256()),
-            Encoding::Hex,
-        )],
-        proof_index,
-        num_leaves: 0,
-        expected_verification: false,
-    };
+    let mut test = generate_test(name, description, &sample_data, proof_index);
+    test.num_leaves = 0;
+    test.expected_verification = false;
     write_test(&test);
 
     // Invalid proof index; should fail
     let name = "Test 1 Leaf Invalid Proof Index".to_string();
+    let description = "\
+        Build a proof from a binary Merkle tree consisting of 1 leaf and manually set the leaf index to 1. \
+        Because the leaf index is zero-based, leaf index 1 refers to a position outside the range of the source tree. \
+        This proof is invalid because the leaf index is out of range. \
+        Verification is expected to fail."
+        .to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 0;
-    let mut test = generate_test(name, &sample_data, proof_index);
+    let mut test = generate_test(name, description, &sample_data, proof_index);
     test.proof_index = 1;
     test.expected_verification = false;
     write_test(&test);
 
     // Invalid root; should fail
     let name = "Test 1 Leaf Invalid Root".to_string();
+    let description = "\
+        Build a proof from a binary Merkle tree consisting of 1 leaf and manually set the root. \
+        The root is manually set to the SHA256 hash of the string \"invalid\". \
+        This proof is invalid because root is not generated from canonical Merkle tree construction. \
+        Verification is expected to fail."
+        .to_string();
     let samples = 1;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let proof_index = 0;
-    let mut test = generate_test(name, &sample_data, proof_index);
+    let mut test = generate_test(name, description, &sample_data, proof_index);
     test.root = EncodedValue::new(hex::encode(sum(b"invalid")), Encoding::Hex);
     test.expected_verification = false;
     write_test(&test);
 
     // Invalid root; should fail
     let name = "Test 1024 Leaves Invalid Root".to_string();
+    let description = "\
+        Build a proof from a binary Merkle tree consisting of 1024 leaves and manually set the root. \
+        The root is manually set to the SHA256 hash of the string \"invalid\". \
+        This proof is invalid because root is not generated from canonical Merkle tree construction. \
+        Verification is expected to fail."
+        .to_string();
     let samples = 1024;
     let sample_data = test_data.iter().cloned().choose_multiple(&mut rng, samples);
     let index = 512;
-    let mut test = generate_test(name, &sample_data, index);
+    let mut test = generate_test(name, description, &sample_data, index);
     test.root = EncodedValue::new(hex::encode(sum(b"invalid")), Encoding::Hex);
     test.expected_verification = false;
     write_test(&test);

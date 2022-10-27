@@ -1,4 +1,5 @@
 name: Test 10 Leaves Index 4
+description: Build a proof from a binary Merkle tree consisting of 10 leaves and leaf index 4. This proof is valid and verification is expected to pass.
 root:
   value: 8041c9c9bc9a301c932dd6df2e95fe50d13ae72c21fe2d0a4c5bd5a77be76714
   encoding: hex
