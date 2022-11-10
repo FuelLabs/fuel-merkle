@@ -6,6 +6,7 @@ use fuel_storage::{Mappable, StorageMutate};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::fmt;
+use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
@@ -29,34 +30,25 @@ impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
     }
 }
 
-pub struct MerkleTree<StorageType> {
+pub struct MerkleTree<TableType, StorageType> {
     storage: StorageType,
     head: Option<Box<Subtree<Node>>>,
     leaves_count: u64,
+    phantom_table: PhantomData<TableType>,
 }
 
-/// The table of the Binary Merkle Tree's nodes. [`MerkleTree`] works with it as
-/// a binary array, where the storage key of the node is the `u64` index and
-/// value is the [`Node`](crate::binary::Node).
-pub struct NodesTable;
-
-impl Mappable for NodesTable {
-    /// The index of the node in the array.
-    type Key = u64;
-    type SetValue = Node;
-    type GetValue = Self::SetValue;
-}
-
-impl<StorageType, StorageError> MerkleTree<StorageType>
+impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
-    StorageType: StorageMutate<NodesTable, Error = StorageError>,
-    StorageError: fmt::Debug + Clone + 'static,
+    StorageType: StorageMutate<TableType, Error = StorageError>,
+    TableType: Mappable<Key = u64, SetValue = Node, GetValue = Node>,
+    StorageError: fmt::Debug + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
         Self {
             storage,
             head: None,
             leaves_count: 0,
+            phantom_table: Default::default(),
         }
     }
 
@@ -68,6 +60,7 @@ where
             storage,
             head: None,
             leaves_count,
+            phantom_table: Default::default(),
         };
 
         tree.build()?;
@@ -312,16 +305,26 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::{MerkleTree, NodesTable};
-    use crate::binary::{empty_sum, leaf_sum, node_sum};
-    use crate::common::StorageMap;
+    use super::MerkleTree;
+    use crate::binary::{empty_sum, leaf_sum, node_sum, Node};
+    use crate::common::StorageMap as StorageMapType;
     use alloc::vec::Vec;
     use fuel_merkle_test_helpers::TEST_DATA;
-    use fuel_storage::StorageInspect;
+    use fuel_storage::{Mappable, StorageInspect};
+
+    struct NodesTable;
+
+    impl Mappable for NodesTable {
+        type Key = u64;
+        type SetValue = Node;
+        type GetValue = Node;
+    }
+
+    type StorageMap = StorageMapType<NodesTable>;
 
     #[test]
     fn test_push_builds_internal_tree_structure() {
-        let mut storage_map = StorageMap::<NodesTable>::new();
+        let mut storage_map = StorageMap::new();
         let mut tree = MerkleTree::new(&mut storage_map);
 
         let data = &TEST_DATA[0..7]; // 7 leaves

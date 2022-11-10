@@ -28,6 +28,7 @@ where
     Type::Key: Eq + core::hash::Hash + Clone,
     Type::GetValue: Clone,
 {
+    // type Type = Type;
     type Error = core::convert::Infallible;
 
     fn get(&self, key: &Type::Key) -> Result<Option<Cow<Type::GetValue>>, Self::Error> {

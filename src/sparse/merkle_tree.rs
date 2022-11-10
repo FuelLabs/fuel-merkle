@@ -5,6 +5,7 @@ use fuel_storage::{Mappable, StorageMutate};
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::{cmp, fmt, iter};
+use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
@@ -25,35 +26,24 @@ impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
     }
 }
 
-pub struct MerkleTree<StorageType> {
+pub struct MerkleTree<TableType, StorageType> {
     root_node: Node,
     storage: StorageType,
-}
-
-/// The table of the Sparse Merkle tree's nodes. [`MerkleTree`] works with it as a sparse merkle
-/// tree, where the storage key is `Bytes32` and the value is the [`Buffer`](crate::sparse::Buffer)
-/// (raw presentation of the [`Node`](crate::sparse::Node)).
-pub struct NodesTable;
-
-impl Mappable for NodesTable {
-    /// The 32 bytes unique key of the merkle node.
-    type Key = Bytes32;
-    /// The merkle node data with information to iterate over the tree.
-    // TODO: Use directly [`Node`](crate::sparse::Node) because it will not add overhead.
-    type SetValue = Buffer;
-    type GetValue = Self::SetValue;
+    phantom_table: PhantomData<TableType>,
 }
 
 // TODO: Process each `unwrap` as error
-impl<StorageType, StorageError> MerkleTree<StorageType>
+impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
-    StorageType: StorageMutate<NodesTable, Error = StorageError>,
+    StorageType: StorageMutate<TableType, Error = StorageError>,
+    TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
     StorageError: fmt::Debug + Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
         Self {
             root_node: Node::create_placeholder(),
             storage,
+            phantom_table: Default::default(),
         }
     }
 
@@ -68,6 +58,7 @@ where
         let tree = Self {
             root_node: Node::from_buffer(buffer),
             storage,
+            phantom_table: Default::default(),
         };
         Ok(tree)
     }
@@ -280,10 +271,21 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::common::StorageMap;
+    use crate::common::{Bytes32, StorageMap as StorageMapType};
     use crate::sparse::hash::sum;
-    use crate::sparse::MerkleTree;
+    use crate::sparse::{Buffer, MerkleTree};
+    use fuel_storage::Mappable;
     use hex;
+
+    struct NodesTable;
+
+    impl Mappable for NodesTable {
+        type Key = Bytes32;
+        type SetValue = Buffer;
+        type GetValue = Buffer;
+    }
+
+    type StorageMap = StorageMapType<NodesTable>;
 
     #[test]
     fn test_empty_root() {

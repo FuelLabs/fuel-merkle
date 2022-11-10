@@ -4,12 +4,12 @@ use crate::sparse::hash::sum;
 use crate::sparse::zero_sum;
 
 // TODO: Return errors instead of `unwrap` during work with storage.
-use fuel_storage::StorageInspect;
+use fuel_storage::{Mappable, StorageInspect};
 
-use crate::sparse::merkle_tree::NodesTable;
 use core::mem::size_of;
 use core::ops::Range;
 use core::{cmp, fmt};
+use std::marker::PhantomData;
 
 const LEFT: u8 = 0;
 
@@ -361,27 +361,33 @@ impl fmt::Debug for Node {
     }
 }
 
-pub(crate) struct StorageNode<'storage, StorageType> {
+pub(crate) struct StorageNode<'storage, TableType, StorageType> {
     storage: &'storage StorageType,
     node: Node,
+    phantom_table: PhantomData<TableType>,
 }
 
-impl<StorageType> Clone for StorageNode<'_, StorageType> {
+impl<TableType, StorageType> Clone for StorageNode<'_, TableType, StorageType> {
     fn clone(&self) -> Self {
         Self {
             storage: self.storage,
             node: self.node.clone(),
+            phantom_table: Default::default(),
         }
     }
 }
 
-impl<'s, StorageType> StorageNode<'s, StorageType> {
+impl<'s, TableType, StorageType> StorageNode<'s, TableType, StorageType> {
     pub fn new(storage: &'s StorageType, node: Node) -> Self {
-        Self { node, storage }
+        Self {
+            node,
+            storage,
+            phantom_table: Default::default(),
+        }
     }
 }
 
-impl<StorageType> StorageNode<'_, StorageType> {
+impl<TableType, StorageType> StorageNode<'_, TableType, StorageType> {
     pub fn is_leaf(&self) -> bool {
         self.node.is_leaf()
     }
@@ -407,9 +413,10 @@ impl<StorageType> StorageNode<'_, StorageType> {
     }
 }
 
-impl<StorageType> StorageNode<'_, StorageType>
+impl<TableType, StorageType> StorageNode<'_, TableType, StorageType>
 where
-    StorageType: StorageInspect<NodesTable>,
+    StorageType: StorageInspect<TableType>,
+    TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
     StorageType::Error: fmt::Debug,
 {
     pub fn left_child(&self) -> Option<Self> {
@@ -439,7 +446,7 @@ where
     }
 }
 
-impl<StorageType> crate::common::Node for StorageNode<'_, StorageType> {
+impl<TableType, StorageType> crate::common::Node for StorageNode<'_, TableType, StorageType> {
     type Key = Bytes32;
 
     fn height(&self) -> u32 {
@@ -455,9 +462,10 @@ impl<StorageType> crate::common::Node for StorageNode<'_, StorageType> {
     }
 }
 
-impl<StorageType> crate::common::ParentNode for StorageNode<'_, StorageType>
+impl<TableType, StorageType> crate::common::ParentNode for StorageNode<'_, TableType, StorageType>
 where
-    StorageType: StorageInspect<NodesTable>,
+    StorageType: StorageInspect<TableType>,
+    TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
     StorageType::Error: fmt::Debug,
 {
     fn left_child(&self) -> Self {
@@ -469,9 +477,10 @@ where
     }
 }
 
-impl<StorageType> fmt::Debug for StorageNode<'_, StorageType>
+impl<TableType, StorageType> fmt::Debug for StorageNode<'_, TableType, StorageType>
 where
-    StorageType: StorageInspect<NodesTable>,
+    StorageType: StorageInspect<TableType>,
+    TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
     StorageType::Error: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -659,11 +668,20 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
-    use crate::common::StorageMap;
+    use crate::common::{Bytes32, StorageMap};
     use crate::sparse::hash::sum;
-    use crate::sparse::merkle_tree::NodesTable;
-    use crate::sparse::{Node, StorageNode};
-    use fuel_storage::StorageMutate;
+    use crate::sparse::{Buffer, Node, StorageNode};
+    use fuel_storage::{Mappable, StorageMutate};
+
+    pub struct NodesTable;
+
+    impl Mappable for NodesTable {
+        /// The 32 bytes unique key of the merkle node.
+        type Key = Bytes32;
+        /// The merkle node data with information to iterate over the tree.
+        type SetValue = Buffer;
+        type GetValue = Self::SetValue;
+    }
 
     #[test]
     fn test_node_left_child_returns_the_left_child() {

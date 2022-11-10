@@ -79,6 +79,7 @@ use crate::common::{Bytes8, PositionPath};
 /// sibling or uncle nodes are not guaranteed to exist in the tree.
 ///
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Position(u64);
 
 const LEFT_CHILD_DIRECTION: i64 = -1;
@@ -241,6 +242,12 @@ impl Position {
     fn direction(self) -> i64 {
         let scale = self.orientation() as i64 * 2 - 1; // Scale [0, 1] to [-1, 1];
         -scale
+    }
+}
+
+impl From<Position> for u64 {
+    fn from(position: Position) -> Self {
+        position.0
     }
 }
 

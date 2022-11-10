@@ -3,6 +3,7 @@ extern crate core;
 use rand::{seq::IteratorRandom, thread_rng, Rng};
 use sha2::{Digest, Sha256};
 
+use fuel_merkle::binary::in_memory::NodesTable;
 use fuel_merkle::{
     binary::MerkleTree,
     common::{Bytes32, StorageMap},
@@ -45,7 +46,7 @@ fn test_roots() {
         };
 
         let root = {
-            let storage = StorageMap::new();
+            let storage = StorageMap::<NodesTable>::new();
             let mut test_tree = MerkleTree::new(storage);
             for datum in sample_data.iter() {
                 test_tree.push(datum).unwrap();
@@ -82,7 +83,7 @@ fn test_prove() {
         };
 
         let proof = {
-            let storage = StorageMap::new();
+            let storage = StorageMap::<NodesTable>::new();
             let mut test_tree = MerkleTree::new(storage);
             for datum in sample_data.iter() {
                 test_tree.push(datum).unwrap();
@@ -108,7 +109,7 @@ fn test_load() {
             .cloned()
             .choose_multiple(&mut rng, *samples);
 
-        let mut storage = StorageMap::new();
+        let mut storage = StorageMap::<NodesTable>::new();
 
         let expected_root = {
             let mut reference_tree = MerkleTree::new(&mut storage);
