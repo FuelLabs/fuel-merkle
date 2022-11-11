@@ -39,8 +39,8 @@ pub struct MerkleTree<TableType, StorageType> {
 
 impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
-    StorageType: StorageMutate<TableType, Error = StorageError>,
     TableType: Mappable<Key = u64, SetValue = Node, GetValue = Node>,
+    StorageType: StorageMutate<TableType, Error = StorageError>,
     StorageError: fmt::Debug + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
@@ -305,8 +305,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::MerkleTree;
-    use crate::binary::{empty_sum, leaf_sum, node_sum, Node};
+    use crate::binary::{empty_sum, leaf_sum, node_sum, MerkleTree, Node};
     use crate::common::StorageMap as StorageMapType;
     use alloc::vec::Vec;
     use fuel_merkle_test_helpers::TEST_DATA;
