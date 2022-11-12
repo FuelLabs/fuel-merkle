@@ -1,17 +1,17 @@
 const INTERNAL: u8 = 0x01;
 const LEAF: u8 = 0x00;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Prefix {
-    INTERNAL,
-    LEAF,
+    Internal,
+    Leaf,
 }
 
 impl From<Prefix> for u8 {
     fn from(prefix: Prefix) -> Self {
         match prefix {
-            Prefix::INTERNAL => INTERNAL,
-            Prefix::LEAF => LEAF,
+            Prefix::Internal => INTERNAL,
+            Prefix::Leaf => LEAF,
         }
     }
 }
@@ -19,8 +19,8 @@ impl From<Prefix> for u8 {
 impl AsRef<[u8]> for Prefix {
     fn as_ref(&self) -> &[u8] {
         match self {
-            Prefix::INTERNAL => &[INTERNAL],
-            Prefix::LEAF => &[LEAF],
+            Prefix::Internal => &[INTERNAL],
+            Prefix::Leaf => &[LEAF],
         }
     }
 }
@@ -28,8 +28,8 @@ impl AsRef<[u8]> for Prefix {
 impl From<u8> for Prefix {
     fn from(byte: u8) -> Self {
         match byte {
-            INTERNAL => Prefix::INTERNAL,
-            LEAF => Prefix::LEAF,
+            INTERNAL => Prefix::Internal,
+            LEAF => Prefix::Leaf,
             _ => unreachable!(),
         }
     }
