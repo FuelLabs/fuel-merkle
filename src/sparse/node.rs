@@ -509,7 +509,7 @@ mod test_node {
 
     fn leaf_hash(key: &Bytes32, data: &[u8]) -> Bytes32 {
         let mut buffer = [0; 65];
-        buffer[0..1].clone_from_slice(&[Prefix::LEAF.into()]);
+        buffer[0..1].clone_from_slice(Prefix::LEAF.as_ref());
         buffer[1..33].clone_from_slice(key);
         buffer[33..65].clone_from_slice(&sum(data));
         sum(&buffer)
@@ -553,7 +553,7 @@ mod test_node {
     fn test_create_leaf_from_buffer_returns_a_valid_leaf() {
         let mut buffer = [0u8; 69];
         buffer[0..4].clone_from_slice(&0_u32.to_be_bytes());
-        buffer[4..5].clone_from_slice(&[Prefix::LEAF.into()]);
+        buffer[4..5].clone_from_slice(Prefix::LEAF.as_ref());
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
 
@@ -570,7 +570,7 @@ mod test_node {
     fn test_create_node_from_buffer_returns_a_valid_node() {
         let mut buffer = [0u8; 69];
         buffer[0..4].clone_from_slice(&256_u32.to_be_bytes());
-        buffer[4..5].clone_from_slice(&[Prefix::INTERNAL.into()]);
+        buffer[4..5].clone_from_slice(Prefix::INTERNAL.as_ref());
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
 
@@ -602,7 +602,7 @@ mod test_node {
     fn test_leaf_buffer_returns_expected_buffer() {
         let mut expected_buffer = [0u8; 69];
         expected_buffer[0..4].clone_from_slice(&0_u32.to_be_bytes());
-        expected_buffer[4..5].clone_from_slice(&[Prefix::LEAF.into()]);
+        expected_buffer[4..5].clone_from_slice(Prefix::LEAF.as_ref());
         expected_buffer[5..37].clone_from_slice(&sum(b"LEAF"));
         expected_buffer[37..69].clone_from_slice(&sum(&[1u8; 32]));
 
@@ -618,7 +618,7 @@ mod test_node {
     fn test_node_buffer_returns_expected_buffer() {
         let mut expected_buffer = [0u8; 69];
         expected_buffer[0..4].clone_from_slice(&1_u32.to_be_bytes());
-        expected_buffer[4..5].clone_from_slice(&[Prefix::INTERNAL.into()]);
+        expected_buffer[4..5].clone_from_slice(Prefix::INTERNAL.as_ref());
         expected_buffer[5..37].clone_from_slice(&leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
         expected_buffer[37..69].clone_from_slice(&leaf_hash(&sum(b"RIGHT"), &[1u8; 32]));
 
@@ -635,7 +635,7 @@ mod test_node {
     #[test]
     fn test_leaf_hash_returns_expected_hash_value() {
         let mut expected_buffer = [0u8; 65];
-        expected_buffer[0..1].clone_from_slice(&[Prefix::LEAF.into()]);
+        expected_buffer[0..1].clone_from_slice(Prefix::LEAF.as_ref());
         expected_buffer[1..33].clone_from_slice(&sum(b"LEAF"));
         expected_buffer[33..65].clone_from_slice(&sum(&[1u8; 32]));
         let expected_value = sum(&expected_buffer);
@@ -651,7 +651,7 @@ mod test_node {
     #[test]
     fn test_node_hash_returns_expected_hash_value() {
         let mut expected_buffer = [0u8; 65];
-        expected_buffer[0..1].clone_from_slice(&[Prefix::INTERNAL.into()]);
+        expected_buffer[0..1].clone_from_slice(Prefix::INTERNAL.as_ref());
         expected_buffer[1..33].clone_from_slice(&leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
         expected_buffer[33..65].clone_from_slice(&leaf_hash(&sum(b"RIGHT"), &[1u8; 32]));
         let expected_value = sum(&expected_buffer);
