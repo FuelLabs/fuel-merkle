@@ -1,5 +1,5 @@
 use crate::common::Node as NodeTrait;
-use crate::common::{Bytes1, Bytes32, Bytes4, Msb, LEAF, NODE};
+use crate::common::{Bytes1, Bytes32, Bytes4, Msb, Prefix};
 use crate::sparse::hash::sum;
 use crate::sparse::zero_sum;
 
@@ -49,7 +49,7 @@ impl Node {
         let buffer = Self::default_buffer();
         let mut node = Self { buffer };
         node.set_height(0);
-        node.set_prefix(LEAF);
+        node.set_prefix(Prefix::LEAF);
         node.set_bytes_lo(key);
         node.set_bytes_hi(&sum(data));
         node
@@ -59,7 +59,7 @@ impl Node {
         let buffer = Self::default_buffer();
         let mut node = Self { buffer };
         node.set_height(height);
-        node.set_prefix(NODE);
+        node.set_prefix(Prefix::INTERNAL);
         node.set_bytes_lo(&left_child.hash());
         node.set_bytes_hi(&right_child.hash());
         node
@@ -125,18 +125,8 @@ impl Node {
         u32::from_be_bytes(bytes.try_into().unwrap())
     }
 
-    pub fn set_height(&mut self, height: u32) {
-        let bytes = height.to_be_bytes();
-        self.set_bytes_height(&bytes)
-    }
-
-    pub fn prefix(&self) -> u8 {
-        self.bytes_prefix()[0]
-    }
-
-    pub fn set_prefix(&mut self, prefix: u8) {
-        let bytes = prefix.to_be_bytes();
-        self.set_bytes_prefix(&bytes);
+    pub fn prefix(&self) -> Prefix {
+        self.bytes_prefix()[0].into()
     }
 
     pub fn leaf_key(&self) -> &Bytes32 {
@@ -160,11 +150,11 @@ impl Node {
     }
 
     pub fn is_leaf(&self) -> bool {
-        self.prefix() == LEAF || self.is_placeholder()
+        self.prefix() == Prefix::LEAF || self.is_placeholder()
     }
 
     pub fn is_node(&self) -> bool {
-        self.prefix() == NODE
+        self.prefix() == Prefix::INTERNAL
     }
 
     pub fn is_placeholder(&self) -> bool {
@@ -268,6 +258,13 @@ impl Node {
         &self.buffer
     }
 
+    // Height
+
+    fn set_height(&mut self, height: u32) {
+        let bytes = height.to_be_bytes();
+        self.set_bytes_height(&bytes)
+    }
+
     fn bytes_height_mut(&mut self) -> &mut [u8] {
         let range = Self::height_range();
         &mut self.buffer_mut()[range]
@@ -280,6 +277,13 @@ impl Node {
 
     fn set_bytes_height(&mut self, bytes: &Bytes4) {
         self.bytes_height_mut().clone_from_slice(bytes)
+    }
+
+    // Prefix
+
+    fn set_prefix(&mut self, prefix: Prefix) {
+        let byte: u8 = prefix.into();
+        self.set_bytes_prefix(&[byte]);
     }
 
     fn bytes_prefix_mut(&mut self) -> &mut [u8] {
@@ -296,6 +300,8 @@ impl Node {
         self.bytes_prefix_mut().clone_from_slice(bytes);
     }
 
+    // Bytes lo
+
     fn bytes_lo_mut(&mut self) -> &mut [u8] {
         let range = Self::bytes_lo_range();
         &mut self.buffer_mut()[range]
@@ -309,6 +315,8 @@ impl Node {
     fn set_bytes_lo(&mut self, bytes: &Bytes32) {
         self.bytes_lo_mut().clone_from_slice(bytes);
     }
+
+    // Bytes hi
 
     fn bytes_hi_mut(&mut self) -> &mut [u8] {
         let range = Self::bytes_hi_range();
@@ -495,13 +503,13 @@ where
 
 #[cfg(test)]
 mod test_node {
-    use crate::common::{Bytes32, LEAF, NODE};
+    use crate::common::{Bytes32, Prefix};
     use crate::sparse::hash::sum;
     use crate::sparse::{zero_sum, Node};
 
     fn leaf_hash(key: &Bytes32, data: &[u8]) -> Bytes32 {
         let mut buffer = [0; 65];
-        buffer[0..1].clone_from_slice(&[LEAF]);
+        buffer[0..1].clone_from_slice(&[Prefix::LEAF.into()]);
         buffer[1..33].clone_from_slice(key);
         buffer[33..65].clone_from_slice(&sum(data));
         sum(&buffer)
@@ -513,7 +521,7 @@ mod test_node {
         assert_eq!(leaf.is_leaf(), true);
         assert_eq!(leaf.is_node(), false);
         assert_eq!(leaf.height(), 0);
-        assert_eq!(leaf.prefix(), LEAF);
+        assert_eq!(leaf.prefix(), Prefix::LEAF);
         assert_eq!(leaf.leaf_key(), &sum(b"LEAF"));
         assert_eq!(leaf.leaf_data(), &sum(&[1u8; 32]));
     }
@@ -526,7 +534,7 @@ mod test_node {
         assert_eq!(node.is_leaf(), false);
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 1);
-        assert_eq!(node.prefix(), NODE);
+        assert_eq!(node.prefix(), Prefix::INTERNAL);
         assert_eq!(node.left_child_key(), &leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
         assert_eq!(
             node.right_child_key(),
@@ -545,7 +553,7 @@ mod test_node {
     fn test_create_leaf_from_buffer_returns_a_valid_leaf() {
         let mut buffer = [0u8; 69];
         buffer[0..4].clone_from_slice(&0_u32.to_be_bytes());
-        buffer[4..5].clone_from_slice(&[LEAF]);
+        buffer[4..5].clone_from_slice(&[Prefix::LEAF.into()]);
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
 
@@ -553,7 +561,7 @@ mod test_node {
         assert_eq!(node.is_leaf(), true);
         assert_eq!(node.is_node(), false);
         assert_eq!(node.height(), 0);
-        assert_eq!(node.prefix(), LEAF);
+        assert_eq!(node.prefix(), Prefix::LEAF);
         assert_eq!(node.leaf_key(), &[1u8; 32]);
         assert_eq!(node.leaf_data(), &[1u8; 32]);
     }
@@ -562,7 +570,7 @@ mod test_node {
     fn test_create_node_from_buffer_returns_a_valid_node() {
         let mut buffer = [0u8; 69];
         buffer[0..4].clone_from_slice(&256_u32.to_be_bytes());
-        buffer[4..5].clone_from_slice(&[NODE]);
+        buffer[4..5].clone_from_slice(&[Prefix::INTERNAL.into()]);
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
 
@@ -570,7 +578,7 @@ mod test_node {
         assert_eq!(node.is_leaf(), false);
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 256);
-        assert_eq!(node.prefix(), NODE);
+        assert_eq!(node.prefix(), Prefix::INTERNAL);
         assert_eq!(node.left_child_key(), &[1u8; 32]);
         assert_eq!(node.right_child_key(), &[1u8; 32]);
     }
@@ -594,7 +602,7 @@ mod test_node {
     fn test_leaf_buffer_returns_expected_buffer() {
         let mut expected_buffer = [0u8; 69];
         expected_buffer[0..4].clone_from_slice(&0_u32.to_be_bytes());
-        expected_buffer[4..5].clone_from_slice(&[LEAF]);
+        expected_buffer[4..5].clone_from_slice(&[Prefix::LEAF.into()]);
         expected_buffer[5..37].clone_from_slice(&sum(b"LEAF"));
         expected_buffer[37..69].clone_from_slice(&sum(&[1u8; 32]));
 
@@ -610,7 +618,7 @@ mod test_node {
     fn test_node_buffer_returns_expected_buffer() {
         let mut expected_buffer = [0u8; 69];
         expected_buffer[0..4].clone_from_slice(&1_u32.to_be_bytes());
-        expected_buffer[4..5].clone_from_slice(&[NODE]);
+        expected_buffer[4..5].clone_from_slice(&[Prefix::INTERNAL.into()]);
         expected_buffer[5..37].clone_from_slice(&leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
         expected_buffer[37..69].clone_from_slice(&leaf_hash(&sum(b"RIGHT"), &[1u8; 32]));
 
@@ -627,7 +635,7 @@ mod test_node {
     #[test]
     fn test_leaf_hash_returns_expected_hash_value() {
         let mut expected_buffer = [0u8; 65];
-        expected_buffer[0..1].clone_from_slice(&[LEAF]);
+        expected_buffer[0..1].clone_from_slice(&[Prefix::LEAF.into()]);
         expected_buffer[1..33].clone_from_slice(&sum(b"LEAF"));
         expected_buffer[33..65].clone_from_slice(&sum(&[1u8; 32]));
         let expected_value = sum(&expected_buffer);
@@ -643,7 +651,7 @@ mod test_node {
     #[test]
     fn test_node_hash_returns_expected_hash_value() {
         let mut expected_buffer = [0u8; 65];
-        expected_buffer[0..1].clone_from_slice(&[NODE]);
+        expected_buffer[0..1].clone_from_slice(&[Prefix::INTERNAL.into()]);
         expected_buffer[1..33].clone_from_slice(&leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
         expected_buffer[33..65].clone_from_slice(&leaf_hash(&sum(b"RIGHT"), &[1u8; 32]));
         let expected_value = sum(&expected_buffer);
