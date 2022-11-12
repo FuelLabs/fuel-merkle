@@ -245,12 +245,6 @@ impl Position {
     }
 }
 
-impl From<Position> for u64 {
-    fn from(position: Position) -> Self {
-        position.0
-    }
-}
-
 impl crate::common::Node for Position {
     type Key = Bytes8;
 
