@@ -4,10 +4,8 @@ use fuel_merkle::common::{Bytes32, StorageMap};
 use fuel_merkle_test_helpers::data::{binary::ProofTest, EncodedValue, Encoding};
 
 use digest::Digest;
-use fuel_merkle_test_helpers::data::sparse::Test;
 use function_name::named;
 use rand::seq::IteratorRandom;
-use rand::SeedableRng;
 use rand_pcg::Pcg64;
 use rand_seeder::Seeder;
 use sha2::Sha256;
@@ -69,10 +67,11 @@ fn write_test(test: &ProofTest) {
     .expect("Unable to write file!");
 }
 
+#[named]
 fn generate_test_10_leaves_index_4(test_data: &Vec<Bytes32>) -> ProofTest {
     let name = "Test 10 Leaves Index 4".to_string();
-    let function_name = function_name!();
-    let mut rng = Seeder::from(&function_name).make_rng();
+    let function_name = function_name!().to_string();
+    let mut rng: Pcg64 = Seeder::from(&function_name).make_rng();
     let description = "\
         Build a proof from a binary Merkle tree consisting of 10 leaves and leaf index 4. \
         This proof is valid and verification is expected to pass."
@@ -83,10 +82,11 @@ fn generate_test_10_leaves_index_4(test_data: &Vec<Bytes32>) -> ProofTest {
     generate_test(name, function_name, description, &sample_data, proof_index)
 }
 
+#[named]
 fn generate_test_1_leaf_index_0(test_data: &Vec<Bytes32>) -> ProofTest {
     let name = "Test 1 Leaf Index 0".to_string();
-    let function_name = function_name!();
-    let mut rng = Seeder::from(&function_name).make_rng();
+    let function_name = function_name!().to_string();
+    let mut rng: Pcg64 = Seeder::from(&function_name).make_rng();
     let description = "\
         Build a proof from a binary Merkle tree consisting of 1 leaf and leaf index 0. \
         This proof is valid and verification is expected to pass."
@@ -97,10 +97,11 @@ fn generate_test_1_leaf_index_0(test_data: &Vec<Bytes32>) -> ProofTest {
     generate_test(name, function_name, description, &sample_data, proof_index)
 }
 
+#[named]
 fn generate_test_100_leaves_index_10(test_data: &Vec<Bytes32>) -> ProofTest {
     let name = "Test 100 Leaves Index 10".to_string();
-    let function_name = function_name!();
-    let mut rng = Seeder::from(&function_name).make_rng();
+    let function_name = function_name!().to_string();
+    let mut rng: Pcg64 = Seeder::from(&function_name).make_rng();
     let description = "\
         Build a proof from a binary Merkle tree consisting of 100 leaves and leaf index 10. \
         This proof is valid and verification is expected to pass."
@@ -111,10 +112,11 @@ fn generate_test_100_leaves_index_10(test_data: &Vec<Bytes32>) -> ProofTest {
     generate_test(name, function_name, description, &sample_data, proof_index)
 }
 
+#[named]
 fn generate_test_1024_leaves_index_512(test_data: &Vec<Bytes32>) -> ProofTest {
     let name = "Test 1024 Leaves Index 512".to_string();
-    let function_name = function_name!();
-    let mut rng = Seeder::from(&function_name).make_rng();
+    let function_name = function_name!().to_string();
+    let mut rng: Pcg64 = Seeder::from(&function_name).make_rng();
     let description = "\
         Build a proof from a binary Merkle tree consisting of 1024 leaves and leaf index 512. \
         This proof is valid and verification is expected to pass."
@@ -125,10 +127,11 @@ fn generate_test_1024_leaves_index_512(test_data: &Vec<Bytes32>) -> ProofTest {
     generate_test(name, function_name, description, &sample_data, proof_index)
 }
 
+#[named]
 fn generate_test_0_leaves(test_data: &Vec<Bytes32>) -> ProofTest {
     let name = "Test 0 Leaves".to_string();
-    let function_name = function_name!();
-    let mut rng = Seeder::from(&function_name).make_rng();
+    let function_name = function_name!().to_string();
+    let mut rng: Pcg64 = Seeder::from(&function_name).make_rng();
     let description = "\
         Build a proof from a binary Merkle tree and manual set the number of leaves to 0. \
         Setting the number of leaves to 0 implies that the source tree is empty. \
@@ -144,10 +147,11 @@ fn generate_test_0_leaves(test_data: &Vec<Bytes32>) -> ProofTest {
     test
 }
 
+#[named]
 fn generate_test_1_leaf_invalid_proof_index(test_data: &Vec<Bytes32>) -> ProofTest {
     let name = "Test 1 Leaf Invalid Proof Index".to_string();
-    let function_name = function_name!();
-    let mut rng = Seeder::from(&function_name).make_rng();
+    let function_name = function_name!().to_string();
+    let mut rng: Pcg64 = Seeder::from(&function_name).make_rng();
     let description = "\
         Build a proof from a binary Merkle tree consisting of 1 leaf and manually set the leaf index to 1. \
         Because the leaf index is zero-based, leaf index 1 refers to a position outside the range of the source tree. \
@@ -163,10 +167,11 @@ fn generate_test_1_leaf_invalid_proof_index(test_data: &Vec<Bytes32>) -> ProofTe
     test
 }
 
+#[named]
 fn generate_test_1_leaf_invalid_root(test_data: &Vec<Bytes32>) -> ProofTest {
     let name = "Test 1 Leaf Invalid Root".to_string();
-    let function_name = function_name!();
-    let mut rng = Seeder::from(&function_name).make_rng();
+    let function_name = function_name!().to_string();
+    let mut rng: Pcg64 = Seeder::from(&function_name).make_rng();
     let description = "\
         Build a proof from a binary Merkle tree consisting of 1 leaf and manually set the root. \
         The root is manually set to the SHA256 hash of the string \"invalid\". \
@@ -182,10 +187,11 @@ fn generate_test_1_leaf_invalid_root(test_data: &Vec<Bytes32>) -> ProofTest {
     test
 }
 
+#[named]
 fn generate_test_1024_leaves_invalid_root(test_data: &Vec<Bytes32>) -> ProofTest {
     let name = "Test 1024 Leaves Invalid Root".to_string();
-    let function_name = function_name!();
-    let mut rng = Seeder::from(&function_name).make_rng();
+    let function_name = function_name!().to_string();
+    let mut rng: Pcg64 = Seeder::from(&function_name).make_rng();
     let description = "\
         Build a proof from a binary Merkle tree consisting of 1024 leaves and manually set the root. \
         The root is manually set to the SHA256 hash of the string \"invalid\". \

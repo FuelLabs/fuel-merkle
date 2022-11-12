@@ -1,30 +1,31 @@
 name: Test 1024 Leaves Invalid Root
+function_name: generate_test_1024_leaves_invalid_root
 description: Build a proof from a binary Merkle tree consisting of 1024 leaves and manually set the root. The root is manually set to the SHA256 hash of the string "invalid". This proof is invalid because root is not generated from canonical Merkle tree construction. Verification is expected to fail.
 root:
   value: f1234d75178d892a133a410355a5a990cf75d2f33eba25d575943d4df632f3a4
   encoding: hex
 proof_set:
-- value: 70c84e89fa5dbfc363a306b384e98b881b1f62a8e71933f16a4fe53c3a653619
+- value: 0fd57bb7146938576395aa785eef8970dc33f294fa2d9a77fc1598e9084be008
   encoding: hex
-- value: 9af2a97a7f656386aba1a2ee58b317827e8b833600256f6eb3a9222cc0c5be0e
+- value: bc6abd3c380c4d69085c2f879e784f096fcd0a9e921b359fecf87ef76ca4bc67
   encoding: hex
-- value: 5d69691d8afcb22c008e0aa2f5cb8c90ec5e48a6419c8f4d20cd529df77a2e6e
+- value: c82561818abd7843b694824f21024c134158ce89445e7dc4a4aebebdb5a7dd5e
   encoding: hex
-- value: bd0a4a56f5b20bca9703d25b9da5977e960e8a730cff18e3f8283d34850df06b
+- value: f94219552c116bad634d8f9c98157ee414741ec053ea7f1ff3412df4a7b2899f
   encoding: hex
-- value: eb3b3712ff7217cb5fb925ed9df5a54f98292d6e0855f55a55e74198ec8f159a
+- value: 617e973c2ac3dd9adfeb944ca1ee4d54053e2520c7d7d435872dd60f6c45c1bb
   encoding: hex
-- value: cdfd4ecd6495afd5a57ea7c469e8d2c456b0cde14b3f7aa38091c64bb91c6504
+- value: 3fe1e227f51971bff35c83338f48282c81f94edb7577cce7bb56661e14aab740
   encoding: hex
-- value: 11ac1e922764d3affc7da61489d76d81025fefaf1ba779695ccb73997d655fbd
+- value: cbabcf9e2f7ef7a85eb98e49380236c767ec32cfac1c878a03b22492f84916a6
   encoding: hex
-- value: 2f592b7195fc45ceadef134087d89c3a2006f0f9fc3f497746455e84f12af56b
+- value: 2689ef456cd69c7af07084ab16922331127544f038627bfa04f8d95effd1150c
   encoding: hex
-- value: fb90fda7b3f15db598235c70b4eb7026b9956c66ad2c7f420ac6c605fcbda78c
+- value: 8007f304566161b05a29f4380dee1b5f4178b1e0a5dfadcf6613f6e15a0ec761
   encoding: hex
-- value: 5800bb82f384d7dd8c8626b99567d1ec05094b0b632175446cd53dc2555fde78
+- value: 6d8b4dd3156d16df1883acf6d6eb22f27635b44459b09a5a77a7bda6fb919d13
   encoding: hex
-- value: a0d37830820a9ce08bd41e1c6e436dc4a0a0bcd2387c72b95789f23c5147aca4
+- value: c2a27c22ec6bfd35c83dcdf5379539c0865c23341ef8abba1248aa44fe36d23f
   encoding: hex
 proof_index: 512
 num_leaves: 1024
