@@ -11,6 +11,7 @@ use crate::{
 #[derive(Serialize, Deserialize)]
 pub struct ProofTest {
     pub name: String,
+    pub function_name: String,
     pub description: String,
     pub root: EncodedValue,
     pub proof_set: Vec<EncodedValue>,
