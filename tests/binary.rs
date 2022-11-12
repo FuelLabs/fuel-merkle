@@ -1,6 +1,5 @@
 extern crate core;
 
-use fuel_storage::Mappable;
 use rand::{
     seq::IteratorRandom,
     thread_rng,
@@ -22,6 +21,7 @@ use fuel_merkle::{
     },
 };
 use fuel_merkle_test_helpers::binary::MerkleTree as ReferenceMerkleTree;
+use fuel_storage::Mappable;
 
 struct NodesTable;
 
