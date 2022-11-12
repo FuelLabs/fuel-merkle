@@ -1,14 +1,35 @@
 extern crate core;
 
-use rand::{seq::IteratorRandom, thread_rng, Rng};
-use sha2::{Digest, Sha256};
+use fuel_storage::Mappable;
+use rand::{
+    seq::IteratorRandom,
+    thread_rng,
+    Rng,
+};
+use sha2::{
+    Digest,
+    Sha256,
+};
 
-use fuel_merkle::binary::in_memory::NodesTable;
 use fuel_merkle::{
-    binary::MerkleTree,
-    common::{Bytes32, StorageMap},
+    binary::{
+        MerkleTree,
+        Node,
+    },
+    common::{
+        Bytes32,
+        StorageMap,
+    },
 };
 use fuel_merkle_test_helpers::binary::MerkleTree as ReferenceMerkleTree;
+
+struct NodesTable;
+
+impl Mappable for NodesTable {
+    type Key = u64;
+    type SetValue = Node;
+    type GetValue = Self::SetValue;
+}
 
 // During test setup, we randomly sample the pool of test data to generate the
 // leaf set for the test and reference Merkle trees. Each test consists of a
