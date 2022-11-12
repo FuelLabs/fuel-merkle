@@ -16,6 +16,16 @@ impl From<Prefix> for u8 {
     }
 }
 
+impl From<u8> for Prefix {
+    fn from(byte: u8) -> Self {
+        match byte {
+            INTERNAL => Prefix::Internal,
+            LEAF => Prefix::Leaf,
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl AsRef<[u8]> for Prefix {
     fn as_ref(&self) -> &[u8] {
         match self {
@@ -30,16 +40,6 @@ impl AsRef<[u8; 1]> for Prefix {
         match self {
             Prefix::Internal => &[INTERNAL],
             Prefix::Leaf => &[LEAF],
-        }
-    }
-}
-
-impl From<u8> for Prefix {
-    fn from(byte: u8) -> Self {
-        match byte {
-            INTERNAL => Prefix::Internal,
-            LEAF => Prefix::Leaf,
-            _ => unreachable!(),
         }
     }
 }
