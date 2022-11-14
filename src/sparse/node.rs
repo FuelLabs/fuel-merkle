@@ -6,10 +6,10 @@ use crate::sparse::zero_sum;
 // TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::{Mappable, StorageInspect};
 
+use core::marker::PhantomData;
 use core::mem::size_of;
 use core::ops::Range;
 use core::{cmp, fmt};
-use std::marker::PhantomData;
 
 const LEFT: u8 = 0;
 

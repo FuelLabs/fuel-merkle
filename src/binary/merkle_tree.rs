@@ -6,7 +6,7 @@ use fuel_storage::{Mappable, StorageMutate};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::fmt;
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]

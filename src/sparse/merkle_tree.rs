@@ -4,8 +4,8 @@ use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::string::String;
 use alloc::vec::Vec;
+use core::marker::PhantomData;
 use core::{cmp, fmt, iter};
-use std::marker::PhantomData;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
