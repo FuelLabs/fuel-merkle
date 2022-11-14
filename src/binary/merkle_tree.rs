@@ -19,14 +19,8 @@ pub enum MerkleTreeError<StorageError> {
     )]
     LoadError(u64),
 
-    #[cfg_attr(feature = "std", error("a storage error was thrown: {0}"))]
-    StorageError(StorageError),
-}
-
-impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
-    fn from(err: StorageError) -> MerkleTreeError<StorageError> {
-        MerkleTreeError::StorageError(err)
-    }
+    #[cfg_attr(feature = "std", error(transparent))]
+    StorageError(#[from] StorageError),
 }
 
 pub struct MerkleTree<StorageType> {

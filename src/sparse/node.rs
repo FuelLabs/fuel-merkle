@@ -1,12 +1,13 @@
+use crate::common::error::DeserializeError;
 use crate::common::Node as NodeTrait;
 use crate::common::{Bytes1, Bytes32, Bytes4, Msb, Prefix};
 use crate::sparse::hash::sum;
+use crate::sparse::merkle_tree::NodesTable;
 use crate::sparse::zero_sum;
 
 // TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::StorageInspect;
 
-use crate::sparse::merkle_tree::NodesTable;
 use core::mem::size_of;
 use core::ops::Range;
 use core::{cmp, fmt};
@@ -99,12 +100,6 @@ impl Node {
         Self { buffer }
     }
 
-    pub fn from_buffer(buffer: Buffer) -> Self {
-        let node = Self { buffer };
-        assert!(node.is_leaf() || node.is_node());
-        node
-    }
-
     pub fn common_path_length(&self, other: &Node) -> usize {
         debug_assert!(self.is_leaf());
         debug_assert!(other.is_leaf());
@@ -126,7 +121,9 @@ impl Node {
     }
 
     pub fn prefix(&self) -> Prefix {
-        self.bytes_prefix()[0].into()
+        // Safety: By the time a Node is created, it will always have a valid
+        // prefix.
+        self.bytes_prefix()[0].try_into().unwrap()
     }
 
     pub fn leaf_key(&self) -> &Bytes32 {
@@ -332,6 +329,18 @@ impl Node {
     }
 }
 
+impl TryFrom<Buffer> for Node {
+    type Error = DeserializeError;
+
+    fn try_from(value: Buffer) -> Result<Self, Self::Error> {
+        let node = Self { buffer: value };
+
+        let _prefix: Prefix = node.bytes_prefix()[0].try_into()?;
+
+        Ok(node)
+    }
+}
+
 impl crate::common::Node for Node {
     type Key = Bytes32;
 
@@ -419,30 +428,38 @@ where
     StorageType: StorageInspect<NodesTable>,
     StorageType::Error: fmt::Debug,
 {
-    pub fn left_child(&self) -> Option<Self> {
+    pub fn left_child(&self) -> Result<Option<Self>, DeserializeError> {
         assert!(self.is_node());
         let key = self.node.left_child_key();
         if key == zero_sum() {
-            return Some(Self::new(self.storage, Node::create_placeholder()));
+            return Ok(Some(Self::new(self.storage, Node::create_placeholder())));
         }
         let buffer = self.storage.get(key).unwrap();
-        buffer.map(|b| {
-            let node = Node::from_buffer(*b);
-            Self::new(self.storage, node)
-        })
+        if let Some(buffer) = buffer {
+            buffer
+                .into_owned()
+                .try_into()
+                .map(|node: Node| Some(Self::new(self.storage, node)))
+        } else {
+            Ok(None)
+        }
     }
 
-    pub fn right_child(&self) -> Option<Self> {
+    pub fn right_child(&self) -> Result<Option<Self>, DeserializeError> {
         assert!(self.is_node());
         let key = self.node.right_child_key();
         if key == zero_sum() {
-            return Some(Self::new(self.storage, Node::create_placeholder()));
+            return Ok(Some(Self::new(self.storage, Node::create_placeholder())));
         }
         let buffer = self.storage.get(key).unwrap();
-        buffer.map(|b| {
-            let node = Node::from_buffer(*b);
-            Self::new(self.storage, node)
-        })
+        if let Some(buffer) = buffer {
+            buffer
+                .into_owned()
+                .try_into()
+                .map(|node: Node| Some(Self::new(self.storage, node)))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -468,11 +485,11 @@ where
     StorageType::Error: fmt::Debug,
 {
     fn left_child(&self) -> Self {
-        StorageNode::left_child(self).unwrap()
+        StorageNode::left_child(self).unwrap().unwrap()
     }
 
     fn right_child(&self) -> Self {
-        StorageNode::right_child(self).unwrap()
+        StorageNode::right_child(self).unwrap().unwrap()
     }
 }
 
@@ -556,7 +573,7 @@ mod test_node {
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
 
-        let node = Node::from_buffer(buffer);
+        let node: Node = buffer.try_into().unwrap();
         assert_eq!(node.is_leaf(), true);
         assert_eq!(node.is_node(), false);
         assert_eq!(node.height(), 0);
@@ -573,7 +590,7 @@ mod test_node {
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
 
-        let node = Node::from_buffer(buffer);
+        let node: Node = buffer.try_into().unwrap();
         assert_eq!(node.is_leaf(), false);
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 256);
@@ -592,7 +609,7 @@ mod test_node {
         buffer[37..69].clone_from_slice(&[1u8; 32]);
 
         // Should panic; prefix 0x02 is does not represent a node or leaf
-        Node::from_buffer(buffer);
+        let _node: Node = buffer.try_into().unwrap();
     }
 
     /// For leaf node `node` of leaf data `d` with key `k`:
@@ -669,6 +686,7 @@ mod test_storage_node {
     use crate::common::StorageMap;
     use crate::sparse::hash::sum;
     use crate::sparse::merkle_tree::NodesTable;
+    use crate::sparse::node::BUFFER_SIZE;
     use crate::sparse::{Node, StorageNode};
     use fuel_storage::StorageMutate;
 
@@ -686,7 +704,7 @@ mod test_storage_node {
         let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
         let storage_node = StorageNode::new(&s, node_0);
-        let child = storage_node.left_child().unwrap();
+        let child = storage_node.left_child().unwrap().unwrap();
 
         assert_eq!(child.hash(), leaf_0.hash());
     }
@@ -705,7 +723,7 @@ mod test_storage_node {
         let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
         let storage_node = StorageNode::new(&s, node_0);
-        let child = storage_node.right_child().unwrap();
+        let child = storage_node.right_child().unwrap().unwrap();
 
         assert_eq!(child.hash(), leaf_1.hash());
     }
@@ -721,7 +739,7 @@ mod test_storage_node {
         let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
         let storage_node = StorageNode::new(&s, node_0);
-        let child = storage_node.left_child().unwrap();
+        let child = storage_node.left_child().unwrap().unwrap();
 
         assert!(child.node.is_placeholder());
     }
@@ -737,8 +755,66 @@ mod test_storage_node {
         let _ = s.insert(&node_0.hash(), node_0.as_buffer());
 
         let storage_node = StorageNode::new(&s, node_0);
-        let child = storage_node.right_child().unwrap();
+        let child = storage_node.right_child().unwrap().unwrap();
 
         assert!(child.node.is_placeholder());
+    }
+
+    #[test]
+    fn test_node_left_child_returns_none_when_key_is_not_found() {
+        let s = StorageMap::<NodesTable>::new();
+
+        let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
+        let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
+        let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
+
+        let storage_node = StorageNode::new(&s, node_0);
+        let child = storage_node.left_child().unwrap();
+
+        assert!(child.is_none());
+    }
+
+    #[test]
+    fn test_node_right_child_returns_none_when_key_is_not_found() {
+        let s = StorageMap::<NodesTable>::new();
+
+        let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
+        let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
+        let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
+
+        let storage_node = StorageNode::new(&s, node_0);
+        let child = storage_node.right_child().unwrap();
+
+        assert!(child.is_none());
+    }
+
+    #[test]
+    fn test_node_left_child_returns_deserialize_error_when_buffer_is_invalid() {
+        let mut s = StorageMap::<NodesTable>::new();
+
+        let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
+        let _ = s.insert(&leaf_0.hash(), &[255; BUFFER_SIZE]);
+        let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
+        let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
+
+        let storage_node = StorageNode::new(&s, node_0);
+        let child = storage_node.left_child();
+
+        assert!(child.is_err());
+    }
+
+    #[test]
+    fn test_node_right_child_returns_deserialize_error_when_buffer_is_invalid() {
+        let mut s = StorageMap::<NodesTable>::new();
+
+        let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
+        let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
+        let _ = s.insert(&leaf_1.hash(), &[255; BUFFER_SIZE]);
+        let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
+
+        let storage_node = StorageNode::new(&s, node_0);
+        let child = storage_node.right_child();
+
+        assert!(child.is_err());
     }
 }

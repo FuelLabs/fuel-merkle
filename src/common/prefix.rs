@@ -1,5 +1,14 @@
+use crate::common::prefix::PrefixError::InvalidPrefix;
+
 const INTERNAL: u8 = 0x01;
 const LEAF: u8 = 0x00;
+
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "std", derive(thiserror::Error))]
+pub enum PrefixError {
+    #[cfg_attr(feature = "std", error("prefix {0} is not valid"))]
+    InvalidPrefix(u8),
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Prefix {
@@ -16,12 +25,14 @@ impl From<Prefix> for u8 {
     }
 }
 
-impl From<u8> for Prefix {
-    fn from(byte: u8) -> Self {
+impl TryFrom<u8> for Prefix {
+    type Error = PrefixError;
+
+    fn try_from(byte: u8) -> Result<Self, Self::Error> {
         match byte {
-            INTERNAL => Prefix::Internal,
-            LEAF => Prefix::Leaf,
-            _ => unreachable!(),
+            INTERNAL => Ok(Prefix::Internal),
+            LEAF => Ok(Prefix::Leaf),
+            _ => Err(InvalidPrefix(byte)),
         }
     }
 }

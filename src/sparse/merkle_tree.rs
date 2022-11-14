@@ -1,3 +1,4 @@
+use crate::common::error::DeserializeError;
 use crate::common::{AsPathIterator, Bytes32};
 use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
 use fuel_storage::{Mappable, StorageMutate};
@@ -15,14 +16,11 @@ pub enum MerkleTreeError<StorageError> {
     )]
     LoadError(String),
 
-    #[cfg_attr(feature = "std", error("a storage error was thrown: {0}"))]
-    StorageError(StorageError),
-}
+    #[cfg_attr(feature = "std", error(transparent))]
+    StorageError(#[from] StorageError),
 
-impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
-    fn from(err: StorageError) -> MerkleTreeError<StorageError> {
-        MerkleTreeError::StorageError(err)
-    }
+    #[cfg_attr(feature = "std", error(transparent))]
+    DeserializeError(DeserializeError),
 }
 
 pub struct MerkleTree<StorageType> {
@@ -44,7 +42,6 @@ impl Mappable for NodesTable {
     type GetValue = Self::SetValue;
 }
 
-// TODO: Process each `unwrap` as error
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
     StorageType: StorageMutate<NodesTable, Error = StorageError>,
@@ -66,7 +63,9 @@ where
             .ok_or_else(|| MerkleTreeError::LoadError(hex::encode(root)))?
             .into_owned();
         let tree = Self {
-            root_node: Node::from_buffer(buffer),
+            root_node: buffer
+                .try_into()
+                .map_err(MerkleTreeError::DeserializeError)?,
             storage,
         };
         Ok(tree)
@@ -108,7 +107,10 @@ where
         }
 
         if let Some(buffer) = self.storage.get(key)? {
-            let leaf_node = Node::from_buffer(*buffer);
+            let buffer = buffer.into_owned();
+            let leaf_node: Node = buffer
+                .try_into()
+                .map_err(MerkleTreeError::DeserializeError)?;
             let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
             self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
         }
@@ -670,5 +672,27 @@ mod test {
             let tree = MerkleTree::load(&mut storage, root);
             assert!(tree.is_err());
         }
+    }
+
+    #[test]
+    fn test_load_returns_a_deserialize_error_if_the_storage_is_corrupted() {
+        use fuel_storage::StorageMutate;
+
+        let mut storage = StorageMap::new();
+
+        let mut tree = MerkleTree::new(&mut storage);
+        tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
+        tree.update(&sum(b"\x00\x00\x00\x01"), b"DATA").unwrap();
+        tree.update(&sum(b"\x00\x00\x00\x02"), b"DATA").unwrap();
+        tree.update(&sum(b"\x00\x00\x00\x03"), b"DATA").unwrap();
+        tree.update(&sum(b"\x00\x00\x00\x04"), b"DATA").unwrap();
+        let root = tree.root();
+
+        // Overwrite the root key-value with an invalid buffer to create a
+        // DeserializeError.
+        storage.insert(&root, &[255; 69]).unwrap();
+
+        let tree = MerkleTree::load(&mut storage, &root);
+        assert!(tree.is_err());
     }
 }
