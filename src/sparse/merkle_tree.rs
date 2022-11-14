@@ -1,10 +1,10 @@
-use crate::common::error::DeserializeError;
-use crate::common::{AsPathIterator, Bytes32};
-use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
+use crate::{
+    common::{error::DeserializeError, AsPathIterator, Bytes32},
+    sparse::{zero_sum, Buffer, Node, StorageNode},
+};
 use fuel_storage::{Mappable, StorageMutate};
 
-use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use core::{cmp, fmt, iter};
 
 #[derive(Debug, Clone)]
@@ -23,6 +23,7 @@ pub enum MerkleTreeError<StorageError> {
     DeserializeError(DeserializeError),
 }
 
+#[derive(Debug)]
 pub struct MerkleTree<StorageType> {
     root_node: Node,
     storage: StorageType,
@@ -31,6 +32,7 @@ pub struct MerkleTree<StorageType> {
 /// The table of the Sparse Merkle tree's nodes. [`MerkleTree`] works with it as a sparse merkle
 /// tree, where the storage key is `Bytes32` and the value is the [`Buffer`](crate::sparse::Buffer)
 /// (raw presentation of the [`Node`](crate::sparse::Node)).
+#[derive(Debug)]
 pub struct NodesTable;
 
 impl Mappable for NodesTable {
@@ -284,7 +286,7 @@ where
 mod test {
     use crate::common::StorageMap;
     use crate::sparse::hash::sum;
-    use crate::sparse::MerkleTree;
+    use crate::sparse::{MerkleTree, MerkleTreeError};
     use hex;
 
     #[test]
@@ -667,11 +669,10 @@ mod test {
             tree.update(&sum(b"\x00\x00\x00\x04"), b"DATA").unwrap();
         }
 
-        {
-            let root = &sum(b"\xff\xff\xff\xff");
-            let tree = MerkleTree::load(&mut storage, root);
-            assert!(tree.is_err());
-        }
+        let root = &sum(b"\xff\xff\xff\xff");
+        let err = MerkleTree::load(&mut storage, root)
+            .expect_err("Expected load() to return Error; got Ok");
+        assert!(matches!(err, MerkleTreeError::LoadError(_)));
     }
 
     #[test]
@@ -692,7 +693,8 @@ mod test {
         // DeserializeError.
         storage.insert(&root, &[255; 69]).unwrap();
 
-        let tree = MerkleTree::load(&mut storage, &root);
-        assert!(tree.is_err());
+        let err = MerkleTree::load(&mut storage, &root)
+            .expect_err("Expected load() to return Error; got Ok");
+        assert!(matches!(err, MerkleTreeError::DeserializeError(_)));
     }
 }

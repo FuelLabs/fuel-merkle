@@ -1,16 +1,12 @@
-use crate::common::error::DeserializeError;
-use crate::common::Node as NodeTrait;
-use crate::common::{Bytes1, Bytes32, Bytes4, Msb, Prefix};
-use crate::sparse::hash::sum;
-use crate::sparse::merkle_tree::NodesTable;
-use crate::sparse::zero_sum;
+use crate::{
+    common::{error::DeserializeError, Bytes1, Bytes32, Bytes4, Msb, Node as NodeTrait, Prefix},
+    sparse::{hash::sum, merkle_tree::NodesTable, zero_sum},
+};
 
 // TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::StorageInspect;
 
-use core::mem::size_of;
-use core::ops::Range;
-use core::{cmp, fmt};
+use core::{cmp, fmt, mem::size_of, ops::Range};
 
 const LEFT: u8 = 0;
 
@@ -683,6 +679,7 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
+    use crate::common::error::DeserializeError;
     use crate::common::StorageMap;
     use crate::sparse::hash::sum;
     use crate::sparse::merkle_tree::NodesTable;
@@ -798,9 +795,11 @@ mod test_storage_node {
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
 
         let storage_node = StorageNode::new(&s, node_0);
-        let child = storage_node.left_child();
+        let err = storage_node
+            .left_child()
+            .expect_err("Expected left_child() to be Error; got Ok");
 
-        assert!(child.is_err());
+        assert!(matches!(err, DeserializeError::PrefixError(_)));
     }
 
     #[test]
@@ -813,8 +812,10 @@ mod test_storage_node {
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
 
         let storage_node = StorageNode::new(&s, node_0);
-        let child = storage_node.right_child();
+        let err = storage_node
+            .right_child()
+            .expect_err("Expected right_child() to be Error; got Ok");
 
-        assert!(child.is_err());
+        assert!(matches!(err, DeserializeError::PrefixError(_)));
     }
 }
