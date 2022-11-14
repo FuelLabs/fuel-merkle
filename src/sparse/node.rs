@@ -515,9 +515,10 @@ where
 
 #[cfg(test)]
 mod test_node {
-    use crate::common::{Bytes32, Prefix};
-    use crate::sparse::hash::sum;
-    use crate::sparse::{zero_sum, Node};
+    use crate::{
+        common::{Bytes32, Prefix},
+        sparse::{hash::sum, zero_sum, Node},
+    };
 
     fn leaf_hash(key: &Bytes32, data: &[u8]) -> Bytes32 {
         let mut buffer = [0; 65];
@@ -679,12 +680,10 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
-    use crate::common::error::DeserializeError;
-    use crate::common::StorageMap;
-    use crate::sparse::hash::sum;
-    use crate::sparse::merkle_tree::NodesTable;
-    use crate::sparse::node::BUFFER_SIZE;
-    use crate::sparse::{Node, StorageNode};
+    use crate::{
+        common::{error::DeserializeError, StorageMap},
+        sparse::{hash::sum, merkle_tree::NodesTable, node::BUFFER_SIZE, Node, StorageNode},
+    };
     use fuel_storage::StorageMutate;
 
     #[test]
