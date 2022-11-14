@@ -17,10 +17,16 @@ pub enum MerkleTreeError<StorageError> {
     LoadError(String),
 
     #[cfg_attr(feature = "std", error(transparent))]
-    StorageError(#[from] StorageError),
+    StorageError(StorageError),
 
     #[cfg_attr(feature = "std", error(transparent))]
     DeserializeError(DeserializeError),
+}
+
+impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
+    fn from(err: StorageError) -> MerkleTreeError<StorageError> {
+        MerkleTreeError::StorageError(err)
+    }
 }
 
 #[derive(Debug)]
