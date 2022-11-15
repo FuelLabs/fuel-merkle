@@ -431,14 +431,10 @@ where
             return Ok(Some(Self::new(self.storage, Node::create_placeholder())));
         }
         let buffer = self.storage.get(key).unwrap();
-        if let Some(buffer) = buffer {
-            buffer
-                .into_owned()
-                .try_into()
-                .map(|node: Node| Some(Self::new(self.storage, node)))
-        } else {
-            Ok(None)
-        }
+        Ok(buffer
+            .map(|buffer| buffer.into_owned().try_into())
+            .transpose()?
+            .map(|node| Self::new(self.storage, node)))
     }
 
     pub fn right_child(&self) -> Result<Option<Self>, DeserializeError> {
@@ -448,14 +444,10 @@ where
             return Ok(Some(Self::new(self.storage, Node::create_placeholder())));
         }
         let buffer = self.storage.get(key).unwrap();
-        if let Some(buffer) = buffer {
-            buffer
-                .into_owned()
-                .try_into()
-                .map(|node: Node| Some(Self::new(self.storage, node)))
-        } else {
-            Ok(None)
-        }
+        Ok(buffer
+            .map(|buffer| buffer.into_owned().try_into())
+            .transpose()?
+            .map(|node| Self::new(self.storage, node)))
     }
 }
 
@@ -516,7 +508,7 @@ where
 #[cfg(test)]
 mod test_node {
     use crate::{
-        common::{Bytes32, Prefix},
+        common::{error::DeserializeError, Bytes32, Prefix, PrefixError},
         sparse::{hash::sum, zero_sum, Node},
     };
 
@@ -597,16 +589,19 @@ mod test_node {
     }
 
     #[test]
-    #[should_panic]
-    fn test_create_from_buffer_panics_if_invalid_prefix() {
+    fn test_create_from_buffer_returns_deserialize_error_if_invalid_prefix() {
         let mut buffer = [0u8; 69];
         buffer[0..4].clone_from_slice(&0_u32.to_be_bytes());
         buffer[4..5].clone_from_slice(&[0x02]);
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
 
-        // Should panic; prefix 0x02 is does not represent a node or leaf
-        let _node: Node = buffer.try_into().unwrap();
+        // Should return Error; prefix 0x02 is does not represent a node or leaf
+        let err = Node::try_from(buffer).expect_err("Expected try_from() to be Error; got OK");
+        assert!(matches!(
+            err,
+            DeserializeError::PrefixError(PrefixError::InvalidPrefix(0x02))
+        ));
     }
 
     /// For leaf node `node` of leaf data `d` with key `k`:
