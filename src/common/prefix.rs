@@ -1,6 +1,6 @@
 use crate::common::prefix::PrefixError::InvalidPrefix;
 
-const INTERNAL: u8 = 0x01;
+const NODE: u8 = 0x01;
 const LEAF: u8 = 0x00;
 
 #[derive(Debug, Clone)]
@@ -12,14 +12,14 @@ pub enum PrefixError {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Prefix {
-    Internal,
+    Node,
     Leaf,
 }
 
 impl From<Prefix> for u8 {
     fn from(prefix: Prefix) -> Self {
         match prefix {
-            Prefix::Internal => INTERNAL,
+            Prefix::Node => NODE,
             Prefix::Leaf => LEAF,
         }
     }
@@ -30,7 +30,7 @@ impl TryFrom<u8> for Prefix {
 
     fn try_from(byte: u8) -> Result<Self, Self::Error> {
         match byte {
-            INTERNAL => Ok(Prefix::Internal),
+            NODE => Ok(Prefix::Node),
             LEAF => Ok(Prefix::Leaf),
             _ => Err(InvalidPrefix(byte)),
         }
@@ -40,7 +40,7 @@ impl TryFrom<u8> for Prefix {
 impl AsRef<[u8]> for Prefix {
     fn as_ref(&self) -> &[u8] {
         match self {
-            Prefix::Internal => &[INTERNAL],
+            Prefix::Node => &[NODE],
             Prefix::Leaf => &[LEAF],
         }
     }
@@ -49,7 +49,7 @@ impl AsRef<[u8]> for Prefix {
 impl AsRef<[u8; 1]> for Prefix {
     fn as_ref(&self) -> &[u8; 1] {
         match self {
-            Prefix::Internal => &[INTERNAL],
+            Prefix::Node => &[NODE],
             Prefix::Leaf => &[LEAF],
         }
     }

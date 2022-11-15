@@ -16,7 +16,7 @@ pub const fn empty_sum() -> &'static Bytes32 {
 pub fn node_sum(lhs_data: &[u8], rhs_data: &[u8]) -> Bytes32 {
     let mut hash = Hash::new();
 
-    hash.update(Prefix::Internal);
+    hash.update(Prefix::Node);
     hash.update(lhs_data);
     hash.update(rhs_data);
 

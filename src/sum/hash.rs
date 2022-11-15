@@ -13,7 +13,7 @@ pub const fn empty_sum() -> &'static Bytes32 {
 // MTH(D[n]) = Hash(0x01 || LHS fee || MTH(D[0:k]) || RHS fee || MTH(D[k:n])
 pub fn node_sum(lhs_fee: u64, lhs_data: &[u8], rhs_fee: u64, rhs_data: &[u8]) -> Bytes32 {
     let mut hash = Sha256::new();
-    hash.update(Prefix::Internal);
+    hash.update(Prefix::Node);
     hash.update(lhs_fee.to_be_bytes());
     hash.update(lhs_data);
     hash.update(rhs_fee.to_be_bytes());
