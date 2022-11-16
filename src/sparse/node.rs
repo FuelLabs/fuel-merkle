@@ -331,7 +331,8 @@ impl TryFrom<Buffer> for Node {
     fn try_from(value: Buffer) -> Result<Self, Self::Error> {
         let node = Self { buffer: value };
 
-        let _prefix: Prefix = node.bytes_prefix()[0].try_into()?;
+        // Validate the node created from the buffer
+        Prefix::try_from(node.bytes_prefix()[0])?;
 
         Ok(node)
     }
