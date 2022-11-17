@@ -1,5 +1,5 @@
 use crate::common::node::ParentNode;
-use crate::common::{ChildResult, Msb, ParentNodeError};
+use crate::common::{ChildResult, Msb};
 
 /// # Path Iterator
 ///

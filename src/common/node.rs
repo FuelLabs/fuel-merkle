@@ -25,6 +25,7 @@ impl<E: Clone> From<E> for ParentNodeError<E> {
     }
 }
 
+#[allow(type_alias_bounds)]
 pub type ChildResult<T: ParentNode> = Result<T, ParentNodeError<T::Error>>;
 
 pub trait ParentNode: Node
