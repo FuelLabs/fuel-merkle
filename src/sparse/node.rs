@@ -339,7 +339,7 @@ impl TryFrom<Buffer> for Node {
     }
 }
 
-impl crate::common::Node for Node {
+impl NodeTrait for Node {
     type Key = Bytes32;
 
     fn height(&self) -> u32 {
@@ -432,7 +432,6 @@ impl<StorageType> NodeTrait for StorageNode<'_, StorageType> {
 impl<StorageType> ParentNodeTrait for StorageNode<'_, StorageType>
 where
     StorageType: StorageInspect<NodesTable>,
-    StorageType::Error: Clone + fmt::Debug,
 {
     type Error = StorageType::Error;
 

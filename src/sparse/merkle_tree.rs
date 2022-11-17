@@ -9,7 +9,7 @@ use core::{cmp, fmt, iter};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
-pub enum MerkleTreeError<StorageError: Clone> {
+pub enum MerkleTreeError<StorageError> {
     #[cfg_attr(
         feature = "std",
         error("cannot load node with key {0}; the key is not found in storage")
@@ -26,7 +26,7 @@ pub enum MerkleTreeError<StorageError: Clone> {
     ParentNodeError(ParentNodeError<StorageError>),
 }
 
-impl<StorageError: Clone> From<StorageError> for MerkleTreeError<StorageError> {
+impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
     fn from(err: StorageError) -> MerkleTreeError<StorageError> {
         MerkleTreeError::StorageError(err)
     }

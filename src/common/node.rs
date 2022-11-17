@@ -1,4 +1,4 @@
-use core::{fmt, mem};
+use core::mem;
 
 pub trait Node {
     type Key;
@@ -17,19 +17,19 @@ pub trait ParentNode: Node
 where
     Self: Sized,
 {
-    type Error: Clone + fmt::Debug;
+    type Error;
 
     fn left_child(&self) -> ChildResult<Self>;
     fn right_child(&self) -> ChildResult<Self>;
 }
 
 #[derive(Debug, Clone)]
-pub enum ParentNodeError<E: Clone> {
+pub enum ParentNodeError<E> {
     ChildNotFound,
     Error(E),
 }
 
-impl<E: Clone> From<E> for ParentNodeError<E> {
+impl<E> From<E> for ParentNodeError<E> {
     fn from(e: E) -> Self {
         Self::Error(e)
     }

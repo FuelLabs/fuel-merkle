@@ -1,4 +1,4 @@
-use crate::common::{Bytes8, ChildResult, ParentNode, PositionPath};
+use crate::common::{Bytes8, ChildResult, Node, ParentNode, PositionPath};
 
 use core::convert::Infallible;
 
@@ -246,7 +246,7 @@ impl Position {
     }
 }
 
-impl crate::common::Node for Position {
+impl Node for Position {
     type Key = Bytes8;
 
     fn height(&self) -> u32 {
