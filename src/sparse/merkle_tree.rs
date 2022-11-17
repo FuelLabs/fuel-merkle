@@ -23,7 +23,7 @@ pub enum MerkleTreeError<StorageError> {
     DeserializeError(DeserializeError),
 
     #[cfg_attr(feature = "std", error(transparent))]
-    ParentNodeError(ChildError<StorageError>),
+    ChildError(ChildError<StorageError>),
 }
 
 impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
@@ -154,14 +154,10 @@ where
         let leaf_storage_node = StorageNode::new(&self.storage, leaf_node);
         let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = root_storage_node
             .as_path_iter(&leaf_storage_node)
-            .map(|(path_node, side_node)| -> Result<_, _> {
+            .map(|(path_node, side_node)| {
                 Ok((
-                    path_node
-                        .map_err(MerkleTreeError::ParentNodeError)?
-                        .into_node(),
-                    side_node
-                        .map_err(MerkleTreeError::ParentNodeError)?
-                        .into_node(),
+                    path_node.map_err(MerkleTreeError::ChildError)?.into_node(),
+                    side_node.map_err(MerkleTreeError::ChildError)?.into_node(),
                 ))
             })
             .collect::<Result<Vec<_>, MerkleTreeError<StorageError>>>()?
