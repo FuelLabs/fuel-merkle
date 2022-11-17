@@ -219,7 +219,7 @@ impl Position {
     ///
     /// The orientation is determined by the reading the `n`th rightmost digit
     /// of the index's binary value, where `n` = the height of the position
-    /// + 1. The following table demonstrates the relationships between a
+    /// `+ 1`. The following table demonstrates the relationships between a
     /// position's index, height, and orientation.
     ///
     /// | Index (Dec) | Index (Bin) | Height | Orientation |
@@ -262,7 +262,7 @@ impl Node for Position {
     }
 
     fn is_node(&self) -> bool {
-        !Position::is_leaf(*self)
+        Position::is_node(*self)
     }
 }
 
