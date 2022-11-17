@@ -1,4 +1,4 @@
-use crate::common::{Bytes8, ParentNodeError, PositionPath};
+use crate::common::{Bytes8, ChildResult, ParentNode, PositionPath};
 
 use core::convert::Infallible;
 
@@ -266,14 +266,14 @@ impl crate::common::Node for Position {
     }
 }
 
-impl crate::common::ParentNode for Position {
+impl ParentNode for Position {
     type Error = Infallible;
 
-    fn left_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+    fn left_child(&self) -> ChildResult<Self> {
         Ok(Position::left_child(*self))
     }
 
-    fn right_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+    fn right_child(&self) -> ChildResult<Self> {
         Ok(Position::right_child(*self))
     }
 }

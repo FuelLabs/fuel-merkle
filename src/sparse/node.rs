@@ -409,7 +409,7 @@ impl<StorageType> StorageNode<'_, StorageType> {
     }
 }
 
-impl<StorageType> crate::common::Node for StorageNode<'_, StorageType> {
+impl<StorageType> NodeTrait for StorageNode<'_, StorageType> {
     type Key = Bytes32;
 
     fn height(&self) -> u32 {
@@ -429,14 +429,14 @@ impl<StorageType> crate::common::Node for StorageNode<'_, StorageType> {
     }
 }
 
-impl<StorageType> crate::common::ParentNode for StorageNode<'_, StorageType>
+impl<StorageType> ParentNodeTrait for StorageNode<'_, StorageType>
 where
     StorageType: StorageInspect<NodesTable>,
     StorageType::Error: Clone + fmt::Debug,
 {
     type Error = StorageType::Error;
 
-    fn left_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+    fn left_child(&self) -> ChildResult<Self> {
         assert!(self.is_node());
         let key = self.node.left_child_key();
         if key == zero_sum() {
@@ -452,7 +452,7 @@ where
             .map(|node| Self::new(self.storage, node)))
     }
 
-    fn right_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+    fn right_child(&self) -> ChildResult<Self> {
         assert!(self.is_node());
         let key = self.node.right_child_key();
         if key == zero_sum() {

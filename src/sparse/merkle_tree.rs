@@ -56,7 +56,7 @@ impl Mappable for NodesTable {
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
     StorageType: StorageMutate<NodesTable, Error = StorageError>,
-    StorageError: fmt::Debug + Clone + 'static,
+    StorageError: Clone + fmt::Debug + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
         Self {

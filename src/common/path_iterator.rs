@@ -1,5 +1,4 @@
-use crate::common::node::ParentNode;
-use crate::common::{ChildResult, Msb};
+use crate::common::{ChildResult, Msb, ParentNode};
 
 /// # Path Iterator
 ///
@@ -194,7 +193,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::common::{AsPathIterator, Bytes8, Node, ParentNode, ParentNodeError};
+    use crate::common::{AsPathIterator, Bytes8, ChildResult, Node, ParentNode};
     use alloc::vec::Vec;
     use core::convert::Infallible;
 
@@ -259,11 +258,11 @@ mod test {
     impl ParentNode for TestNode {
         type Error = Infallible;
 
-        fn left_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+        fn left_child(&self) -> ChildResult<Self> {
             Ok(TestNode::child(self, -1))
         }
 
-        fn right_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+        fn right_child(&self) -> ChildResult<Self> {
             Ok(TestNode::child(self, 1))
         }
     }
