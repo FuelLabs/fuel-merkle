@@ -142,7 +142,7 @@ impl<T> Iterator for PathIter<T>
 where
     T: ParentNode + Clone,
     T::Error: Clone,
-    T::Key: Msb,
+    T::Key: Msb + Clone,
 {
     type Item = (ChildResult<T>, ChildResult<T>);
 

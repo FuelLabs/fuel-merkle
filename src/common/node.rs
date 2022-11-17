@@ -24,16 +24,16 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub enum ChildError<E> {
-    ChildNotFound,
+pub enum ChildError<Key, E> {
+    ChildNotFound(Key),
     Error(E),
 }
 
-impl<E> From<E> for ChildError<E> {
+impl<Key, E> From<E> for ChildError<Key, E> {
     fn from(e: E) -> Self {
         Self::Error(e)
     }
 }
 
 #[allow(type_alias_bounds)]
-pub type ChildResult<T: ParentNode> = Result<T, ChildError<T::Error>>;
+pub type ChildResult<T: ParentNode> = Result<T, ChildError<T::Key, T::Error>>;
