@@ -15,7 +15,7 @@ pub trait Node {
 
 #[derive(Debug, Clone)]
 pub enum ParentNodeError<E: Clone> {
-    ChildNotFoundError,
+    ChildNotFound,
     Error(E),
 }
 
@@ -25,12 +25,14 @@ impl<E: Clone> From<E> for ParentNodeError<E> {
     }
 }
 
+pub type ChildResult<T: ParentNode> = Result<T, ParentNodeError<T::Error>>;
+
 pub trait ParentNode: Node
 where
     Self: Sized,
 {
     type Error: Clone + fmt::Debug;
 
-    fn left_child(&self) -> Result<Self, ParentNodeError<Self::Error>>;
-    fn right_child(&self) -> Result<Self, ParentNodeError<Self::Error>>;
+    fn left_child(&self) -> ChildResult<Self>;
+    fn right_child(&self) -> ChildResult<Self>;
 }

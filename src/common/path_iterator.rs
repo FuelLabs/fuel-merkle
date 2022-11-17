@@ -1,5 +1,5 @@
 use crate::common::node::ParentNode;
-use crate::common::{Msb, ParentNodeError};
+use crate::common::{ChildResult, Msb, ParentNodeError};
 
 /// # Path Iterator
 ///
@@ -76,10 +76,7 @@ use crate::common::{Msb, ParentNodeError};
 ///
 pub struct PathIter<T: ParentNode + Clone> {
     leaf: T,
-    current: Option<(
-        Result<T, ParentNodeError<T::Error>>,
-        Result<T, ParentNodeError<T::Error>>,
-    )>,
+    current: Option<(ChildResult<T>, ChildResult<T>)>,
     current_offset: usize,
 }
 
@@ -148,10 +145,7 @@ where
     T::Error: Clone,
     T::Key: Msb,
 {
-    type Item = (
-        Result<T, ParentNodeError<T::Error>>,
-        Result<T, ParentNodeError<T::Error>>,
-    );
+    type Item = (ChildResult<T>, ChildResult<T>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let value = self.current.clone();
@@ -173,8 +167,10 @@ where
                     self.current_offset += 1;
                 }
                 // Terminate the iterator if any of the following are true:
-                //    - The path_node is a leaf (iteration is complete)
-                //    - The left or right child returned an Error
+                //    - The path node is a leaf (iteration is complete)
+                //    - The left or right child was not found and returned a
+                //      ChildNotFound error
+                //    - The left or right child returned any other error
                 _ => self.current = None,
             }
         }
@@ -200,7 +196,7 @@ where
 mod test {
     use crate::common::{AsPathIterator, Bytes8, Node, ParentNode, ParentNodeError};
     use alloc::vec::Vec;
-    use std::convert::Infallible;
+    use core::convert::Infallible;
 
     #[derive(Debug, Clone, PartialEq)]
     struct TestNode {
