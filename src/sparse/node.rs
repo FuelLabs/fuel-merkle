@@ -1,3 +1,4 @@
+use crate::common::ParentNodeError;
 use crate::{
     common::{error::DeserializeError, Bytes1, Bytes32, Bytes4, Msb, Node as NodeTrait, Prefix},
     sparse::{hash::sum, merkle_tree::NodesTable, zero_sum},
@@ -352,6 +353,10 @@ impl crate::common::Node for Node {
     fn is_leaf(&self) -> bool {
         Node::is_leaf(self)
     }
+
+    fn is_node(&self) -> bool {
+        !Node::is_leaf(self)
+    }
 }
 
 impl fmt::Debug for Node {
@@ -423,28 +428,34 @@ impl<StorageType> StorageNode<'_, StorageType> {
 impl<StorageType> StorageNode<'_, StorageType>
 where
     StorageType: StorageInspect<NodesTable>,
-    StorageType::Error: fmt::Debug,
+    StorageType::Error: Clone + fmt::Debug,
 {
-    pub fn left_child(&self) -> Result<Option<Self>, DeserializeError> {
+    pub fn left_child(&self) -> Result<Self, ParentNodeError<StorageType::Error>> {
         assert!(self.is_node());
         let key = self.node.left_child_key();
         if key == zero_sum() {
-            return Ok(Some(Self::new(self.storage, Node::create_placeholder())));
+            return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
-        let buffer = self.storage.get(key).unwrap();
+        let buffer = self
+            .storage
+            .get(key)?
+            .ok_or(ParentNodeError::ChildNotFoundError)?;
         Ok(buffer
             .map(|buffer| buffer.into_owned().try_into())
             .transpose()?
             .map(|node| Self::new(self.storage, node)))
     }
 
-    pub fn right_child(&self) -> Result<Option<Self>, DeserializeError> {
+    pub fn right_child(&self) -> Result<Self, ParentNodeError<StorageType::Error>> {
         assert!(self.is_node());
         let key = self.node.right_child_key();
         if key == zero_sum() {
-            return Ok(Some(Self::new(self.storage, Node::create_placeholder())));
+            return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
-        let buffer = self.storage.get(key).unwrap();
+        let buffer = self
+            .storage
+            .get(key)?
+            .ok_or(ParentNodeError::ChildNotFoundError)?;
         Ok(buffer
             .map(|buffer| buffer.into_owned().try_into())
             .transpose()?
@@ -466,19 +477,25 @@ impl<StorageType> crate::common::Node for StorageNode<'_, StorageType> {
     fn is_leaf(&self) -> bool {
         StorageNode::is_leaf(self)
     }
+
+    fn is_node(&self) -> bool {
+        !StorageNode::is_leaf(self)
+    }
 }
 
 impl<StorageType> crate::common::ParentNode for StorageNode<'_, StorageType>
 where
     StorageType: StorageInspect<NodesTable>,
-    StorageType::Error: fmt::Debug,
+    StorageType::Error: Clone + fmt::Debug,
 {
-    fn left_child(&self) -> Self {
-        StorageNode::left_child(self).unwrap().unwrap()
+    type Error = StorageType::Error;
+
+    fn left_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+        StorageNode::left_child(self)
     }
 
-    fn right_child(&self) -> Self {
-        StorageNode::right_child(self).unwrap().unwrap()
+    fn right_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+        StorageNode::right_child(self)
     }
 }
 

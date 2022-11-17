@@ -1,4 +1,5 @@
-use crate::common::{Bytes8, PositionPath};
+use crate::common::{Bytes8, ParentNodeError, PositionPath};
+use std::convert::Infallible;
 
 /// # Position
 ///
@@ -258,15 +259,21 @@ impl crate::common::Node for Position {
     fn is_leaf(&self) -> bool {
         Position::is_leaf(*self)
     }
+
+    fn is_node(&self) -> bool {
+        !Position::is_leaf(*self)
+    }
 }
 
 impl crate::common::ParentNode for Position {
-    fn left_child(&self) -> Self {
-        Position::left_child(*self)
+    type Error = Infallible;
+
+    fn left_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+        Ok(Position::left_child(*self))
     }
 
-    fn right_child(&self) -> Self {
-        Position::right_child(*self)
+    fn right_child(&self) -> Result<Self, ParentNodeError<Self::Error>> {
+        Ok(Position::right_child(*self))
     }
 }
 

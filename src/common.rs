@@ -10,7 +10,7 @@ mod subtree;
 pub(crate) mod error;
 
 pub use msb::Msb;
-pub use node::{Node, ParentNode};
+pub use node::{Node, ParentNode, ParentNodeError};
 pub use path_iterator::AsPathIterator;
 pub use position::Position;
 pub use storage_map::StorageMap;

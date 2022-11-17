@@ -9,7 +9,7 @@ use core::{cmp, fmt, iter};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
-pub enum MerkleTreeError<StorageError> {
+pub enum MerkleTreeError<StorageError: Clone> {
     #[cfg_attr(
         feature = "std",
         error("cannot load node with key {0}; the key is not found in storage")
@@ -21,9 +21,12 @@ pub enum MerkleTreeError<StorageError> {
 
     #[cfg_attr(feature = "std", error(transparent))]
     DeserializeError(DeserializeError),
+
+    #[cfg_attr(feature = "std", error(transparent))]
+    ParentNodeError(ParentNodeError<StorageError>),
 }
 
-impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
+impl<StorageError: Clone> From<StorageError> for MerkleTreeError<StorageError> {
     fn from(err: StorageError) -> MerkleTreeError<StorageError> {
         MerkleTreeError::StorageError(err)
     }
@@ -100,7 +103,8 @@ where
         if self.root_node().is_placeholder() {
             self.set_root_node(leaf_node);
         } else {
-            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) =
+                self.path_set(leaf_node.clone())?;
             self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
         }
 
@@ -141,20 +145,34 @@ where
         self.root_node = node;
     }
 
-    fn path_set(&self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
+    fn path_set(
+        &self,
+        leaf_node: Node,
+    ) -> Result<(Vec<Node>, Vec<Node>), MerkleTreeError<StorageError>> {
         let root_node = self.root_node().clone();
         let root_storage_node = StorageNode::new(&self.storage, root_node);
         let leaf_storage_node = StorageNode::new(&self.storage, leaf_node);
         let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = root_storage_node
             .as_path_iter(&leaf_storage_node)
-            .map(|(node, side_node)| (node.into_node(), side_node.into_node()))
+            .map(|(path_node, side_node)| -> Result<_, _> {
+                Ok((
+                    path_node
+                        .map_err(MerkleTreeError::ParentNodeError)?
+                        .into_node(),
+                    side_node
+                        .map_err(MerkleTreeError::ParentNodeError)?
+                        .into_node(),
+                ))
+            })
+            .collect::<Result<Vec<_>, MerkleTreeError<StorageError>>>()?
+            .into_iter()
             .unzip();
         path_nodes.reverse();
         side_nodes.reverse();
         side_nodes.pop(); // The last element in the side nodes list is the
                           // root; remove it.
 
-        (path_nodes, side_nodes)
+        Ok((path_nodes, side_nodes))
     }
 
     fn update_with_path_set(
