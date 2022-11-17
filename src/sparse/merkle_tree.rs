@@ -259,8 +259,7 @@ where
         // and a placeholder must be similarly discarded from further
         // calculation. We then create a valid ancestor node for the orphaned
         // leaf node by joining it with the earliest non-placeholder side node.
-        let first_side_node = side_nodes.first();
-        if let Some(first_side_node) = first_side_node {
+        if let Some(first_side_node) = side_nodes.first() {
             if first_side_node.is_leaf() {
                 side_nodes_iter.next();
                 current_node = first_side_node.clone();
