@@ -71,7 +71,7 @@ where
     ) -> Result<Self, MerkleTreeError<StorageError>> {
         let buffer = storage
             .get(root)?
-            .ok_or_else(|| MerkleTreeError::LoadError(hex::encode(root)))?
+            .ok_or(MerkleTreeError::LoadError(hex::encode(root)))?
             .into_owned();
         let tree = Self {
             root_node: buffer
@@ -103,8 +103,7 @@ where
         if self.root_node().is_placeholder() {
             self.set_root_node(leaf_node);
         } else {
-            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) =
-                self.path_set(leaf_node.clone())?;
+            let (path_nodes, side_nodes) = self.path_set(leaf_node.clone())?;
             self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
         }
 
