@@ -71,7 +71,7 @@ where
     ) -> Result<Self, MerkleTreeError<StorageError>> {
         let buffer = storage
             .get(root)?
-            .ok_or(MerkleTreeError::LoadError(hex::encode(root)))?
+            .ok_or_else(|| MerkleTreeError::LoadError(hex::encode(root)))?
             .into_owned();
         let tree = Self {
             root_node: buffer
