@@ -73,7 +73,7 @@ use crate::common::{ChildResult, Msb, ParentNode};
 /// the same list of positional indices that we observed earlier: `07, 11, 13,
 /// 12`.
 ///
-pub struct PathIter<T: ParentNode + Clone> {
+pub struct PathIter<T: ParentNode> {
     leaf: T,
     current: Option<(ChildResult<T>, ChildResult<T>)>,
     current_offset: usize,
@@ -178,7 +178,7 @@ where
     }
 }
 
-pub trait AsPathIterator<T: ParentNode + Clone> {
+pub trait AsPathIterator<T: ParentNode> {
     fn as_path_iter(&self, leaf: &Self) -> PathIter<T>;
 }
 
