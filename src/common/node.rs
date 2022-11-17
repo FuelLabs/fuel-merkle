@@ -13,6 +13,16 @@ pub trait Node {
     fn is_node(&self) -> bool;
 }
 
+pub trait ParentNode: Node
+where
+    Self: Sized,
+{
+    type Error: Clone + fmt::Debug;
+
+    fn left_child(&self) -> ChildResult<Self>;
+    fn right_child(&self) -> ChildResult<Self>;
+}
+
 #[derive(Debug, Clone)]
 pub enum ParentNodeError<E: Clone> {
     ChildNotFound,
@@ -27,13 +37,3 @@ impl<E: Clone> From<E> for ParentNodeError<E> {
 
 #[allow(type_alias_bounds)]
 pub type ChildResult<T: ParentNode> = Result<T, ParentNodeError<T::Error>>;
-
-pub trait ParentNode: Node
-where
-    Self: Sized,
-{
-    type Error: Clone + fmt::Debug;
-
-    fn left_child(&self) -> ChildResult<Self>;
-    fn right_child(&self) -> ChildResult<Self>;
-}
