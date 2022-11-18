@@ -23,6 +23,9 @@ where
     fn right_child(&self) -> ChildResult<Self>;
 }
 
+#[allow(type_alias_bounds)]
+pub type ChildResult<T: ParentNode> = Result<T, ChildError<T::Key, T::Error>>;
+
 #[derive(Debug, Clone)]
 pub enum ChildError<Key, E> {
     ChildNotFound(Key),
@@ -34,6 +37,3 @@ impl<Key, E> From<E> for ChildError<Key, E> {
         Self::Error(e)
     }
 }
-
-#[allow(type_alias_bounds)]
-pub type ChildResult<T: ParentNode> = Result<T, ChildError<T::Key, T::Error>>;
