@@ -1,9 +1,10 @@
 use crate::{
-    common::{error::DeserializeError, AsPathIterator, Bytes32},
+    common::{error::DeserializeError, AsPathIterator, Bytes32, ChildError},
     sparse::{zero_sum, Buffer, Node, StorageNode},
 };
 use fuel_storage::{Mappable, StorageMutate};
 
+use crate::sparse::node::StorageNodeError;
 use alloc::{string::String, vec::Vec};
 use core::{cmp, fmt, iter};
 
@@ -23,7 +24,7 @@ pub enum MerkleTreeError<StorageError> {
     DeserializeError(DeserializeError),
 
     #[cfg_attr(feature = "std", error(transparent))]
-    ChildError(ChildError<Bytes32, StorageError>),
+    ChildError(ChildError<Bytes32, StorageNodeError<StorageError>>),
 }
 
 impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
@@ -122,7 +123,8 @@ where
             let leaf_node: Node = buffer
                 .try_into()
                 .map_err(MerkleTreeError::DeserializeError)?;
-            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) =
+                self.path_set(leaf_node.clone())?;
             self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
         }
 
