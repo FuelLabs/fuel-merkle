@@ -29,6 +29,7 @@ pub type ChildResult<T: ParentNode> = Result<T, ChildError<T::Key, T::Error>>;
 #[derive(Debug, Clone)]
 pub enum ChildError<Key, E> {
     ChildNotFound(Key),
+    NodeIsLeaf,
     Error(E),
 }
 

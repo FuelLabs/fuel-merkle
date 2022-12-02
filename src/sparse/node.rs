@@ -444,7 +444,9 @@ where
     type Error = StorageNodeError<StorageType::Error>;
 
     fn left_child(&self) -> ChildResult<Self> {
-        assert!(self.is_node());
+        if self.is_leaf() {
+            return Err(ChildError::NodeIsLeaf);
+        }
         let key = self.node.left_child_key();
         if key == zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
@@ -462,7 +464,9 @@ where
     }
 
     fn right_child(&self) -> ChildResult<Self> {
-        assert!(self.is_node());
+        if self.is_leaf() {
+            return Err(ChildError::NodeIsLeaf);
+        }
         let key = self.node.right_child_key();
         if key == zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
@@ -754,7 +758,33 @@ mod test_storage_node {
     }
 
     #[test]
-    fn test_node_left_child_returns_none_when_key_is_not_found() {
+    fn test_node_left_child_returns_error_when_node_is_leaf() {
+        let s = StorageMap::<NodesTable>::new();
+
+        let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
+        let storage_node = StorageNode::new(&s, leaf_0);
+        let err = storage_node
+            .left_child()
+            .expect_err("Expected left_child() to return Error; got OK");
+
+        assert!(matches!(err, ChildError::NodeIsLeaf));
+    }
+
+    #[test]
+    fn test_node_right_child_returns_error_when_node_is_leaf() {
+        let s = StorageMap::<NodesTable>::new();
+
+        let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
+        let storage_node = StorageNode::new(&s, leaf_0);
+        let err = storage_node
+            .right_child()
+            .expect_err("Expected right_child() to return Error; got OK");
+
+        assert!(matches!(err, ChildError::NodeIsLeaf));
+    }
+
+    #[test]
+    fn test_node_left_child_returns_error_when_key_is_not_found() {
         let s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[0u8; 32]);
@@ -774,7 +804,7 @@ mod test_storage_node {
     }
 
     #[test]
-    fn test_node_right_child_returns_none_when_key_is_not_found() {
+    fn test_node_right_child_returns_error_when_key_is_not_found() {
         let s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
