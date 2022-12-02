@@ -10,13 +10,13 @@ mod subtree;
 pub(crate) mod error;
 
 pub use msb::Msb;
-pub use node::{ChildResult, Node, ParentNode};
+pub use node::{Node, ParentNode};
 pub use path_iterator::AsPathIterator;
 pub use position::Position;
 pub use storage_map::StorageMap;
 pub use subtree::Subtree;
 
-pub(crate) use node::ChildError;
+pub(crate) use node::{ChildError, ChildResult};
 pub(crate) use position_path::PositionPath;
 pub(crate) use prefix::{Prefix, PrefixError};
 
