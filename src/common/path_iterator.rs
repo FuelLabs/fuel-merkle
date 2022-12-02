@@ -608,8 +608,8 @@ mod test {
             .map(|(path, side)| (path.unwrap(), side.unwrap()))
             .unzip();
 
-        let expected_path = vec![root.clone()];
-        let expected_side = vec![root.clone()];
+        let expected_path = vec![Node::from_in_order_index(0)];
+        let expected_side = vec![Node::from_in_order_index(0)];
         assert_eq!(path, expected_path);
         assert_eq!(side, expected_side);
     }
