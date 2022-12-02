@@ -27,9 +27,13 @@ where
 pub type ChildResult<T: ParentNode> = Result<T, ChildError<T::Key, T::Error>>;
 
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "std", derive(thiserror::Error))]
 pub enum ChildError<Key, E> {
+    #[cfg_attr(feature = "std", error("Child with key {0} was not found in storage"))]
     ChildNotFound(Key),
+    #[cfg_attr(feature = "std", error("Node is a leaf with no children"))]
     NodeIsLeaf,
+    #[cfg_attr(feature = "std", error(transparent))]
     Error(E),
 }
 
