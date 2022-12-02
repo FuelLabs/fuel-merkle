@@ -1,10 +1,9 @@
 use crate::{
     common::{error::DeserializeError, AsPathIterator, Bytes32, ChildError},
-    sparse::{zero_sum, Buffer, Node, StorageNode},
+    sparse::{zero_sum, Buffer, Node, StorageNode, StorageNodeError},
 };
 use fuel_storage::{Mappable, StorageMutate};
 
-use crate::sparse::node::StorageNodeError;
 use alloc::{string::String, vec::Vec};
 use core::{cmp, fmt, iter};
 
