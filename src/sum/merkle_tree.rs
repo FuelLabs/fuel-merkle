@@ -1,11 +1,12 @@
-use crate::common::{Bytes32, Subtree};
-use crate::sum::{empty_sum, Node};
+use crate::{
+    common::{Bytes32, Subtree},
+    sum::{empty_sum, Node},
+};
 
 use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::boxed::Box;
-use core::fmt;
-use core::marker::PhantomData;
+use core::{fmt, marker::PhantomData};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
