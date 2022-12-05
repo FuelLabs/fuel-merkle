@@ -5,8 +5,7 @@ use crate::{
 use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::{string::String, vec::Vec};
-use core::marker::PhantomData;
-use core::{cmp, fmt, iter};
+use core::{cmp, fmt, iter, marker::PhantomData};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
