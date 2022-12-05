@@ -3,7 +3,7 @@ use crate::{
         error::DeserializeError, Bytes1, Bytes32, Bytes4, ChildError, ChildResult, Msb,
         Node as NodeTrait, ParentNode as ParentNodeTrait, Prefix,
     },
-    sparse::{hash::sum, merkle_tree::NodesTable, zero_sum},
+    sparse::{hash::sum, zero_sum},
 };
 
 // TODO: Return errors instead of `unwrap` during work with storage.
@@ -430,39 +430,6 @@ impl<TableType, StorageType> StorageNode<'_, TableType, StorageType> {
     }
 }
 
-impl<TableType, StorageType> StorageNode<'_, TableType, StorageType>
-where
-    StorageType: StorageInspect<TableType>,
-    TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
-    StorageType::Error: fmt::Debug,
-{
-    pub fn left_child(&self) -> Option<Self> {
-        assert!(self.is_node());
-        let key = self.node.left_child_key();
-        if key == zero_sum() {
-            return Some(Self::new(self.storage, Node::create_placeholder()));
-        }
-        let buffer = self.storage.get(key).unwrap();
-        buffer.map(|b| {
-            let node = Node::from_buffer(*b);
-            Self::new(self.storage, node)
-        })
-    }
-
-    pub fn right_child(&self) -> Option<Self> {
-        assert!(self.is_node());
-        let key = self.node.right_child_key();
-        if key == zero_sum() {
-            return Some(Self::new(self.storage, Node::create_placeholder()));
-        }
-        let buffer = self.storage.get(key).unwrap();
-        buffer.map(|b| {
-            let node = Node::from_buffer(*b);
-            Self::new(self.storage, node)
-        })
-    }
-}
-
 impl<TableType, StorageType> crate::common::Node for StorageNode<'_, TableType, StorageType> {
     type Key = Bytes32;
 
@@ -737,14 +704,16 @@ mod test_node {
 #[cfg(test)]
 mod test_storage_node {
     use crate::{
-        common::{error::DeserializeError, ChildError, ParentNode, PrefixError, StorageMap},
+        common::{
+            error::DeserializeError, Bytes32, ChildError, ParentNode, PrefixError, StorageMap,
+        },
         sparse::{
-            hash::sum, merkle_tree::NodesTable, node::StorageNodeError, node::BUFFER_SIZE, Node,
-            StorageNode,
+            hash::sum,
+            node::{StorageNodeError, BUFFER_SIZE},
+            Buffer, Node, StorageNode,
         },
     };
 
-    use fuel_storage::StorageMutate;
     use fuel_storage::{Mappable, StorageMutate};
 
     pub struct NodesTable;

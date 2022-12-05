@@ -296,11 +296,11 @@ where
 mod test {
     use crate::common::{Bytes32, StorageMap};
     use crate::sparse::hash::sum;
-    use crate::sparse::{Buffer, MerkleTree};
-    use crate::sparse::{MerkleTree, MerkleTreeError};
+    use crate::sparse::{Buffer, MerkleTree, MerkleTreeError};
     use fuel_storage::Mappable;
     use hex;
 
+    #[derive(Debug)]
     struct NodesTable;
 
     impl Mappable for NodesTable {
@@ -699,7 +699,7 @@ mod test {
     fn test_load_returns_a_deserialize_error_if_the_storage_is_corrupted() {
         use fuel_storage::StorageMutate;
 
-        let mut storage = StorageMap::new();
+        let mut storage = StorageMap::<NodesTable>::new();
 
         let mut tree = MerkleTree::new(&mut storage);
         tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();

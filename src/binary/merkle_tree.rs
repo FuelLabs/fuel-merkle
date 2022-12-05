@@ -32,7 +32,7 @@ impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
 }
 
 #[derive(Debug)]
-pub struct MerkleTree<StorageType> {
+pub struct MerkleTree<TableType, StorageType> {
     storage: StorageType,
     head: Option<Box<Subtree<Node>>>,
     leaves_count: u64,
@@ -307,14 +307,15 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::{MerkleTree, MerkleTreeError, NodesTable};
+    use super::{MerkleTree, MerkleTreeError};
     use crate::{
-        binary::{empty_sum, leaf_sum, node_sum},
+        binary::{empty_sum, leaf_sum, node_sum, Node},
         common::StorageMap,
     };
     use fuel_merkle_test_helpers::TEST_DATA;
     use fuel_storage::{Mappable, StorageInspect};
 
+    #[derive(Debug)]
     struct NodesTable;
 
     impl Mappable for NodesTable {
@@ -520,10 +521,8 @@ mod test {
         let mut storage_map = StorageMap::<NodesTable>::new();
         let mut tree = MerkleTree::new(&mut storage_map);
 
-        let err = tree
-            .prove(0)
-            .expect_err("Expected prove() to return Error; got Ok");
-        assert!(matches!(err, MerkleTreeError::InvalidProofIndex(0)));
+        let proof = tree.prove(0);
+        assert!(proof.is_err());
     }
 
     #[test]
@@ -536,10 +535,8 @@ mod test {
             let _ = tree.push(datum);
         }
 
-        let err = tree
-            .prove(10)
-            .expect_err("Expected prove() to return Error; got Ok");
-        assert!(matches!(err, MerkleTreeError::InvalidProofIndex(10)));
+        let proof = tree.prove(10);
+        assert!(proof.is_err());
     }
 
     #[test]
