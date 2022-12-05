@@ -409,18 +409,6 @@ impl<'s, TableType, StorageType> StorageNode<'s, TableType, StorageType> {
 }
 
 impl<TableType, StorageType> StorageNode<'_, TableType, StorageType> {
-    pub fn is_leaf(&self) -> bool {
-        self.node.is_leaf()
-    }
-
-    pub fn is_node(&self) -> bool {
-        self.node.is_node()
-    }
-
-    pub fn leaf_key(&self) -> &Bytes32 {
-        self.node.leaf_key()
-    }
-
     pub fn hash(&self) -> Bytes32 {
         self.node.hash()
     }
@@ -430,7 +418,7 @@ impl<TableType, StorageType> StorageNode<'_, TableType, StorageType> {
     }
 }
 
-impl<TableType, StorageType> crate::common::Node for StorageNode<'_, TableType, StorageType> {
+impl<TableType, StorageType> NodeTrait for StorageNode<'_, TableType, StorageType> {
     type Key = Bytes32;
 
     fn height(&self) -> u32 {
@@ -459,7 +447,7 @@ pub enum StorageNodeError<StorageError> {
     DeserializeError(DeserializeError),
 }
 
-impl<TableType, StorageType> crate::common::ParentNode for StorageNode<'_, TableType, StorageType>
+impl<TableType, StorageType> ParentNodeTrait for StorageNode<'_, TableType, StorageType>
 where
     StorageType: StorageInspect<TableType>,
     TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
