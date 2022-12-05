@@ -1,9 +1,10 @@
-use crate::common::{AsPathIterator, Bytes32};
-use crate::sparse::{zero_sum, Buffer, Node, StorageNode};
+use crate::{
+    common::{error::DeserializeError, AsPathIterator, Bytes32, ChildError},
+    sparse::{zero_sum, Buffer, Node, StorageNode, StorageNodeError},
+};
 use fuel_storage::{Mappable, StorageMutate};
 
-use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use core::marker::PhantomData;
 use core::{cmp, fmt, iter};
 
@@ -16,8 +17,14 @@ pub enum MerkleTreeError<StorageError> {
     )]
     LoadError(String),
 
-    #[cfg_attr(feature = "std", error("a storage error was thrown: {0}"))]
+    #[cfg_attr(feature = "std", error(transparent))]
     StorageError(StorageError),
+
+    #[cfg_attr(feature = "std", error(transparent))]
+    DeserializeError(DeserializeError),
+
+    #[cfg_attr(feature = "std", error(transparent))]
+    ChildError(ChildError<Bytes32, StorageNodeError<StorageError>>),
 }
 
 impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
@@ -26,6 +33,7 @@ impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
     }
 }
 
+#[derive(Debug)]
 pub struct MerkleTree<TableType, StorageType> {
     root_node: Node,
     storage: StorageType,
@@ -56,7 +64,9 @@ where
             .ok_or_else(|| MerkleTreeError::LoadError(hex::encode(root)))?
             .into_owned();
         let tree = Self {
-            root_node: Node::from_buffer(buffer),
+            root_node: buffer
+                .try_into()
+                .map_err(MerkleTreeError::DeserializeError)?,
             storage,
             phantom_table: Default::default(),
         };
@@ -84,7 +94,7 @@ where
         if self.root_node().is_placeholder() {
             self.set_root_node(leaf_node);
         } else {
-            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+            let (path_nodes, side_nodes) = self.path_set(leaf_node.clone())?;
             self.update_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
         }
 
@@ -99,8 +109,12 @@ where
         }
 
         if let Some(buffer) = self.storage.get(key)? {
-            let leaf_node = Node::from_buffer(*buffer);
-            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) = self.path_set(leaf_node.clone());
+            let buffer = buffer.into_owned();
+            let leaf_node: Node = buffer
+                .try_into()
+                .map_err(MerkleTreeError::DeserializeError)?;
+            let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) =
+                self.path_set(leaf_node.clone())?;
             self.delete_with_path_set(&leaf_node, path_nodes.as_slice(), side_nodes.as_slice())?;
         }
 
@@ -122,20 +136,30 @@ where
         self.root_node = node;
     }
 
-    fn path_set(&self, leaf_node: Node) -> (Vec<Node>, Vec<Node>) {
+    fn path_set(
+        &self,
+        leaf_node: Node,
+    ) -> Result<(Vec<Node>, Vec<Node>), MerkleTreeError<StorageError>> {
         let root_node = self.root_node().clone();
         let root_storage_node = StorageNode::new(&self.storage, root_node);
         let leaf_storage_node = StorageNode::new(&self.storage, leaf_node);
         let (mut path_nodes, mut side_nodes): (Vec<Node>, Vec<Node>) = root_storage_node
             .as_path_iter(&leaf_storage_node)
-            .map(|(node, side_node)| (node.into_node(), side_node.into_node()))
+            .map(|(path_node, side_node)| {
+                Ok((
+                    path_node.map_err(MerkleTreeError::ChildError)?.into_node(),
+                    side_node.map_err(MerkleTreeError::ChildError)?.into_node(),
+                ))
+            })
+            .collect::<Result<Vec<_>, MerkleTreeError<StorageError>>>()?
+            .into_iter()
             .unzip();
         path_nodes.reverse();
         side_nodes.reverse();
         side_nodes.pop(); // The last element in the side nodes list is the
                           // root; remove it.
 
-        (path_nodes, side_nodes)
+        Ok((path_nodes, side_nodes))
     }
 
     fn update_with_path_set(
@@ -227,8 +251,7 @@ where
         // and a placeholder must be similarly discarded from further
         // calculation. We then create a valid ancestor node for the orphaned
         // leaf node by joining it with the earliest non-placeholder side node.
-        let first_side_node = side_nodes.first();
-        if let Some(first_side_node) = first_side_node {
+        if let Some(first_side_node) = side_nodes.first() {
             if first_side_node.is_leaf() {
                 side_nodes_iter.next();
                 current_node = first_side_node.clone();
@@ -274,6 +297,7 @@ mod test {
     use crate::common::{Bytes32, StorageMap};
     use crate::sparse::hash::sum;
     use crate::sparse::{Buffer, MerkleTree};
+    use crate::sparse::{MerkleTree, MerkleTreeError};
     use fuel_storage::Mappable;
     use hex;
 
@@ -665,10 +689,32 @@ mod test {
             tree.update(&sum(b"\x00\x00\x00\x04"), b"DATA").unwrap();
         }
 
-        {
-            let root = &sum(b"\xff\xff\xff\xff");
-            let tree = MerkleTree::load(&mut storage, root);
-            assert!(tree.is_err());
-        }
+        let root = &sum(b"\xff\xff\xff\xff");
+        let err = MerkleTree::load(&mut storage, root)
+            .expect_err("Expected load() to return Error; got Ok");
+        assert!(matches!(err, MerkleTreeError::LoadError(_)));
+    }
+
+    #[test]
+    fn test_load_returns_a_deserialize_error_if_the_storage_is_corrupted() {
+        use fuel_storage::StorageMutate;
+
+        let mut storage = StorageMap::new();
+
+        let mut tree = MerkleTree::new(&mut storage);
+        tree.update(&sum(b"\x00\x00\x00\x00"), b"DATA").unwrap();
+        tree.update(&sum(b"\x00\x00\x00\x01"), b"DATA").unwrap();
+        tree.update(&sum(b"\x00\x00\x00\x02"), b"DATA").unwrap();
+        tree.update(&sum(b"\x00\x00\x00\x03"), b"DATA").unwrap();
+        tree.update(&sum(b"\x00\x00\x00\x04"), b"DATA").unwrap();
+        let root = tree.root();
+
+        // Overwrite the root key-value with an invalid buffer to create a
+        // DeserializeError.
+        storage.insert(&root, &[255; 69]).unwrap();
+
+        let err = MerkleTree::load(&mut storage, &root)
+            .expect_err("Expected load() to return Error; got Ok");
+        assert!(matches!(err, MerkleTreeError::DeserializeError(_)));
     }
 }
