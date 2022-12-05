@@ -9,7 +9,6 @@ use fuel_storage::Mappable;
 struct NodesTable;
 
 impl Mappable for NodesTable {
-    /// The index of the node in the array.
     type Key = u64;
     type SetValue = Node;
     type GetValue = Self::SetValue;

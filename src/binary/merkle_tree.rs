@@ -521,8 +521,10 @@ mod test {
         let mut storage_map = StorageMap::<NodesTable>::new();
         let mut tree = MerkleTree::new(&mut storage_map);
 
-        let proof = tree.prove(0);
-        assert!(proof.is_err());
+        let err = tree
+            .prove(0)
+            .expect_err("Expected prove() to return Error; got Ok");
+        assert!(matches!(err, MerkleTreeError::InvalidProofIndex(0)));
     }
 
     #[test]
@@ -535,8 +537,10 @@ mod test {
             let _ = tree.push(datum);
         }
 
-        let proof = tree.prove(10);
-        assert!(proof.is_err());
+        let err = tree
+            .prove(10)
+            .expect_err("Expected prove() to return Error; got Ok");
+        assert!(matches!(err, MerkleTreeError::InvalidProofIndex(10)))
     }
 
     #[test]

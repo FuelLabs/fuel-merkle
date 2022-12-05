@@ -9,8 +9,7 @@ use crate::{
 // TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::{Mappable, StorageInspect};
 
-use core::marker::PhantomData;
-use core::{cmp, fmt, mem::size_of, ops::Range};
+use core::{cmp, fmt, marker::PhantomData, mem::size_of, ops::Range};
 
 const LEFT: u8 = 0;
 
@@ -707,9 +706,7 @@ mod test_storage_node {
     pub struct NodesTable;
 
     impl Mappable for NodesTable {
-        /// The 32 bytes unique key of the merkle node.
         type Key = Bytes32;
-        /// The merkle node data with information to iterate over the tree.
         type SetValue = Buffer;
         type GetValue = Self::SetValue;
     }

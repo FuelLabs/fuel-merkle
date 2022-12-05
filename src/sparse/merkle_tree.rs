@@ -40,7 +40,6 @@ pub struct MerkleTree<TableType, StorageType> {
     phantom_table: PhantomData<TableType>,
 }
 
-// TODO: Process each `unwrap` as error
 impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
     TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
@@ -294,9 +293,10 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::common::{Bytes32, StorageMap};
-    use crate::sparse::hash::sum;
-    use crate::sparse::{Buffer, MerkleTree, MerkleTreeError};
+    use crate::{
+        common::{Bytes32, StorageMap},
+        sparse::{hash::sum, Buffer, MerkleTree, MerkleTreeError},
+    };
     use fuel_storage::Mappable;
     use hex;
 
