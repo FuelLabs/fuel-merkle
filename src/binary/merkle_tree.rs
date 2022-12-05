@@ -6,8 +6,7 @@ use crate::{
 use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::{boxed::Box, vec::Vec};
-use core::fmt;
-use core::marker::PhantomData;
+use core::{fmt, marker::PhantomData};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
@@ -315,16 +314,16 @@ mod test {
     use fuel_merkle_test_helpers::TEST_DATA;
     use fuel_storage::{Mappable, StorageInspect};
 
+    use alloc::vec::Vec;
+
     #[derive(Debug)]
     struct NodesTable;
 
     impl Mappable for NodesTable {
         type Key = u64;
         type SetValue = Node;
-        type GetValue = Node;
+        type GetValue = Self::SetValue;
     }
-
-    use alloc::vec::Vec;
 
     #[test]
     fn test_push_builds_internal_tree_structure() {

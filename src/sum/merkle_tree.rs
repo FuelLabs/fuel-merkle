@@ -145,8 +145,10 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::common::{Bytes32, StorageMap};
-    use crate::sum::{empty_sum, leaf_sum, node_sum, MerkleTree, Node};
+    use crate::{
+        common::{Bytes32, StorageMap},
+        sum::{empty_sum, leaf_sum, node_sum, MerkleTree, Node},
+    };
     use fuel_merkle_test_helpers::TEST_DATA;
     use fuel_storage::Mappable;
 
@@ -155,7 +157,7 @@ mod test {
     impl Mappable for NodesTable {
         type Key = Bytes32;
         type SetValue = Node;
-        type GetValue = Node;
+        type GetValue = Self::SetValue;
     }
 
     const FEE: u64 = 100;

@@ -305,7 +305,7 @@ mod test {
     impl Mappable for NodesTable {
         type Key = Bytes32;
         type SetValue = Buffer;
-        type GetValue = Buffer;
+        type GetValue = Self::SetValue;
     }
 
     #[test]
