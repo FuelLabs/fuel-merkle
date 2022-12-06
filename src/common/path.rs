@@ -1,15 +1,15 @@
 use crate::common::{Bit, Msb};
 
 pub enum Instruction {
-    LEFT,
-    RIGHT,
+    Left,
+    Right,
 }
 
 impl From<Bit> for Instruction {
     fn from(bit: Bit) -> Self {
         match bit {
-            Bit::_0 => Instruction::LEFT,
-            Bit::_1 => Instruction::RIGHT,
+            Bit::_0 => Instruction::Left,
+            Bit::_1 => Instruction::Right,
         }
     }
 }

@@ -158,8 +158,8 @@ where
                     let path = self.leaf.leaf_key();
                     let instruction = path.get_instruction(self.current_offset);
                     self.current = instruction.map(|instruction| match instruction {
-                        Instruction::LEFT => (path_node.left_child(), path_node.right_child()),
-                        Instruction::RIGHT => (path_node.right_child(), path_node.left_child()),
+                        Instruction::Left => (path_node.left_child(), path_node.right_child()),
+                        Instruction::Right => (path_node.right_child(), path_node.left_child()),
                     });
                     self.current_offset += 1;
                 }
