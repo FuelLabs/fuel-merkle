@@ -1,7 +1,7 @@
 use crate::{
     common::{
         error::DeserializeError, Bytes1, Bytes32, Bytes4, ChildError, ChildResult, Msb,
-        Node as NodeTrait, ParentNode as ParentNodeTrait, Prefix,
+        Node as NodeTrait, ParentNode as ParentNodeTrait, Path, Prefix,
     },
     sparse::{hash::sum, merkle_tree::NodesTable, zero_sum},
 };
@@ -9,9 +9,8 @@ use crate::{
 // TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::StorageInspect;
 
+use crate::common::Instruction;
 use core::{cmp, fmt, mem::size_of, ops::Range};
-
-const LEFT: u8 = 0;
 
 /// **Leaf buffer:**
 ///
@@ -65,7 +64,7 @@ impl Node {
         node
     }
 
-    pub fn create_node_on_path(path: &Bytes32, path_node: &Node, side_node: &Node) -> Self {
+    pub fn create_node_on_path(path: &dyn Path, path_node: &Node, side_node: &Node) -> Self {
         if path_node.is_leaf() && side_node.is_leaf() {
             // When joining two leaves, the joined node is found where the paths
             // of the two leaves diverge. The joined node may be a direct parent
@@ -74,10 +73,9 @@ impl Node {
             // N.B.: A leaf can be a placeholder.
             let parent_depth = path_node.common_path_length(side_node);
             let parent_height = (Node::max_height() - parent_depth) as u32;
-            if path.get_bit_at_index_from_msb(parent_depth).unwrap() == LEFT {
-                Node::create_node(path_node, side_node, parent_height)
-            } else {
-                Node::create_node(side_node, path_node, parent_height)
+            match path.get_instruction(parent_depth).unwrap() {
+                Instruction::LEFT => Node::create_node(path_node, side_node, parent_height),
+                Instruction::RIGHT => Node::create_node(side_node, path_node, parent_height),
             }
         } else {
             // When joining two nodes, or a node and a leaf, the joined node is
@@ -86,10 +84,9 @@ impl Node {
             // N.B.: A leaf can be a placeholder.
             let parent_height = cmp::max(path_node.height(), side_node.height()) + 1;
             let parent_depth = Node::max_height() - parent_height as usize;
-            if path.get_bit_at_index_from_msb(parent_depth).unwrap() == LEFT {
-                Node::create_node(path_node, side_node, parent_height)
-            } else {
-                Node::create_node(side_node, path_node, parent_height)
+            match path.get_instruction(parent_depth).unwrap() {
+                Instruction::LEFT => Node::create_node(path_node, side_node, parent_height),
+                Instruction::RIGHT => Node::create_node(side_node, path_node, parent_height),
             }
         }
     }

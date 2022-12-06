@@ -1,13 +1,23 @@
+#[derive(Debug, Eq, PartialEq)]
+pub enum Bit {
+    _0 = 0,
+    _1 = 1,
+}
+
 trait GetBit {
-    fn get_bit(&self, bit_index: usize) -> Option<u8>;
+    fn get_bit(&self, bit_index: usize) -> Option<Bit>;
 }
 
 impl GetBit for u8 {
-    fn get_bit(&self, bit_index: usize) -> Option<u8> {
+    fn get_bit(&self, bit_index: usize) -> Option<Bit> {
         if bit_index < 8 {
             let shift = 1 << (7 - bit_index);
-            let bit = (self & shift) != 0;
-            Some(bit as u8)
+            let bit = ((self & shift) != 0) as u8;
+            match bit {
+                0 => Some(Bit::_0),
+                1 => Some(Bit::_1),
+                _ => unreachable!(),
+            }
         } else {
             None
         }
@@ -15,12 +25,12 @@ impl GetBit for u8 {
 }
 
 pub trait Msb {
-    fn get_bit_at_index_from_msb(&self, index: usize) -> Option<u8>;
+    fn get_bit_at_index_from_msb(&self, index: usize) -> Option<Bit>;
     fn common_prefix_count(&self, other: &Self) -> usize;
 }
 
 impl<const N: usize> Msb for [u8; N] {
-    fn get_bit_at_index_from_msb(&self, index: usize) -> Option<u8> {
+    fn get_bit_at_index_from_msb(&self, index: usize) -> Option<Bit> {
         // The byte that contains the bit
         let byte_index = index / 8;
         // The bit within the containing byte
@@ -58,7 +68,7 @@ mod test {
 
         let mut n = 0;
         for i in 0..NUM_BITS {
-            let bit = bytes.get_bit_at_index_from_msb(i).unwrap();
+            let bit = bytes.get_bit_at_index_from_msb(i).unwrap() as u8;
             let shift = bit << (NUM_BITS - 1 - i);
             n |= shift;
         }
