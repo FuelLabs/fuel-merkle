@@ -1,4 +1,7 @@
-use crate::common::{ChildResult, Instruction, ParentNode, Path};
+use crate::common::{
+    path::{Instruction, Path},
+    ChildResult, ParentNode,
+};
 
 /// # Path Iterator
 ///

@@ -1,7 +1,9 @@
 use crate::{
     common::{
-        error::DeserializeError, Bytes1, Bytes32, Bytes4, ChildError, ChildResult, Msb,
-        Node as NodeTrait, ParentNode as ParentNodeTrait, Path, Prefix,
+        error::DeserializeError,
+        path::{ComparablePath, Instruction, Path},
+        Bytes1, Bytes32, Bytes4, ChildError, ChildResult, Node as NodeTrait,
+        ParentNode as ParentNodeTrait, Prefix,
     },
     sparse::{hash::sum, merkle_tree::NodesTable, zero_sum},
 };
@@ -9,7 +11,6 @@ use crate::{
 // TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::StorageInspect;
 
-use crate::common::Instruction;
 use core::{cmp, fmt, mem::size_of, ops::Range};
 
 /// **Leaf buffer:**
@@ -107,7 +108,7 @@ impl Node {
         if self.is_placeholder() || other.is_placeholder() {
             0
         } else {
-            self.leaf_key().common_prefix_count(other.leaf_key())
+            self.leaf_key().common_path_length(other.leaf_key())
         }
     }
 

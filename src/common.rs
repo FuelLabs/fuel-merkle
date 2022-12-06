@@ -1,6 +1,5 @@
 mod msb;
 mod node;
-mod path;
 mod path_iterator;
 mod position;
 mod position_path;
@@ -9,6 +8,7 @@ mod storage_map;
 mod subtree;
 
 pub(crate) mod error;
+pub(crate) mod path;
 
 pub use node::{Node, ParentNode};
 pub use path_iterator::AsPathIterator;
@@ -18,7 +18,6 @@ pub use subtree::Subtree;
 
 pub(crate) use msb::{Bit, Msb};
 pub(crate) use node::{ChildError, ChildResult};
-pub(crate) use path::{Instruction, Path};
 pub(crate) use position_path::PositionPath;
 pub(crate) use prefix::{Prefix, PrefixError};
 
