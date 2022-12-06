@@ -12,7 +12,6 @@ use fuel_storage::{Mappable, StorageInspect};
 use core::{cmp, fmt, marker::PhantomData, mem::size_of, ops::Range};
 
 const LEFT: u8 = 0;
-const RIGHT: u8 = 1;
 
 /// **Leaf buffer:**
 ///
@@ -75,10 +74,10 @@ impl Node {
             // N.B.: A leaf can be a placeholder.
             let parent_depth = path_node.common_path_length(side_node);
             let parent_height = (Node::max_height() - parent_depth) as u32;
-            match path.get_bit_at_index_from_msb(parent_depth).unwrap() {
-                LEFT => Node::create_node(path_node, side_node, parent_height),
-                RIGHT => Node::create_node(side_node, path_node, parent_height),
-                _ => unreachable!(),
+            if path.get_bit_at_index_from_msb(parent_depth).unwrap() == LEFT {
+                Node::create_node(path_node, side_node, parent_height)
+            } else {
+                Node::create_node(side_node, path_node, parent_height)
             }
         } else {
             // When joining two nodes, or a node and a leaf, the joined node is
@@ -87,10 +86,10 @@ impl Node {
             // N.B.: A leaf can be a placeholder.
             let parent_height = cmp::max(path_node.height(), side_node.height()) + 1;
             let parent_depth = Node::max_height() - parent_height as usize;
-            match path.get_bit_at_index_from_msb(parent_depth).unwrap() {
-                LEFT => Node::create_node(path_node, side_node, parent_height),
-                RIGHT => Node::create_node(side_node, path_node, parent_height),
-                _ => unreachable!(),
+            if path.get_bit_at_index_from_msb(parent_depth).unwrap() == LEFT {
+                Node::create_node(path_node, side_node, parent_height)
+            } else {
+                Node::create_node(side_node, path_node, parent_height)
             }
         }
     }
