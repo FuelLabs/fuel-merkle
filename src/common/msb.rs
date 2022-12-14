@@ -12,11 +12,10 @@ impl GetBit for u8 {
     fn get_bit(&self, bit_index: usize) -> Option<Bit> {
         if bit_index < 8 {
             let mask = 1 << (7 - bit_index);
-            let bit = ((self & mask) != 0) as u8;
+            let bit = self & mask;
             match bit {
                 0 => Some(Bit::_0),
-                1 => Some(Bit::_1),
-                _ => unreachable!(),
+                _ => Some(Bit::_1),
             }
         } else {
             None
