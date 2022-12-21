@@ -1,7 +1,9 @@
+mod buffer;
 mod hash;
 mod merkle_tree;
 mod node;
 
+pub(crate) use buffer::Buffer;
 pub(crate) use hash::{leaf_sum, node_sum};
 pub(crate) use node::Node;
 
