@@ -134,7 +134,7 @@ where
 
     pub fn push(&mut self, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
         let node = Node::create_leaf(self.leaves_count, data);
-        self.storage.insert(&node.key(), &node.clone().into())?;
+        self.storage.insert(&node.key(), node.buffer())?;
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
@@ -314,7 +314,7 @@ where
     ) -> Result<Box<Subtree<Node>>, StorageError> {
         let joined_node = Node::create_node(lhs.node(), rhs.node());
         self.storage
-            .insert(&joined_node.key(), &joined_node.clone().into())?;
+            .insert(&joined_node.key(), joined_node.buffer())?;
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
     }

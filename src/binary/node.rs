@@ -39,6 +39,10 @@ impl Node {
         let view = ReadView::new(&self.buffer);
         *view.hash()
     }
+
+    pub fn buffer(&self) -> &Buffer {
+        &self.buffer
+    }
 }
 
 impl From<Buffer> for Node {
