@@ -49,14 +49,6 @@ impl From<Buffer> for Node {
     }
 }
 
-impl From<&Buffer> for Node {
-    fn from(buffer: &Buffer) -> Self {
-        Self {
-            buffer: buffer.clone().into(),
-        }
-    }
-}
-
 impl From<Node> for Buffer {
     fn from(node: Node) -> Self {
         node.buffer.into()
