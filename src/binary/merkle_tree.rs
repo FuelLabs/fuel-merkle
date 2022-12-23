@@ -1,3 +1,4 @@
+use crate::binary::Buffer;
 use crate::{
     binary::{empty_sum, Node},
     common::{Bytes32, Position, ProofSet, Subtree},
@@ -46,7 +47,7 @@ pub struct NodesTable;
 impl Mappable for NodesTable {
     /// The index of the node in the array.
     type Key = u64;
-    type SetValue = Node;
+    type SetValue = Buffer;
     type GetValue = Self::SetValue;
 }
 
@@ -82,7 +83,7 @@ where
         let root_node = self.root_node()?;
         let root = match root_node {
             None => *empty_sum(),
-            Some(ref node) => *node.hash(),
+            Some(ref node) => node.hash(),
         };
 
         Ok(root)
@@ -101,11 +102,13 @@ where
         let root_node = self.root_node()?.unwrap();
         let root_position = root_node.position();
         let leaf_position = Position::from_leaf_index(proof_index);
-        let leaf_node = self
+        let buffer = self
             .storage
             .get(&leaf_position.in_order_index())?
-            .ok_or(MerkleTreeError::LoadError(proof_index))?;
-        proof_set.push(*leaf_node.hash());
+            .ok_or(MerkleTreeError::LoadError(proof_index))?
+            .into_owned();
+        let leaf_node = Node::from(buffer);
+        proof_set.push(leaf_node.hash());
 
         let (_, mut side_positions): (Vec<_>, Vec<_>) = root_position
             .path(&leaf_position, self.leaves_count)
@@ -116,20 +119,22 @@ where
 
         for side_position in side_positions {
             let key = side_position.in_order_index();
-            let node = self
+            let buffer = self
                 .storage
                 .get(&key)?
-                .ok_or(MerkleTreeError::LoadError(key))?;
-            proof_set.push(*node.hash());
+                .ok_or(MerkleTreeError::LoadError(key))?
+                .into_owned();
+            let node = Node::from(buffer);
+            proof_set.push(node.hash());
         }
 
-        let root = *root_node.hash();
+        let root = root_node.hash();
         Ok((root, proof_set))
     }
 
     pub fn push(&mut self, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
         let node = Node::create_leaf(self.leaves_count, data);
-        self.storage.insert(&node.key(), &node)?;
+        self.storage.insert(&node.key(), &node.clone().into())?;
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
@@ -252,7 +257,8 @@ where
                 .storage
                 .get(&key)?
                 .ok_or(MerkleTreeError::LoadError(key))?
-                .into_owned();
+                .into_owned()
+                .into();
             let next = Box::new(Subtree::<Node>::new(node, current_head));
             current_head = Some(next);
         }
@@ -307,7 +313,8 @@ where
         rhs: &mut Subtree<Node>,
     ) -> Result<Box<Subtree<Node>>, StorageError> {
         let joined_node = Node::create_node(lhs.node(), rhs.node());
-        self.storage.insert(&joined_node.key(), &joined_node)?;
+        self.storage
+            .insert(&joined_node.key(), &joined_node.clone().into())?;
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
     }
@@ -317,7 +324,7 @@ where
 mod test {
     use super::{MerkleTree, MerkleTreeError, NodesTable};
     use crate::{
-        binary::{empty_sum, leaf_sum, node_sum},
+        binary::{empty_sum, leaf_sum, node_sum, Node},
         common::StorageMap,
     };
     use fuel_merkle_test_helpers::TEST_DATA;
@@ -374,17 +381,17 @@ mod test {
         let s_node_9 = storage_map.get(&9).unwrap().unwrap();
         let s_node_3 = storage_map.get(&3).unwrap().unwrap();
 
-        assert_eq!(s_leaf_0.hash(), &leaf_0);
-        assert_eq!(s_leaf_1.hash(), &leaf_1);
-        assert_eq!(s_leaf_2.hash(), &leaf_2);
-        assert_eq!(s_leaf_3.hash(), &leaf_3);
-        assert_eq!(s_leaf_4.hash(), &leaf_4);
-        assert_eq!(s_leaf_5.hash(), &leaf_5);
-        assert_eq!(s_leaf_6.hash(), &leaf_6);
-        assert_eq!(s_node_1.hash(), &node_1);
-        assert_eq!(s_node_5.hash(), &node_5);
-        assert_eq!(s_node_9.hash(), &node_9);
-        assert_eq!(s_node_3.hash(), &node_3);
+        assert_eq!(Node::from(s_leaf_0.as_ref()).hash(), leaf_0);
+        assert_eq!(Node::from(s_leaf_1.as_ref()).hash(), leaf_1);
+        assert_eq!(Node::from(s_leaf_2.as_ref()).hash(), leaf_2);
+        assert_eq!(Node::from(s_leaf_3.as_ref()).hash(), leaf_3);
+        assert_eq!(Node::from(s_leaf_4.as_ref()).hash(), leaf_4);
+        assert_eq!(Node::from(s_leaf_5.as_ref()).hash(), leaf_5);
+        assert_eq!(Node::from(s_leaf_6.as_ref()).hash(), leaf_6);
+        assert_eq!(Node::from(s_node_1.as_ref()).hash(), node_1);
+        assert_eq!(Node::from(s_node_5.as_ref()).hash(), node_5);
+        assert_eq!(Node::from(s_node_9.as_ref()).hash(), node_9);
+        assert_eq!(Node::from(s_node_3.as_ref()).hash(), node_3);
     }
 
     #[test]
