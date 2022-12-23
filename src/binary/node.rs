@@ -43,14 +43,12 @@ impl Node {
 
 impl From<Buffer> for Node {
     fn from(buffer: Buffer) -> Self {
-        Self {
-            buffer: buffer.into(),
-        }
+        Self { buffer }
     }
 }
 
 impl From<Node> for Buffer {
     fn from(node: Node) -> Self {
-        node.buffer.into()
+        node.buffer
     }
 }
