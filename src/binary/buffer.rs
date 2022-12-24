@@ -43,10 +43,12 @@ impl<'a> ReadView<'a> {
     }
 
     pub fn position(&self) -> Position {
+        // SAFETY: position_ptr is guaranteed to point to a valid Position
         unsafe { *self.position_ptr() }
     }
 
     pub fn hash(&self) -> &Bytes32 {
+        // SAFETY: hash_ptr is guaranteed to point to a valid Bytes32
         unsafe { &*self.hash_ptr() }
     }
 }
@@ -77,10 +79,12 @@ impl<'a> WriteView<'a> {
     }
 
     pub fn position_mut(&mut self) -> &mut Position {
+        // SAFETY: position_mut_ptr is guaranteed to point to a valid Position
         unsafe { &mut *self.position_mut_ptr() }
     }
 
     pub fn hash_mut(&mut self) -> &mut Bytes32 {
+        // SAFETY: hash_mut_ptr is guaranteed to point to a valid Bytes32
         unsafe { &mut *self.hash_mut_ptr() }
     }
 }
