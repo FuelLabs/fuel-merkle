@@ -136,8 +136,8 @@ impl Node {
         self.bytes_lo() == *zero_sum() && self.bytes_hi() == *zero_sum()
     }
 
-    pub fn as_buffer(&self) -> &Buffer {
-        self.buffer().try_into().unwrap()
+    pub fn buffer(&self) -> &Buffer {
+        &self.buffer
     }
 
     pub fn hash(&self) -> Bytes32 {
@@ -160,18 +160,12 @@ impl Node {
         let view = ReadView::new(&self.buffer);
         *view.bytes_hi()
     }
-
-    fn buffer(&self) -> &[u8] {
-        &self.buffer
-    }
 }
 
 impl TryFrom<Buffer> for Node {
     type Error = DeserializeError;
 
     fn try_from(buffer: Buffer) -> Result<Self, Self::Error> {
-        // let node = Self { buffer: value };
-
         // Validate the node created from the buffer
         let view = ReadView::new(&buffer);
         Prefix::try_from(view.bytes_prefix()[0])?;
@@ -463,7 +457,7 @@ mod test_node {
         let leaf = Node::create_leaf(&sum(b"LEAF"), &[1u8; 32]);
         let buffer = leaf.buffer();
 
-        assert_eq!(buffer, expected_buffer);
+        assert_eq!(*buffer, expected_buffer);
     }
 
     /// For internal node `node` with children `l` and `r`:
@@ -481,7 +475,7 @@ mod test_node {
         let node = Node::create_node(&left_child, &right_child, 1);
         let buffer = node.buffer();
 
-        assert_eq!(buffer, expected_buffer);
+        assert_eq!(*buffer, expected_buffer);
     }
 
     /// For leaf node `node` of leaf data `d` with key `k`:
@@ -535,13 +529,13 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
+        let _ = s.insert(&leaf_0.hash(), leaf_0.buffer());
 
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.hash(), leaf_1.as_buffer());
+        let _ = s.insert(&leaf_1.hash(), leaf_1.buffer());
 
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
-        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
+        let _ = s.insert(&node_0.hash(), node_0.buffer());
 
         let storage_node = StorageNode::new(&s, node_0);
         let child = storage_node.left_child().unwrap();
@@ -554,13 +548,13 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.hash(), leaf_0.as_buffer());
+        let _ = s.insert(&leaf_0.hash(), leaf_0.buffer());
 
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.hash(), leaf_1.as_buffer());
+        let _ = s.insert(&leaf_1.hash(), leaf_1.buffer());
 
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
-        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
+        let _ = s.insert(&node_0.hash(), node_0.buffer());
 
         let storage_node = StorageNode::new(&s, node_0);
         let child = storage_node.right_child().unwrap();
@@ -573,10 +567,10 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf.hash(), leaf.as_buffer());
+        let _ = s.insert(&leaf.hash(), leaf.buffer());
 
         let node_0 = Node::create_node(&Node::create_placeholder(), &leaf, 1);
-        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
+        let _ = s.insert(&node_0.hash(), node_0.buffer());
 
         let storage_node = StorageNode::new(&s, node_0);
         let child = storage_node.left_child().unwrap();
@@ -589,10 +583,10 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf.hash(), leaf.as_buffer());
+        let _ = s.insert(&leaf.hash(), leaf.buffer());
 
         let node_0 = Node::create_node(&leaf, &Node::create_placeholder(), 1);
-        let _ = s.insert(&node_0.hash(), node_0.as_buffer());
+        let _ = s.insert(&node_0.hash(), node_0.buffer());
 
         let storage_node = StorageNode::new(&s, node_0);
         let child = storage_node.right_child().unwrap();
