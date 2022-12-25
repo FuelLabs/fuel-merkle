@@ -2,38 +2,20 @@ use crate::{
     common::{
         error::DeserializeError,
         path::{ComparablePath, Instruction, Path},
-        Bytes1, Bytes32, Bytes4, ChildError, ChildResult, Node as NodeTrait,
-        ParentNode as ParentNodeTrait, Prefix,
+        Bytes32, ChildError, ChildResult, Node as NodeTrait, ParentNode as ParentNodeTrait, Prefix,
     },
-    sparse::{hash::sum, merkle_tree::NodesTable, zero_sum},
+    sparse::{
+        buffer::{Buffer, ReadView, Schema, WriteView, DEFAULT_BUFFER},
+        hash::sum,
+        merkle_tree::NodesTable,
+        zero_sum,
+    },
 };
 
 // TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::StorageInspect;
 
-use core::{cmp, fmt, mem::size_of, ops::Range};
-
-/// **Leaf buffer:**
-///
-/// | Allocation | Data                       |
-/// |------------|----------------------------|
-/// | `00 - 04`  | Height (4 bytes)           |
-/// | `04 - 05`  | Prefix (1 byte, `0x00`)    |
-/// | `05 - 37`  | hash(Key) (32 bytes)       |
-/// | `37 - 69`  | hash(Data) (32 bytes)      |
-///
-/// **Node buffer:**
-///
-/// | Allocation | Data                       |
-/// |------------|----------------------------|
-/// | `00 - 04`  | Height (4 bytes)           |
-/// | `04 - 05`  | Prefix (1 byte, `0x01`)    |
-/// | `05 - 37`  | Left child key (32 bytes)  |
-/// | `37 - 69`  | Right child key (32 bytes) |
-///
-const BUFFER_SIZE: usize =
-    size_of::<Bytes4>() + size_of::<Bytes1>() + size_of::<Bytes32>() + size_of::<Bytes32>();
-pub type Buffer = [u8; BUFFER_SIZE];
+use core::{cmp, fmt};
 
 #[derive(Clone)]
 pub(crate) struct Node {
@@ -46,23 +28,23 @@ impl Node {
     }
 
     pub fn create_leaf(key: &Bytes32, data: &[u8]) -> Self {
-        let buffer = Self::default_buffer();
-        let mut node = Self { buffer };
-        node.set_height(0);
-        node.set_prefix(Prefix::Leaf);
-        node.set_bytes_lo(key);
-        node.set_bytes_hi(&sum(data));
-        node
+        let mut buffer = *DEFAULT_BUFFER;
+        let mut view = WriteView::new(&mut buffer);
+        *view.bytes_height_mut() = 0u32.to_ne_bytes();
+        *view.bytes_prefix_mut() = Prefix::Leaf.into();
+        *view.bytes_lo_mut() = *key;
+        *view.bytes_hi_mut() = sum(data);
+        Self { buffer }
     }
 
     pub fn create_node(left_child: &Node, right_child: &Node, height: u32) -> Self {
-        let buffer = Self::default_buffer();
-        let mut node = Self { buffer };
-        node.set_height(height);
-        node.set_prefix(Prefix::Node);
-        node.set_bytes_lo(&left_child.hash());
-        node.set_bytes_hi(&right_child.hash());
-        node
+        let mut buffer = *DEFAULT_BUFFER;
+        let mut view = WriteView::new(&mut buffer);
+        *view.bytes_height_mut() = height.to_ne_bytes();
+        *view.bytes_prefix_mut() = Prefix::Node.into();
+        *view.bytes_lo_mut() = left_child.hash();
+        *view.bytes_hi_mut() = right_child.hash();
+        Self { buffer }
     }
 
     pub fn create_node_on_path(path: &dyn Path, path_node: &Node, side_node: &Node) -> Self {
@@ -93,7 +75,7 @@ impl Node {
     }
 
     pub fn create_placeholder() -> Self {
-        let buffer = Self::default_buffer();
+        let buffer = *DEFAULT_BUFFER;
         Self { buffer }
     }
 
@@ -108,39 +90,38 @@ impl Node {
         if self.is_placeholder() || other.is_placeholder() {
             0
         } else {
-            self.leaf_key().common_path_length(other.leaf_key())
+            self.leaf_key().common_path_length(&other.leaf_key())
         }
     }
 
     pub fn height(&self) -> u32 {
-        let bytes = self.bytes_height();
-        u32::from_be_bytes(bytes.try_into().unwrap())
+        let view = ReadView::new(&self.buffer);
+        u32::from_le_bytes(*view.bytes_height())
     }
 
     pub fn prefix(&self) -> Prefix {
-        // Safety: By the time a Node is created, it will always have a valid
-        // prefix.
-        self.bytes_prefix()[0].try_into().unwrap()
+        let view = ReadView::new(&self.buffer);
+        Prefix::try_from(view.bytes_prefix()[0]).unwrap()
     }
 
-    pub fn leaf_key(&self) -> &Bytes32 {
+    pub fn leaf_key(&self) -> Bytes32 {
         assert!(self.is_leaf());
-        self.bytes_lo().try_into().unwrap()
+        self.bytes_lo()
     }
 
-    pub fn leaf_data(&self) -> &Bytes32 {
+    pub fn leaf_data(&self) -> Bytes32 {
         assert!(self.is_leaf());
-        self.bytes_hi().try_into().unwrap()
+        self.bytes_hi()
     }
 
-    pub fn left_child_key(&self) -> &Bytes32 {
+    pub fn left_child_key(&self) -> Bytes32 {
         assert!(self.is_node());
-        self.bytes_lo().try_into().unwrap()
+        self.bytes_lo()
     }
 
-    pub fn right_child_key(&self) -> &Bytes32 {
+    pub fn right_child_key(&self) -> Bytes32 {
         assert!(self.is_node());
-        self.bytes_hi().try_into().unwrap()
+        self.bytes_hi()
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -152,7 +133,7 @@ impl Node {
     }
 
     pub fn is_placeholder(&self) -> bool {
-        self.bytes_lo() == zero_sum() && self.bytes_hi() == zero_sum()
+        self.bytes_lo() == *zero_sum() && self.bytes_hi() == *zero_sum()
     }
 
     pub fn as_buffer(&self) -> &Buffer {
@@ -163,178 +144,39 @@ impl Node {
         if self.is_placeholder() {
             *zero_sum()
         } else {
-            let range = Self::hash_range();
+            let range = Schema::hash_range();
             sum(&self.buffer()[range])
         }
     }
 
     // PRIVATE
 
-    const fn default_buffer() -> Buffer {
-        [0; Self::buffer_size()]
+    fn bytes_lo(&self) -> Bytes32 {
+        let view = ReadView::new(&self.buffer);
+        *view.bytes_lo()
     }
 
-    // HEIGHT
-
-    const fn height_offset() -> usize {
-        0
-    }
-
-    const fn height_size() -> usize {
-        size_of::<Bytes4>()
-    }
-
-    const fn height_range() -> Range<usize> {
-        Self::height_offset()..(Self::height_offset() + Self::height_size())
-    }
-
-    // PREFIX
-
-    const fn prefix_offset() -> usize {
-        Self::height_offset() + Self::height_size()
-    }
-
-    const fn prefix_size() -> usize {
-        size_of::<Bytes1>()
-    }
-
-    const fn prefix_range() -> Range<usize> {
-        Self::prefix_offset()..(Self::prefix_offset() + Self::prefix_size())
-    }
-
-    // BYTES LO
-
-    const fn bytes_lo_offset() -> usize {
-        Self::prefix_offset() + Self::prefix_size()
-    }
-
-    const fn bytes_lo_size() -> usize {
-        size_of::<Bytes32>()
-    }
-
-    const fn bytes_lo_range() -> Range<usize> {
-        Self::bytes_lo_offset()..(Self::bytes_lo_offset() + Self::bytes_lo_size())
-    }
-
-    // BYTES HI
-
-    const fn bytes_hi_offset() -> usize {
-        Self::bytes_lo_offset() + Self::bytes_lo_size()
-    }
-
-    const fn bytes_hi_size() -> usize {
-        size_of::<Bytes32>()
-    }
-
-    const fn bytes_hi_range() -> Range<usize> {
-        Self::bytes_hi_offset()..(Self::bytes_hi_offset() + Self::bytes_hi_size())
-    }
-
-    // HASH
-
-    const fn hash_range() -> Range<usize> {
-        Self::prefix_offset()..Self::buffer_size()
-    }
-
-    // BUFFER
-
-    const fn buffer_size() -> usize {
-        BUFFER_SIZE
-    }
-
-    // PRIVATE
-
-    fn buffer_mut(&mut self) -> &mut [u8] {
-        &mut self.buffer
+    fn bytes_hi(&self) -> Bytes32 {
+        let view = ReadView::new(&self.buffer);
+        *view.bytes_hi()
     }
 
     fn buffer(&self) -> &[u8] {
         &self.buffer
-    }
-
-    // Height
-
-    fn set_height(&mut self, height: u32) {
-        let bytes = height.to_be_bytes();
-        self.set_bytes_height(&bytes)
-    }
-
-    fn bytes_height_mut(&mut self) -> &mut [u8] {
-        let range = Self::height_range();
-        &mut self.buffer_mut()[range]
-    }
-
-    fn bytes_height(&self) -> &[u8] {
-        let range = Self::height_range();
-        &self.buffer()[range]
-    }
-
-    fn set_bytes_height(&mut self, bytes: &Bytes4) {
-        self.bytes_height_mut().clone_from_slice(bytes)
-    }
-
-    // Prefix
-
-    fn set_prefix(&mut self, prefix: Prefix) {
-        self.set_bytes_prefix(prefix.as_ref());
-    }
-
-    fn bytes_prefix_mut(&mut self) -> &mut [u8] {
-        let range = Self::prefix_range();
-        &mut self.buffer_mut()[range]
-    }
-
-    fn bytes_prefix(&self) -> &[u8] {
-        let range = Self::prefix_range();
-        &self.buffer()[range]
-    }
-
-    fn set_bytes_prefix(&mut self, bytes: &Bytes1) {
-        self.bytes_prefix_mut().clone_from_slice(bytes);
-    }
-
-    // Bytes lo
-
-    fn bytes_lo_mut(&mut self) -> &mut [u8] {
-        let range = Self::bytes_lo_range();
-        &mut self.buffer_mut()[range]
-    }
-
-    fn bytes_lo(&self) -> &[u8] {
-        let range = Self::bytes_lo_range();
-        &self.buffer()[range]
-    }
-
-    fn set_bytes_lo(&mut self, bytes: &Bytes32) {
-        self.bytes_lo_mut().clone_from_slice(bytes);
-    }
-
-    // Bytes hi
-
-    fn bytes_hi_mut(&mut self) -> &mut [u8] {
-        let range = Self::bytes_hi_range();
-        &mut self.buffer_mut()[range]
-    }
-
-    fn bytes_hi(&self) -> &[u8] {
-        let range = Self::bytes_hi_range();
-        &self.buffer()[range]
-    }
-
-    fn set_bytes_hi(&mut self, bytes: &Bytes32) {
-        self.bytes_hi_mut().clone_from_slice(bytes);
     }
 }
 
 impl TryFrom<Buffer> for Node {
     type Error = DeserializeError;
 
-    fn try_from(value: Buffer) -> Result<Self, Self::Error> {
-        let node = Self { buffer: value };
+    fn try_from(buffer: Buffer) -> Result<Self, Self::Error> {
+        // let node = Self { buffer: value };
 
         // Validate the node created from the buffer
-        Prefix::try_from(node.bytes_prefix()[0])?;
+        let view = ReadView::new(&buffer);
+        Prefix::try_from(view.bytes_prefix()[0])?;
 
+        let node = Self { buffer };
         Ok(node)
     }
 }
@@ -347,7 +189,7 @@ impl NodeTrait for Node {
     }
 
     fn leaf_key(&self) -> Self::Key {
-        *Node::leaf_key(self)
+        Node::leaf_key(self)
     }
 
     fn is_leaf(&self) -> bool {
@@ -417,7 +259,7 @@ impl<StorageType> NodeTrait for StorageNode<'_, StorageType> {
     }
 
     fn leaf_key(&self) -> Self::Key {
-        *self.node.leaf_key()
+        self.node.leaf_key()
     }
 
     fn is_leaf(&self) -> bool {
@@ -449,14 +291,14 @@ where
             return Err(ChildError::NodeIsLeaf);
         }
         let key = self.node.left_child_key();
-        if key == zero_sum() {
+        if key == *zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
         let buffer = self
             .storage
-            .get(key)
+            .get(&key)
             .map_err(StorageNodeError::StorageError)?
-            .ok_or(ChildError::ChildNotFound(*key))?;
+            .ok_or(ChildError::ChildNotFound(key))?;
         Ok(buffer
             .into_owned()
             .try_into()
@@ -469,14 +311,14 @@ where
             return Err(ChildError::NodeIsLeaf);
         }
         let key = self.node.right_child_key();
-        if key == zero_sum() {
+        if key == *zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
         let buffer = self
             .storage
-            .get(key)
+            .get(&key)
             .map_err(StorageNodeError::StorageError)?
-            .ok_or(ChildError::ChildNotFound(*key))?;
+            .ok_or(ChildError::ChildNotFound(key))?;
         Ok(buffer
             .into_owned()
             .try_into()
@@ -531,8 +373,8 @@ mod test_node {
         assert_eq!(leaf.is_node(), false);
         assert_eq!(leaf.height(), 0);
         assert_eq!(leaf.prefix(), Prefix::Leaf);
-        assert_eq!(leaf.leaf_key(), &sum(b"LEAF"));
-        assert_eq!(leaf.leaf_data(), &sum(&[1u8; 32]));
+        assert_eq!(leaf.leaf_key(), sum(b"LEAF"));
+        assert_eq!(leaf.leaf_data(), sum(&[1u8; 32]));
     }
 
     #[test]
@@ -544,10 +386,10 @@ mod test_node {
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 1);
         assert_eq!(node.prefix(), Prefix::Node);
-        assert_eq!(node.left_child_key(), &leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
+        assert_eq!(node.left_child_key(), leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
         assert_eq!(
             node.right_child_key(),
-            &leaf_hash(&sum(b"RIGHT"), &[1u8; 32])
+            leaf_hash(&sum(b"RIGHT"), &[1u8; 32])
         );
     }
 
@@ -561,7 +403,7 @@ mod test_node {
     #[test]
     fn test_create_leaf_from_buffer_returns_a_valid_leaf() {
         let mut buffer = [0u8; 69];
-        buffer[0..4].clone_from_slice(&0_u32.to_be_bytes());
+        buffer[0..4].clone_from_slice(&0_u32.to_ne_bytes());
         buffer[4..5].clone_from_slice(Prefix::Leaf.as_ref());
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
@@ -571,14 +413,14 @@ mod test_node {
         assert_eq!(node.is_node(), false);
         assert_eq!(node.height(), 0);
         assert_eq!(node.prefix(), Prefix::Leaf);
-        assert_eq!(node.leaf_key(), &[1u8; 32]);
-        assert_eq!(node.leaf_data(), &[1u8; 32]);
+        assert_eq!(node.leaf_key(), [1u8; 32]);
+        assert_eq!(node.leaf_data(), [1u8; 32]);
     }
 
     #[test]
     fn test_create_node_from_buffer_returns_a_valid_node() {
         let mut buffer = [0u8; 69];
-        buffer[0..4].clone_from_slice(&256_u32.to_be_bytes());
+        buffer[0..4].clone_from_slice(&256_u32.to_ne_bytes());
         buffer[4..5].clone_from_slice(Prefix::Node.as_ref());
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
@@ -588,14 +430,14 @@ mod test_node {
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 256);
         assert_eq!(node.prefix(), Prefix::Node);
-        assert_eq!(node.left_child_key(), &[1u8; 32]);
-        assert_eq!(node.right_child_key(), &[1u8; 32]);
+        assert_eq!(node.left_child_key(), [1u8; 32]);
+        assert_eq!(node.right_child_key(), [1u8; 32]);
     }
 
     #[test]
     fn test_create_from_buffer_returns_deserialize_error_if_invalid_prefix() {
         let mut buffer = [0u8; 69];
-        buffer[0..4].clone_from_slice(&0_u32.to_be_bytes());
+        buffer[0..4].clone_from_slice(&0_u32.to_ne_bytes());
         buffer[4..5].clone_from_slice(&[0x02]);
         buffer[5..37].clone_from_slice(&[1u8; 32]);
         buffer[37..69].clone_from_slice(&[1u8; 32]);
@@ -613,7 +455,7 @@ mod test_node {
     #[test]
     fn test_leaf_buffer_returns_expected_buffer() {
         let mut expected_buffer = [0u8; 69];
-        expected_buffer[0..4].clone_from_slice(&0_u32.to_be_bytes());
+        expected_buffer[0..4].clone_from_slice(&0_u32.to_ne_bytes());
         expected_buffer[4..5].clone_from_slice(Prefix::Leaf.as_ref());
         expected_buffer[5..37].clone_from_slice(&sum(b"LEAF"));
         expected_buffer[37..69].clone_from_slice(&sum(&[1u8; 32]));
@@ -629,7 +471,7 @@ mod test_node {
     #[test]
     fn test_node_buffer_returns_expected_buffer() {
         let mut expected_buffer = [0u8; 69];
-        expected_buffer[0..4].clone_from_slice(&1_u32.to_be_bytes());
+        expected_buffer[0..4].clone_from_slice(&1_u32.to_ne_bytes());
         expected_buffer[4..5].clone_from_slice(Prefix::Node.as_ref());
         expected_buffer[5..37].clone_from_slice(&leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
         expected_buffer[37..69].clone_from_slice(&leaf_hash(&sum(b"RIGHT"), &[1u8; 32]));
@@ -682,7 +524,7 @@ mod test_storage_node {
     use crate::{
         common::{error::DeserializeError, ChildError, ParentNode, PrefixError, StorageMap},
         sparse::{
-            hash::sum, merkle_tree::NodesTable, node::StorageNodeError, node::BUFFER_SIZE, Node,
+            buffer::BUFFER_SIZE, hash::sum, merkle_tree::NodesTable, node::StorageNodeError, Node,
             StorageNode,
         },
     };
@@ -797,7 +639,7 @@ mod test_storage_node {
             .left_child()
             .expect_err("Expected left_child() to return Error; got Ok");
 
-        let key = *storage_node.into_node().left_child_key();
+        let key = storage_node.into_node().left_child_key();
         assert!(matches!(
             err,
             ChildError::ChildNotFound(k) if k == key
@@ -817,7 +659,7 @@ mod test_storage_node {
             .right_child()
             .expect_err("Expected right_child() to return Error; got Ok");
 
-        let key = *storage_node.into_node().right_child_key();
+        let key = storage_node.into_node().right_child_key();
         assert!(matches!(
             err,
             ChildError::ChildNotFound(k) if k == key

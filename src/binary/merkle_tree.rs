@@ -1,6 +1,5 @@
-use crate::binary::Buffer;
 use crate::{
-    binary::{empty_sum, Node},
+    binary::{buffer::Buffer, empty_sum, Node},
     common::{Bytes32, Position, ProofSet, Subtree},
 };
 

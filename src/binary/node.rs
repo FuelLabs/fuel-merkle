@@ -1,6 +1,10 @@
-use crate::binary::buffer::{ReadView, WriteView, DEFAULT_BUFFER};
-use crate::binary::{leaf_sum, node_sum, Buffer};
-use crate::common::{Bytes32, Position};
+use crate::{
+    binary::{
+        buffer::{Buffer, ReadView, WriteView, DEFAULT_BUFFER},
+        leaf_sum, node_sum,
+    },
+    common::{Bytes32, Position},
+};
 
 use core::fmt::Debug;
 
