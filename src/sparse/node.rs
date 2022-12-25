@@ -104,6 +104,14 @@ impl Node {
         Prefix::try_from(view.bytes_prefix()[0]).unwrap()
     }
 
+    pub fn is_leaf(&self) -> bool {
+        self.prefix() == Prefix::Leaf || self.is_placeholder()
+    }
+
+    pub fn is_node(&self) -> bool {
+        self.prefix() == Prefix::Node
+    }
+
     pub fn leaf_key(&self) -> Bytes32 {
         assert!(self.is_leaf());
         self.bytes_lo()
@@ -122,14 +130,6 @@ impl Node {
     pub fn right_child_key(&self) -> Bytes32 {
         assert!(self.is_node());
         self.bytes_hi()
-    }
-
-    pub fn is_leaf(&self) -> bool {
-        self.prefix() == Prefix::Leaf || self.is_placeholder()
-    }
-
-    pub fn is_node(&self) -> bool {
-        self.prefix() == Prefix::Node
     }
 
     pub fn is_placeholder(&self) -> bool {

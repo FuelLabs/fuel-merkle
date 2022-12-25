@@ -29,8 +29,8 @@ impl From<Prefix> for u8 {
 impl From<Prefix> for [u8; 1] {
     fn from(prefix: Prefix) -> Self {
         match prefix {
-            Prefix::Node => [NODE; 1],
-            Prefix::Leaf => [LEAF; 1],
+            Prefix::Node => [NODE],
+            Prefix::Leaf => [LEAF],
         }
     }
 }
