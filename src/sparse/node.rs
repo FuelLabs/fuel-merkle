@@ -12,7 +12,6 @@ use crate::{
     },
 };
 
-// TODO: Return errors instead of `unwrap` during work with storage.
 use fuel_storage::StorageInspect;
 
 use core::{cmp, fmt};
@@ -30,8 +29,8 @@ impl Node {
     pub fn create_leaf(key: &Bytes32, data: &[u8]) -> Self {
         let mut buffer = *DEFAULT_BUFFER;
         let mut view = WriteView::new(&mut buffer);
-        *view.bytes_height_mut() = 0u32.to_ne_bytes();
-        *view.bytes_prefix_mut() = Prefix::Leaf.into();
+        *view.height_mut() = 0u32;
+        *view.prefix_mut() = Prefix::Leaf;
         *view.bytes_lo_mut() = *key;
         *view.bytes_hi_mut() = sum(data);
         Self { buffer }
@@ -40,8 +39,8 @@ impl Node {
     pub fn create_node(left_child: &Node, right_child: &Node, height: u32) -> Self {
         let mut buffer = *DEFAULT_BUFFER;
         let mut view = WriteView::new(&mut buffer);
-        *view.bytes_height_mut() = height.to_ne_bytes();
-        *view.bytes_prefix_mut() = Prefix::Node.into();
+        *view.height_mut() = height;
+        *view.prefix_mut() = Prefix::Node;
         *view.bytes_lo_mut() = left_child.hash();
         *view.bytes_hi_mut() = right_child.hash();
         Self { buffer }
@@ -96,12 +95,12 @@ impl Node {
 
     pub fn height(&self) -> u32 {
         let view = ReadView::new(&self.buffer);
-        u32::from_le_bytes(*view.bytes_height())
+        *view.height()
     }
 
     pub fn prefix(&self) -> Prefix {
         let view = ReadView::new(&self.buffer);
-        Prefix::try_from(view.bytes_prefix()[0]).unwrap()
+        *view.prefix()
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -169,7 +168,8 @@ impl TryFrom<Buffer> for Node {
     fn try_from(buffer: Buffer) -> Result<Self, Self::Error> {
         // Validate the node created from the buffer
         let view = ReadView::new(&buffer);
-        Prefix::try_from(view.bytes_prefix()[0])?;
+        let prefix_byte = view.bytes_prefix()[0];
+        Prefix::try_from(prefix_byte)?;
 
         let node = Self { buffer };
         Ok(node)

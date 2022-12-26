@@ -29,16 +29,16 @@ pub const DEFAULT_BUFFER: &Buffer = &[0; BUFFER_SIZE];
 pub struct Schema {}
 
 impl Schema {
-    const fn bytes_height_offset() -> isize {
+    const fn height_offset() -> isize {
         0
     }
 
-    const fn bytes_prefix_offset() -> isize {
-        Self::bytes_height_offset() + size_of::<u32>() as isize
+    const fn prefix_offset() -> isize {
+        Self::height_offset() + size_of::<u32>() as isize
     }
 
     const fn bytes_lo_offset() -> isize {
-        Self::bytes_prefix_offset() + size_of::<Prefix>() as isize
+        Self::prefix_offset() + size_of::<Prefix>() as isize
     }
 
     const fn bytes_hi_offset() -> isize {
@@ -46,7 +46,7 @@ impl Schema {
     }
 
     const fn bytes_hash_offset() -> isize {
-        Self::bytes_prefix_offset()
+        Self::prefix_offset()
     }
 }
 
@@ -59,16 +59,22 @@ impl<'a> ReadView<'a> {
         self.buffer
     }
 
-    unsafe fn bytes_height_ptr(&self) -> *const Bytes4 {
-        let offset = Schema::bytes_height_offset();
-        let height = self.buffer().as_ptr().offset(offset) as *const Bytes4;
+    unsafe fn height_ptr(&self) -> *const u32 {
+        let offset = Schema::height_offset();
+        let height = self.buffer().as_ptr().offset(offset) as *const u32;
         height
     }
 
     unsafe fn bytes_prefix_ptr(&self) -> *const Bytes1 {
-        let offset = Schema::bytes_prefix_offset();
+        let offset = Schema::prefix_offset();
         let bytes_prefix = self.buffer().as_ptr().offset(offset) as *const Bytes1;
         bytes_prefix
+    }
+
+    unsafe fn prefix_ptr(&self) -> *const Prefix {
+        let offset = Schema::prefix_offset();
+        let prefix = self.buffer().as_ptr().offset(offset) as *const Prefix;
+        prefix
     }
 
     unsafe fn bytes_lo_ptr(&self) -> *const Bytes32 {
@@ -93,12 +99,16 @@ impl<'a> ReadView<'a> {
         Self { buffer }
     }
 
-    pub fn bytes_height(&self) -> &Bytes4 {
-        unsafe { &*self.bytes_height_ptr() }
+    pub fn height(&self) -> &u32 {
+        unsafe { &*self.height_ptr() }
     }
 
     pub fn bytes_prefix(&self) -> &Bytes1 {
         unsafe { &*self.bytes_prefix_ptr() }
+    }
+
+    pub fn prefix(&self) -> &Prefix {
+        unsafe { &*self.prefix_ptr() }
     }
 
     pub fn bytes_lo(&self) -> &Bytes32 {
@@ -123,16 +133,16 @@ impl<'a> WriteView<'a> {
         self.buffer
     }
 
-    unsafe fn bytes_height_mut_ptr(&mut self) -> *mut Bytes4 {
-        let offset = Schema::bytes_height_offset();
-        let bytes_height = self.buffer_mut().as_mut_ptr().offset(offset) as *mut Bytes4;
+    unsafe fn height_mut_ptr(&mut self) -> *mut u32 {
+        let offset = Schema::height_offset();
+        let bytes_height = self.buffer_mut().as_mut_ptr().offset(offset) as *mut u32;
         bytes_height
     }
 
-    unsafe fn bytes_prefix_mut_ptr(&mut self) -> *mut Bytes1 {
-        let offset = Schema::bytes_prefix_offset();
-        let bytes_prefix = self.buffer_mut().as_mut_ptr().offset(offset) as *mut Bytes1;
-        bytes_prefix
+    unsafe fn prefix_mut_ptr(&mut self) -> *mut Prefix {
+        let offset = Schema::prefix_offset();
+        let prefix = self.buffer_mut().as_mut_ptr().offset(offset) as *mut Prefix;
+        prefix
     }
 
     unsafe fn bytes_lo_mut_ptr(&mut self) -> *mut Bytes32 {
@@ -151,12 +161,12 @@ impl<'a> WriteView<'a> {
         Self { buffer }
     }
 
-    pub fn bytes_height_mut(&mut self) -> &mut Bytes4 {
-        unsafe { &mut *self.bytes_height_mut_ptr() }
+    pub fn height_mut(&mut self) -> &mut u32 {
+        unsafe { &mut *self.height_mut_ptr() }
     }
 
-    pub fn bytes_prefix_mut(&mut self) -> &mut Bytes1 {
-        unsafe { &mut *self.bytes_prefix_mut_ptr() }
+    pub fn prefix_mut(&mut self) -> &mut Prefix {
+        unsafe { &mut *self.prefix_mut_ptr() }
     }
 
     pub fn bytes_lo_mut(&mut self) -> &mut Bytes32 {
