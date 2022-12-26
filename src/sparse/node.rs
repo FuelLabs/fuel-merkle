@@ -168,7 +168,7 @@ impl TryFrom<Buffer> for Node {
     fn try_from(buffer: Buffer) -> Result<Self, Self::Error> {
         // Validate the node created from the buffer
         let view = ReadView::new(&buffer);
-        let prefix_byte = view.bytes_prefix()[0];
+        let prefix_byte = *view.prefix_byte();
         Prefix::try_from(prefix_byte)?;
 
         let node = Self { buffer };

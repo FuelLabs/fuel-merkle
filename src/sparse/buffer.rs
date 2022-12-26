@@ -1,4 +1,4 @@
-use crate::common::{Bytes1, Bytes32, Prefix};
+use crate::common::{Bytes32, Prefix};
 
 use core::mem::size_of;
 
@@ -65,9 +65,9 @@ impl<'a> ReadView<'a> {
         height
     }
 
-    unsafe fn bytes_prefix_ptr(&self) -> *const Bytes1 {
+    unsafe fn prefix_byte_ptr(&self) -> *const u8 {
         let offset = Schema::prefix_offset();
-        let bytes_prefix = self.buffer().as_ptr().offset(offset) as *const Bytes1;
+        let bytes_prefix = self.buffer().as_ptr().offset(offset) as *const u8;
         bytes_prefix
     }
 
@@ -103,8 +103,8 @@ impl<'a> ReadView<'a> {
         unsafe { &*self.height_ptr() }
     }
 
-    pub fn bytes_prefix(&self) -> &Bytes1 {
-        unsafe { &*self.bytes_prefix_ptr() }
+    pub fn prefix_byte(&self) -> &u8 {
+        unsafe { &*self.prefix_byte_ptr() }
     }
 
     pub fn prefix(&self) -> &Prefix {
