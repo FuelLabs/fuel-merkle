@@ -1,4 +1,4 @@
-use crate::common::{Bytes1, Bytes32, Bytes4, Prefix};
+use crate::common::{Bytes1, Bytes32, Prefix};
 
 use core::mem::size_of;
 
