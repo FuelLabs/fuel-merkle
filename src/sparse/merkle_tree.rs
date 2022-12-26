@@ -97,7 +97,7 @@ where
         let leaf_node = Node::create_leaf(key, data);
         self.storage.insert(&leaf_node.hash(), leaf_node.buffer())?;
         self.storage
-            .insert(&leaf_node.leaf_key(), leaf_node.buffer())?;
+            .insert(leaf_node.leaf_key(), leaf_node.buffer())?;
 
         if self.root_node().is_placeholder() {
             self.set_root_node(leaf_node);
@@ -205,7 +205,7 @@ where
         if requested_leaf_node.leaf_key() != actual_leaf_node.leaf_key() {
             // Merge leaves
             if !actual_leaf_node.is_placeholder() {
-                current_node = Node::create_node_on_path(&path, &current_node, actual_leaf_node);
+                current_node = Node::create_node_on_path(path, &current_node, actual_leaf_node);
                 self.storage
                     .insert(&current_node.hash(), current_node.buffer())?;
             }
@@ -216,7 +216,7 @@ where
             let placeholders_count = stale_depth - side_nodes.len();
             let placeholders = iter::repeat(Node::create_placeholder()).take(placeholders_count);
             for placeholder in placeholders {
-                current_node = Node::create_node_on_path(&path, &current_node, &placeholder);
+                current_node = Node::create_node_on_path(path, &current_node, &placeholder);
                 self.storage
                     .insert(&current_node.hash(), current_node.buffer())?;
             }
@@ -224,7 +224,7 @@ where
 
         // Merge side nodes
         for side_node in side_nodes {
-            current_node = Node::create_node_on_path(&path, &current_node, side_node);
+            current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
                 .insert(&current_node.hash(), current_node.buffer())?;
         }
@@ -280,7 +280,7 @@ where
                 if let Some(side_node) =
                     side_nodes_iter.find(|side_node| !side_node.is_placeholder())
                 {
-                    current_node = Node::create_node_on_path(&path, &current_node, side_node);
+                    current_node = Node::create_node_on_path(path, &current_node, side_node);
                     self.storage
                         .insert(&current_node.hash(), current_node.buffer())?;
                 }
@@ -289,7 +289,7 @@ where
 
         // Merge side nodes
         for side_node in side_nodes_iter {
-            current_node = Node::create_node_on_path(&path, &current_node, side_node);
+            current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
                 .insert(&current_node.hash(), current_node.buffer())?;
         }

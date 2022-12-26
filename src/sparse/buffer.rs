@@ -91,7 +91,7 @@ impl<'a> ReadView<'a> {
 
     unsafe fn bytes_hash_ptr(&self) -> *const Data {
         let offset = Schema::bytes_hash_offset();
-        let bytes_hash = self.buffer().as_ptr().offset(offset) as *const [u8; 65];
+        let bytes_hash = self.buffer().as_ptr().offset(offset) as *const Data;
         bytes_hash
     }
 

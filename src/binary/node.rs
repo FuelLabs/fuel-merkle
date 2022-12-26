@@ -26,7 +26,7 @@ impl Node {
         let mut buffer = *DEFAULT_BUFFER;
         let mut view = WriteView::new(&mut buffer);
         *view.position_mut() = left_child.position().parent();
-        *view.hash_mut() = node_sum(&left_child.hash(), &right_child.hash());
+        *view.hash_mut() = node_sum(left_child.hash(), right_child.hash());
         Self { buffer }
     }
 
@@ -39,9 +39,12 @@ impl Node {
         self.position().in_order_index()
     }
 
-    pub fn hash(&self) -> Bytes32 {
+    pub fn hash(&self) -> &Bytes32 {
         let view = ReadView::new(&self.buffer);
-        *view.hash()
+        let ptr = view.hash() as *const Bytes32;
+        // SAFETY: ptr is guaranteed to point to a valid range of 32 bytes owned
+        //         by self.buffer
+        unsafe { &*ptr }
     }
 
     pub fn buffer(&self) -> &Buffer {

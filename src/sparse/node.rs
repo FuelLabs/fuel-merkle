@@ -89,7 +89,7 @@ impl Node {
         if self.is_placeholder() || other.is_placeholder() {
             0
         } else {
-            self.leaf_key().common_path_length(&other.leaf_key())
+            self.leaf_key().common_path_length(other.leaf_key())
         }
     }
 
@@ -111,28 +111,28 @@ impl Node {
         self.prefix() == Prefix::Node
     }
 
-    pub fn leaf_key(&self) -> Bytes32 {
+    pub fn leaf_key(&self) -> &Bytes32 {
         assert!(self.is_leaf());
         self.bytes_lo()
     }
 
-    pub fn leaf_data(&self) -> Bytes32 {
+    pub fn leaf_data(&self) -> &Bytes32 {
         assert!(self.is_leaf());
         self.bytes_hi()
     }
 
-    pub fn left_child_key(&self) -> Bytes32 {
+    pub fn left_child_key(&self) -> &Bytes32 {
         assert!(self.is_node());
         self.bytes_lo()
     }
 
-    pub fn right_child_key(&self) -> Bytes32 {
+    pub fn right_child_key(&self) -> &Bytes32 {
         assert!(self.is_node());
         self.bytes_hi()
     }
 
     pub fn is_placeholder(&self) -> bool {
-        self.bytes_lo() == *zero_sum() && self.bytes_hi() == *zero_sum()
+        *self.bytes_lo() == *zero_sum() && *self.bytes_hi() == *zero_sum()
     }
 
     pub fn hash(&self) -> Bytes32 {
@@ -151,14 +151,20 @@ impl Node {
 
     // PRIVATE
 
-    fn bytes_lo(&self) -> Bytes32 {
+    fn bytes_lo(&self) -> &Bytes32 {
         let view = ReadView::new(&self.buffer);
-        *view.bytes_lo()
+        let ptr = view.bytes_lo() as *const Bytes32;
+        // SAFETY: ptr is guaranteed to point to a valid range of 32 bytes owned
+        //         by self.buffer
+        unsafe { &*ptr }
     }
 
-    fn bytes_hi(&self) -> Bytes32 {
+    fn bytes_hi(&self) -> &Bytes32 {
         let view = ReadView::new(&self.buffer);
-        *view.bytes_hi()
+        let ptr = view.bytes_hi() as *const Bytes32;
+        // SAFETY: ptr is guaranteed to point to a valid range of 32 bytes owned
+        //         by self.buffer
+        unsafe { &*ptr }
     }
 }
 
@@ -184,7 +190,7 @@ impl NodeTrait for Node {
     }
 
     fn leaf_key(&self) -> Self::Key {
-        Node::leaf_key(self)
+        *Node::leaf_key(self)
     }
 
     fn is_leaf(&self) -> bool {
@@ -254,7 +260,7 @@ impl<StorageType> NodeTrait for StorageNode<'_, StorageType> {
     }
 
     fn leaf_key(&self) -> Self::Key {
-        self.node.leaf_key()
+        *self.node.leaf_key()
     }
 
     fn is_leaf(&self) -> bool {
@@ -286,14 +292,14 @@ where
             return Err(ChildError::NodeIsLeaf);
         }
         let key = self.node.left_child_key();
-        if key == *zero_sum() {
+        if key == zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
         let buffer = self
             .storage
-            .get(&key)
+            .get(key)
             .map_err(StorageNodeError::StorageError)?
-            .ok_or(ChildError::ChildNotFound(key))?;
+            .ok_or(ChildError::ChildNotFound(*key))?;
         Ok(buffer
             .into_owned()
             .try_into()
@@ -306,14 +312,14 @@ where
             return Err(ChildError::NodeIsLeaf);
         }
         let key = self.node.right_child_key();
-        if key == *zero_sum() {
+        if key == zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
         let buffer = self
             .storage
-            .get(&key)
+            .get(key)
             .map_err(StorageNodeError::StorageError)?
-            .ok_or(ChildError::ChildNotFound(key))?;
+            .ok_or(ChildError::ChildNotFound(*key))?;
         Ok(buffer
             .into_owned()
             .try_into()
@@ -368,8 +374,8 @@ mod test_node {
         assert_eq!(leaf.is_node(), false);
         assert_eq!(leaf.height(), 0);
         assert_eq!(leaf.prefix(), Prefix::Leaf);
-        assert_eq!(leaf.leaf_key(), sum(b"LEAF"));
-        assert_eq!(leaf.leaf_data(), sum(&[1u8; 32]));
+        assert_eq!(*leaf.leaf_key(), sum(b"LEAF"));
+        assert_eq!(*leaf.leaf_data(), sum(&[1u8; 32]));
     }
 
     #[test]
@@ -381,9 +387,9 @@ mod test_node {
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 1);
         assert_eq!(node.prefix(), Prefix::Node);
-        assert_eq!(node.left_child_key(), leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
+        assert_eq!(*node.left_child_key(), leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
         assert_eq!(
-            node.right_child_key(),
+            *node.right_child_key(),
             leaf_hash(&sum(b"RIGHT"), &[1u8; 32])
         );
     }
@@ -408,8 +414,8 @@ mod test_node {
         assert_eq!(node.is_node(), false);
         assert_eq!(node.height(), 0);
         assert_eq!(node.prefix(), Prefix::Leaf);
-        assert_eq!(node.leaf_key(), [1u8; 32]);
-        assert_eq!(node.leaf_data(), [1u8; 32]);
+        assert_eq!(*node.leaf_key(), [1u8; 32]);
+        assert_eq!(*node.leaf_data(), [1u8; 32]);
     }
 
     #[test]
@@ -425,8 +431,8 @@ mod test_node {
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 256);
         assert_eq!(node.prefix(), Prefix::Node);
-        assert_eq!(node.left_child_key(), [1u8; 32]);
-        assert_eq!(node.right_child_key(), [1u8; 32]);
+        assert_eq!(*node.left_child_key(), [1u8; 32]);
+        assert_eq!(*node.right_child_key(), [1u8; 32]);
     }
 
     #[test]
@@ -634,7 +640,7 @@ mod test_storage_node {
             .left_child()
             .expect_err("Expected left_child() to return Error; got Ok");
 
-        let key = storage_node.into_node().left_child_key();
+        let key = *storage_node.into_node().left_child_key();
         assert!(matches!(
             err,
             ChildError::ChildNotFound(k) if k == key
@@ -654,7 +660,7 @@ mod test_storage_node {
             .right_child()
             .expect_err("Expected right_child() to return Error; got Ok");
 
-        let key = storage_node.into_node().right_child_key();
+        let key = *storage_node.into_node().right_child_key();
         assert!(matches!(
             err,
             ChildError::ChildNotFound(k) if k == key
