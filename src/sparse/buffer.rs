@@ -1,6 +1,6 @@
 use crate::common::{Bytes1, Bytes32, Bytes4, Prefix};
 
-use core::{mem::size_of, ops::Range};
+use core::mem::size_of;
 
 /// **Leaf buffer:**
 ///
@@ -20,10 +20,11 @@ use core::{mem::size_of, ops::Range};
 /// | `05 - 37`  | Left child key (32 bytes)  |
 /// | `37 - 69`  | Right child key (32 bytes) |
 ///
-pub const BUFFER_SIZE: usize =
-    size_of::<u32>() + size_of::<Prefix>() + size_of::<Bytes32>() + size_of::<Bytes32>();
-pub const DEFAULT_BUFFER: &Buffer = &[0; BUFFER_SIZE];
+pub const DATA_SIZE: usize = size_of::<Prefix>() + size_of::<Bytes32>() + size_of::<Bytes32>();
+pub type Data = [u8; DATA_SIZE];
+pub const BUFFER_SIZE: usize = size_of::<u32>() + size_of::<Data>();
 pub type Buffer = [u8; BUFFER_SIZE];
+pub const DEFAULT_BUFFER: &Buffer = &[0; BUFFER_SIZE];
 
 pub struct Schema {}
 
@@ -32,36 +33,20 @@ impl Schema {
         0
     }
 
-    const fn bytes_height_size() -> isize {
-        size_of::<u32>() as isize
-    }
-
     const fn bytes_prefix_offset() -> isize {
-        Self::bytes_height_offset() + Self::bytes_height_size()
-    }
-
-    const fn bytes_prefix_size() -> isize {
-        size_of::<Prefix>() as isize
+        Self::bytes_height_offset() + size_of::<u32>() as isize
     }
 
     const fn bytes_lo_offset() -> isize {
-        Self::bytes_prefix_offset() + Self::bytes_prefix_size()
-    }
-
-    const fn bytes_lo_size() -> isize {
-        size_of::<Bytes32>() as isize
+        Self::bytes_prefix_offset() + size_of::<Prefix>() as isize
     }
 
     const fn bytes_hi_offset() -> isize {
-        Self::bytes_lo_offset() + Self::bytes_lo_size()
+        Self::bytes_lo_offset() + size_of::<Bytes32>() as isize
     }
 
-    pub const fn hash_range() -> Range<usize> {
-        Self::bytes_prefix_offset() as usize..Self::buffer_size() as usize
-    }
-
-    const fn buffer_size() -> isize {
-        BUFFER_SIZE as isize
+    const fn bytes_hash_offset() -> isize {
+        Self::bytes_prefix_offset()
     }
 }
 
@@ -98,6 +83,12 @@ impl<'a> ReadView<'a> {
         bytes_hi
     }
 
+    unsafe fn bytes_hash_ptr(&self) -> *const Data {
+        let offset = Schema::bytes_hash_offset();
+        let bytes_hash = self.buffer().as_ptr().offset(offset) as *const [u8; 65];
+        bytes_hash
+    }
+
     pub fn new(buffer: &'a Buffer) -> Self {
         Self { buffer }
     }
@@ -116,6 +107,10 @@ impl<'a> ReadView<'a> {
 
     pub fn bytes_hi(&self) -> &Bytes32 {
         unsafe { &*self.bytes_hi_ptr() }
+    }
+
+    pub fn bytes_hash(&self) -> &Data {
+        unsafe { &*self.bytes_hash_ptr() }
     }
 }
 

@@ -5,7 +5,7 @@ use crate::{
         Bytes32, ChildError, ChildResult, Node as NodeTrait, ParentNode as ParentNodeTrait, Prefix,
     },
     sparse::{
-        buffer::{Buffer, ReadView, Schema, WriteView, DEFAULT_BUFFER},
+        buffer::{Buffer, ReadView, WriteView, DEFAULT_BUFFER},
         hash::sum,
         merkle_tree::NodesTable,
         zero_sum,
@@ -136,17 +136,18 @@ impl Node {
         self.bytes_lo() == *zero_sum() && self.bytes_hi() == *zero_sum()
     }
 
-    pub fn buffer(&self) -> &Buffer {
-        &self.buffer
-    }
-
     pub fn hash(&self) -> Bytes32 {
         if self.is_placeholder() {
             *zero_sum()
         } else {
-            let range = Schema::hash_range();
-            sum(&self.buffer()[range])
+            let view = ReadView::new(&self.buffer);
+            let data = view.bytes_hash();
+            sum(data)
         }
+    }
+
+    pub fn buffer(&self) -> &Buffer {
+        &self.buffer
     }
 
     // PRIVATE
