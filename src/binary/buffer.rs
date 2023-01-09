@@ -2,8 +2,8 @@ use crate::common::{Bytes32, Position};
 use core::mem::size_of;
 
 const BUFFER_SIZE: usize = size_of::<Position>() + size_of::<Bytes32>();
-pub const DEFAULT_BUFFER: &Buffer = &[0; BUFFER_SIZE];
 pub type Buffer = [u8; BUFFER_SIZE];
+pub const DEFAULT_BUFFER: &Buffer = &[0; BUFFER_SIZE];
 
 struct Schema {}
 
