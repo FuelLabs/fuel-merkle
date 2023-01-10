@@ -1,5 +1,5 @@
 use crate::{
-    binary::{empty_sum, Node},
+    binary::{buffer::Buffer, empty_sum, Node},
     common::{Bytes32, Position, ProofSet, Subtree},
 };
 
@@ -92,10 +92,12 @@ where
         let root_node = self.root_node()?.unwrap();
         let root_position = root_node.position();
         let leaf_position = Position::from_leaf_index(proof_index);
-        let leaf_node = self
+        let buffer = self
             .storage
             .get(&leaf_position.in_order_index())?
-            .ok_or(MerkleTreeError::LoadError(proof_index))?;
+            .ok_or(MerkleTreeError::LoadError(proof_index))?
+            .into_owned();
+        let leaf_node = Node::from(buffer);
         proof_set.push(*leaf_node.hash());
 
         let (_, mut side_positions): (Vec<_>, Vec<_>) = root_position
@@ -107,10 +109,12 @@ where
 
         for side_position in side_positions {
             let key = side_position.in_order_index();
-            let node = self
+            let buffer = self
                 .storage
                 .get(&key)?
-                .ok_or(MerkleTreeError::LoadError(key))?;
+                .ok_or(MerkleTreeError::LoadError(key))?
+                .into_owned();
+            let node = Node::from(buffer);
             proof_set.push(*node.hash());
         }
 
@@ -120,7 +124,7 @@ where
 
     pub fn push(&mut self, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
         let node = Node::create_leaf(self.leaves_count, data);
-        self.storage.insert(&node.key(), &node)?;
+        self.storage.insert(&node.key(), node.buffer())?;
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
@@ -243,7 +247,8 @@ where
                 .storage
                 .get(&key)?
                 .ok_or(MerkleTreeError::LoadError(key))?
-                .into_owned();
+                .into_owned()
+                .into();
             let next = Box::new(Subtree::<Node>::new(node, current_head));
             current_head = Some(next);
         }
@@ -298,7 +303,8 @@ where
         rhs: &mut Subtree<Node>,
     ) -> Result<Box<Subtree<Node>>, StorageError> {
         let joined_node = Node::create_node(lhs.node(), rhs.node());
-        self.storage.insert(&joined_node.key(), &joined_node)?;
+        self.storage
+            .insert(&joined_node.key(), joined_node.buffer())?;
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
     }
@@ -374,17 +380,17 @@ mod test {
         let s_node_9 = storage_map.get(&9).unwrap().unwrap();
         let s_node_3 = storage_map.get(&3).unwrap().unwrap();
 
-        assert_eq!(s_leaf_0.hash(), &leaf_0);
-        assert_eq!(s_leaf_1.hash(), &leaf_1);
-        assert_eq!(s_leaf_2.hash(), &leaf_2);
-        assert_eq!(s_leaf_3.hash(), &leaf_3);
-        assert_eq!(s_leaf_4.hash(), &leaf_4);
-        assert_eq!(s_leaf_5.hash(), &leaf_5);
-        assert_eq!(s_leaf_6.hash(), &leaf_6);
-        assert_eq!(s_node_1.hash(), &node_1);
-        assert_eq!(s_node_5.hash(), &node_5);
-        assert_eq!(s_node_9.hash(), &node_9);
-        assert_eq!(s_node_3.hash(), &node_3);
+        assert_eq!(*Node::from(s_leaf_0.into_owned()).hash(), leaf_0);
+        assert_eq!(*Node::from(s_leaf_1.into_owned()).hash(), leaf_1);
+        assert_eq!(*Node::from(s_leaf_2.into_owned()).hash(), leaf_2);
+        assert_eq!(*Node::from(s_leaf_3.into_owned()).hash(), leaf_3);
+        assert_eq!(*Node::from(s_leaf_4.into_owned()).hash(), leaf_4);
+        assert_eq!(*Node::from(s_leaf_5.into_owned()).hash(), leaf_5);
+        assert_eq!(*Node::from(s_leaf_6.into_owned()).hash(), leaf_6);
+        assert_eq!(*Node::from(s_node_1.into_owned()).hash(), node_1);
+        assert_eq!(*Node::from(s_node_5.into_owned()).hash(), node_5);
+        assert_eq!(*Node::from(s_node_9.into_owned()).hash(), node_9);
+        assert_eq!(*Node::from(s_node_3.into_owned()).hash(), node_3);
     }
 
     #[test]

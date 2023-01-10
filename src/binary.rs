@@ -1,3 +1,4 @@
+mod buffer;
 mod hash;
 mod merkle_tree;
 mod node;

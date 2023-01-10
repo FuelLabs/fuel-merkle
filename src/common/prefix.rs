@@ -11,9 +11,10 @@ pub enum PrefixError {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub enum Prefix {
-    Node,
-    Leaf,
+    Node = NODE,
+    Leaf = LEAF,
 }
 
 impl From<Prefix> for u8 {
@@ -21,6 +22,15 @@ impl From<Prefix> for u8 {
         match prefix {
             Prefix::Node => NODE,
             Prefix::Leaf => LEAF,
+        }
+    }
+}
+
+impl From<Prefix> for [u8; 1] {
+    fn from(prefix: Prefix) -> Self {
+        match prefix {
+            Prefix::Node => [NODE],
+            Prefix::Leaf => [LEAF],
         }
     }
 }
