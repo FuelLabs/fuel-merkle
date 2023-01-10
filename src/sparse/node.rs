@@ -7,13 +7,14 @@ use crate::{
     sparse::{
         buffer::{Buffer, ReadView, WriteView, DEFAULT_BUFFER},
         hash::sum,
-        merkle_tree::NodesTable,
         zero_sum,
     },
 };
 
+use fuel_storage::Mappable;
 use fuel_storage::StorageInspect;
 
+use core::marker::PhantomData;
 use core::{cmp, fmt};
 
 #[derive(Clone)]
@@ -536,8 +537,10 @@ mod test_storage_node {
             error::DeserializeError, Bytes32, ChildError, ParentNode, PrefixError, StorageMap,
         },
         sparse::{
-            buffer::BUFFER_SIZE, hash::sum, merkle_tree::NodesTable, node::StorageNodeError, Node,
-            StorageNode,
+            buffer::{Buffer, BUFFER_SIZE},
+            hash::sum,
+            node::StorageNodeError,
+            Node, StorageNode,
         },
     };
 

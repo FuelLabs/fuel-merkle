@@ -1,5 +1,5 @@
 use crate::{
-    binary::{self, Node},
+    binary::{self, buffer::Buffer},
     common::{Bytes32, ProofSet, StorageMap},
 };
 use fuel_storage::Mappable;
@@ -11,7 +11,7 @@ struct NodesTable;
 
 impl Mappable for NodesTable {
     type Key = u64;
-    type SetValue = Node;
+    type SetValue = Buffer;
     type GetValue = Self::SetValue;
 }
 

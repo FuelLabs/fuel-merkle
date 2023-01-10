@@ -4,7 +4,7 @@ use rand::{seq::IteratorRandom, thread_rng, Rng};
 use sha2::{Digest, Sha256};
 
 use fuel_merkle::{
-    binary::{MerkleTree, Node},
+    binary::{buffer::Buffer, MerkleTree},
     common::{Bytes32, StorageMap},
 };
 use fuel_merkle_test_helpers::binary::MerkleTree as ReferenceMerkleTree;
@@ -14,7 +14,7 @@ struct NodesTable;
 
 impl Mappable for NodesTable {
     type Key = u64;
-    type SetValue = Node;
+    type SetValue = Buffer;
     type GetValue = Self::SetValue;
 }
 

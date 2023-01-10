@@ -1,6 +1,6 @@
 use crate::{
     common::{Bytes32, StorageMap},
-    sparse::{self, Buffer},
+    sparse::{self, buffer::Buffer},
 };
 use fuel_storage::Mappable;
 

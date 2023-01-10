@@ -40,7 +40,7 @@ pub struct MerkleTree<TableType, StorageType> {
 
 impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
-    TableType: Mappable<Key = u64, SetValue = Node, GetValue = Node>,
+    TableType: Mappable<Key = u64, SetValue = Buffer, GetValue = Buffer>,
     StorageType: StorageMutate<TableType, Error = StorageError>,
     StorageError: fmt::Debug + 'static,
 {
@@ -314,7 +314,7 @@ where
 mod test {
     use super::{MerkleTree, MerkleTreeError};
     use crate::{
-        binary::{empty_sum, leaf_sum, node_sum, Node},
+        binary::{buffer::Buffer, empty_sum, leaf_sum, node_sum, Node},
         common::StorageMap,
     };
     use fuel_merkle_test_helpers::TEST_DATA;
@@ -327,7 +327,7 @@ mod test {
 
     impl Mappable for NodesTable {
         type Key = u64;
-        type SetValue = Node;
+        type SetValue = Buffer;
         type GetValue = Self::SetValue;
     }
 

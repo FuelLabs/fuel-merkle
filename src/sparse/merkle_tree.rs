@@ -293,7 +293,7 @@ where
 mod test {
     use crate::{
         common::{Bytes32, StorageMap},
-        sparse::{hash::sum, Buffer, MerkleTree, MerkleTreeError},
+        sparse::{buffer::Buffer, hash::sum, MerkleTree, MerkleTreeError},
     };
     use fuel_storage::Mappable;
     use hex;
