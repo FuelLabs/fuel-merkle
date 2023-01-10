@@ -34,12 +34,16 @@ impl<'a> ReadView<'a> {
     }
 
     pub fn position(&self) -> Position {
-        // SAFETY: position_ptr is guaranteed to point to a valid Position
+        // SAFETY: position_ptr is guaranteed to point to a valid Position.
+        //         Note that the returned Position is copied from the Position
+        //         data in the buffer.
         unsafe { *self.position_ptr() }
     }
 
     pub fn hash(&self) -> &Bytes32 {
-        // SAFETY: hash_ptr is guaranteed to point to a valid Bytes32
+        // SAFETY: hash_ptr is guaranteed to point to a valid Bytes32.
+        //         Note that the returned &Bytes32 is a direct reference to
+        //         immutable hash data in the buffer.
         unsafe { &*self.hash_ptr() }
     }
 }
@@ -70,12 +74,16 @@ impl<'a> WriteView<'a> {
     }
 
     pub fn position_mut(&mut self) -> &mut Position {
-        // SAFETY: position_mut_ptr is guaranteed to point to a valid Position
+        // SAFETY: position_mut_ptr is guaranteed to point to a valid Position.
+        //         Note that the returned &Position is a direct reference to
+        //         mutable Position data in the buffer.
         unsafe { &mut *self.position_mut_ptr() }
     }
 
     pub fn hash_mut(&mut self) -> &mut Bytes32 {
-        // SAFETY: hash_mut_ptr is guaranteed to point to a valid Bytes32
+        // SAFETY: hash_mut_ptr is guaranteed to point to a valid Bytes32.
+        //         Note that the returned &Bytes32 is a direct reference to
+        //         mutable hash data in the buffer.
         unsafe { &mut *self.hash_mut_ptr() }
     }
 }
