@@ -81,7 +81,6 @@ use core::convert::Infallible;
 /// sibling or uncle nodes are not guaranteed to exist in the tree.
 ///
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Position(u64);
 
 const LEFT_CHILD_DIRECTION: i64 = -1;
