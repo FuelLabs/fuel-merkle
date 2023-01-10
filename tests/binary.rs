@@ -4,7 +4,7 @@ use rand::{seq::IteratorRandom, thread_rng, Rng};
 use sha2::{Digest, Sha256};
 
 use fuel_merkle::{
-    binary::{buffer::Buffer, MerkleTree},
+    binary::{Buffer, MerkleTree},
     common::{Bytes32, StorageMap},
 };
 use fuel_merkle_test_helpers::binary::MerkleTree as ReferenceMerkleTree;
