@@ -4,7 +4,7 @@ use crate::{
 };
 use fuel_storage::{Mappable, StorageMutate};
 
-use crate::sparse::primitive::AsPrimitive;
+// use crate::sparse::primitive::AsPrimitive;
 use alloc::{string::String, vec::Vec};
 use core::{cmp, fmt, iter};
 
@@ -711,7 +711,7 @@ mod test {
 
         // Overwrite the root key-value with an invalid primitive to create a
         // DeserializeError.
-        let primitive = (0x255, 0x255, [0x255; 32], [0x255; 32]);
+        let primitive = (0xff, 0xff, [0xff; 32], [0xff; 32]);
         storage.insert(&root, &primitive).unwrap();
 
         let err = MerkleTree::load(&mut storage, &root)

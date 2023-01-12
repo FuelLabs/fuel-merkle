@@ -26,8 +26,7 @@ where
     I::Item: AsRef<[u8]>,
 {
     let mut hash = Hash::new();
-    let iter = data.into_iter();
-    for datum in iter {
+    for datum in data.into_iter() {
         hash.update(datum)
     }
     hash.finalize().try_into().unwrap()

@@ -75,12 +75,9 @@ impl TryFrom<Primitive> for Node {
         Ok(node)
     }
 }
-pub trait AsPrimitive {
-    fn as_primitive(&self) -> Primitive;
-}
 
-impl AsPrimitive for Node {
-    fn as_primitive(&self) -> Primitive {
+impl Node {
+    pub fn as_primitive(&self) -> Primitive {
         self.into()
     }
 }
