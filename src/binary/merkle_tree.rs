@@ -1,5 +1,5 @@
 use crate::{
-    binary::{empty_sum, primitive::Primitive, Node},
+    binary::{empty_sum, BinaryNode, Node, Primitive},
     common::{Bytes32, Position, ProofSet, Subtree},
 };
 
@@ -48,9 +48,26 @@ impl Mappable for NodesTable {
     type GetValue = Self::SetValue;
 }
 
+pub trait MerkleStorage<T>: StorageMutate<T>
+where
+    T: Mappable,
+    T::SetValue: BinaryNode,
+    T::GetValue: BinaryNode,
+{
+}
+
+impl<S, T> MerkleStorage<T> for S
+where
+    S: StorageMutate<T>,
+    T: Mappable,
+    T::SetValue: BinaryNode,
+    T::GetValue: BinaryNode,
+{
+}
+
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
-    StorageType: StorageMutate<NodesTable, Error = StorageError>,
+    StorageType: MerkleStorage<NodesTable, Error = StorageError>,
     StorageError: Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
@@ -99,12 +116,12 @@ where
         let root_node = self.root_node()?.unwrap();
         let root_position = root_node.position();
         let leaf_position = Position::from_leaf_index(proof_index);
-        let buffer = self
+        let primitive = self
             .storage
             .get(&leaf_position.in_order_index())?
             .ok_or(MerkleTreeError::LoadError(proof_index))?
             .into_owned();
-        let leaf_node = Node::from(buffer);
+        let leaf_node = Node::from(primitive);
         proof_set.push(*leaf_node.hash());
 
         let (_, mut side_positions): (Vec<_>, Vec<_>) = root_position
@@ -116,12 +133,12 @@ where
 
         for side_position in side_positions {
             let key = side_position.in_order_index();
-            let buffer = self
+            let primitive = self
                 .storage
                 .get(&key)?
                 .ok_or(MerkleTreeError::LoadError(key))?
                 .into_owned();
-            let node = Node::from(buffer);
+            let node = Node::from(primitive);
             proof_set.push(*node.hash());
         }
 
@@ -131,7 +148,7 @@ where
 
     pub fn push(&mut self, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
         let node = Node::create_leaf(self.leaves_count, data);
-        self.storage.insert(&node.key(), &node.as_primitive())?;
+        self.storage.insert(&node.key(), &(&node).into())?;
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
@@ -311,7 +328,7 @@ where
     ) -> Result<Box<Subtree<Node>>, StorageError> {
         let joined_node = Node::create_node(lhs.node(), rhs.node());
         self.storage
-            .insert(&joined_node.key(), &joined_node.as_primitive())?;
+            .insert(&joined_node.key(), &(&joined_node).into())?;
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
     }
@@ -321,7 +338,7 @@ where
 mod test {
     use super::{MerkleTree, MerkleTreeError, NodesTable};
     use crate::{
-        binary::{empty_sum, leaf_sum, node_sum, Node},
+        binary::{empty_sum, leaf_sum, node_sum, BinaryNode, Node},
         common::StorageMap,
     };
     use fuel_merkle_test_helpers::*;
