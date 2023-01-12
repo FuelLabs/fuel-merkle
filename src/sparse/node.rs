@@ -145,11 +145,11 @@ impl Node {
             *zero_sum()
         } else {
             let data = [
-                &[self.prefix as u8],
-                &self.bytes_lo.as_ref()[..],
-                &self.bytes_hi.as_ref()[..],
+                self.prefix.as_ref(),
+                self.bytes_lo.as_ref(),
+                self.bytes_hi.as_ref(),
             ];
-            sum_all(data.iter())
+            sum_all(data)
         }
     }
 
@@ -361,8 +361,8 @@ mod test_node {
 
     #[test]
     fn test_create_node_returns_a_valid_node() {
-        let left_child = Node::create_leaf(&sum(b"LEFT_CHILD"), &[1u8; 32]);
-        let right_child = Node::create_leaf(&sum(b"RIGHT_CHILD"), &[1u8; 32]);
+        let left_child = Node::create_leaf(&sum(b"LEFT CHILD"), &[1u8; 32]);
+        let right_child = Node::create_leaf(&sum(b"RIGHT CHILD"), &[1u8; 32]);
         let node = Node::create_node(&left_child, &right_child, 1);
         assert_eq!(node.is_leaf(), false);
         assert_eq!(node.is_node(), true);
@@ -370,11 +370,11 @@ mod test_node {
         assert_eq!(node.prefix(), Prefix::Node);
         assert_eq!(
             *node.left_child_key(),
-            leaf_hash(&sum(b"LEFT_CHILD"), &[1u8; 32])
+            leaf_hash(&sum(b"LEFT CHILD"), &[1u8; 32])
         );
         assert_eq!(
             *node.right_child_key(),
-            leaf_hash(&sum(b"RIGHT_CHILD"), &[1u8; 32])
+            leaf_hash(&sum(b"RIGHT CHILD"), &[1u8; 32])
         );
     }
 
@@ -442,12 +442,12 @@ mod test_node {
         let expected_primitive = (
             1_u32,
             Prefix::Node as u8,
-            leaf_hash(&sum(b"LEFT"), &[1u8; 32]),
-            leaf_hash(&sum(b"RIGHT"), &[1u8; 32]),
+            leaf_hash(&sum(b"LEFT CHILD"), &[1u8; 32]),
+            leaf_hash(&sum(b"RIGHT CHILD"), &[1u8; 32]),
         );
 
-        let left_child = Node::create_leaf(&sum(b"LEFT"), &[1u8; 32]);
-        let right_child = Node::create_leaf(&sum(b"RIGHT"), &[1u8; 32]);
+        let left_child = Node::create_leaf(&sum(b"LEFT CHILD"), &[1u8; 32]);
+        let right_child = Node::create_leaf(&sum(b"RIGHT CHILD"), &[1u8; 32]);
         let node = Node::create_node(&left_child, &right_child, 1);
         let primitive = node.as_primitive();
 
@@ -476,12 +476,12 @@ mod test_node {
     fn test_node_hash_returns_expected_hash_value() {
         let mut expected_buffer = [0u8; 65];
         expected_buffer[0..1].clone_from_slice(Prefix::Node.as_ref());
-        expected_buffer[1..33].clone_from_slice(&leaf_hash(&sum(b"LEFT"), &[1u8; 32]));
-        expected_buffer[33..65].clone_from_slice(&leaf_hash(&sum(b"RIGHT"), &[1u8; 32]));
+        expected_buffer[1..33].clone_from_slice(&leaf_hash(&sum(b"LEFT CHILD"), &[1u8; 32]));
+        expected_buffer[33..65].clone_from_slice(&leaf_hash(&sum(b"RIGHT CHILD"), &[1u8; 32]));
         let expected_value = sum(&expected_buffer);
 
-        let left_child = Node::create_leaf(&sum(b"LEFT"), &[1u8; 32]);
-        let right_child = Node::create_leaf(&sum(b"RIGHT"), &[1u8; 32]);
+        let left_child = Node::create_leaf(&sum(b"LEFT CHILD"), &[1u8; 32]);
+        let right_child = Node::create_leaf(&sum(b"RIGHT CHILD"), &[1u8; 32]);
         let node = Node::create_node(&left_child, &right_child, 1);
         let value = node.hash();
 
