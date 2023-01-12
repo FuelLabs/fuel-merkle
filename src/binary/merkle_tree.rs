@@ -1,12 +1,15 @@
 use crate::{
-    binary::{buffer::Buffer, empty_sum, Node},
+    binary::{
+        empty_sum,
+        primitive::{AsPrimitive, Primitive},
+        Node,
+    },
     common::{Bytes32, Position, ProofSet, Subtree},
 };
 
 use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::{boxed::Box, vec::Vec};
-use core::fmt;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
@@ -44,16 +47,15 @@ pub struct MerkleTree<StorageType> {
 pub struct NodesTable;
 
 impl Mappable for NodesTable {
-    /// The index of the node in the array.
     type Key = u64;
-    type SetValue = Buffer;
+    type SetValue = Primitive;
     type GetValue = Self::SetValue;
 }
 
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
     StorageType: StorageMutate<NodesTable, Error = StorageError>,
-    StorageError: fmt::Debug + Clone + 'static,
+    StorageError: Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
         Self {
@@ -133,7 +135,7 @@ where
 
     pub fn push(&mut self, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
         let node = Node::create_leaf(self.leaves_count, data);
-        self.storage.insert(&node.key(), node.buffer())?;
+        self.storage.insert(&node.key(), &node.as_primitive())?;
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
@@ -238,7 +240,7 @@ where
         let leaf_position = Position::from_leaf_index(leaves_count - 1);
 
         // The root position of a tree will always have an in-order index equal
-        // to N' - 1, where N is the leaves count and N` is N rounded (or equal)
+        // to N' - 1, where N is the leaves count and N' is N rounded (or equal)
         // to the next power of 2.
         let root_index = leaves_count.next_power_of_two() - 1;
         let root_position = Position::from_in_order_index(root_index);
@@ -313,7 +315,7 @@ where
     ) -> Result<Box<Subtree<Node>>, StorageError> {
         let joined_node = Node::create_node(lhs.node(), rhs.node());
         self.storage
-            .insert(&joined_node.key(), joined_node.buffer())?;
+            .insert(&joined_node.key(), &joined_node.as_primitive())?;
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
     }
