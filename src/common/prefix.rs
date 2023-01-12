@@ -1,20 +1,17 @@
-use crate::common::prefix::PrefixError::InvalidPrefix;
-
 const NODE: u8 = 0x01;
 const LEAF: u8 = 0x00;
-
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "std", derive(thiserror::Error))]
-pub enum PrefixError {
-    #[cfg_attr(feature = "std", error("prefix {0} is not valid"))]
-    InvalidPrefix(u8),
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Prefix {
     Node = NODE,
     Leaf = LEAF,
+}
+
+impl Default for Prefix {
+    fn default() -> Self {
+        Prefix::Leaf
+    }
 }
 
 impl From<Prefix> for u8 {
@@ -35,6 +32,13 @@ impl From<Prefix> for [u8; 1] {
     }
 }
 
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "std", derive(thiserror::Error))]
+pub enum PrefixError {
+    #[cfg_attr(feature = "std", error("prefix {0} is not valid"))]
+    InvalidPrefix(u8),
+}
+
 impl TryFrom<u8> for Prefix {
     type Error = PrefixError;
 
@@ -42,7 +46,7 @@ impl TryFrom<u8> for Prefix {
         match byte {
             NODE => Ok(Prefix::Node),
             LEAF => Ok(Prefix::Leaf),
-            _ => Err(InvalidPrefix(byte)),
+            _ => Err(PrefixError::InvalidPrefix(byte)),
         }
     }
 }

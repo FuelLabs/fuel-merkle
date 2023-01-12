@@ -4,21 +4,31 @@ use crate::{
         path::{ComparablePath, Instruction, Path},
         Bytes32, ChildError, ChildResult, Node as NodeTrait, ParentNode as ParentNodeTrait, Prefix,
     },
-    sparse::{
-        buffer::{Buffer, ReadView, WriteView, DEFAULT_BUFFER},
-        hash::sum,
-        merkle_tree::NodesTable,
-        zero_sum,
-    },
+    sparse::{hash::sum, merkle_tree::NodesTable, zero_sum},
 };
 
 use fuel_storage::StorageInspect;
 
+use crate::sparse::hash::sum_all;
 use core::{cmp, fmt};
 
 #[derive(Clone)]
 pub(crate) struct Node {
-    buffer: Buffer,
+    pub height: u32,
+    pub prefix: Prefix,
+    pub bytes_lo: Bytes32,
+    pub bytes_hi: Bytes32,
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self {
+            height: Default::default(),
+            prefix: Default::default(),
+            bytes_lo: *zero_sum(),
+            bytes_hi: *zero_sum(),
+        }
+    }
 }
 
 impl Node {
@@ -27,23 +37,21 @@ impl Node {
     }
 
     pub fn create_leaf(key: &Bytes32, data: &[u8]) -> Self {
-        let mut buffer = *DEFAULT_BUFFER;
-        let mut view = WriteView::new(&mut buffer);
-        *view.height_mut() = 0u32;
-        *view.prefix_mut() = Prefix::Leaf;
-        *view.bytes_lo_mut() = *key;
-        *view.bytes_hi_mut() = sum(data);
-        Self { buffer }
+        Self {
+            height: 0u32,
+            prefix: Prefix::Leaf,
+            bytes_lo: *key,
+            bytes_hi: sum(data),
+        }
     }
 
     pub fn create_node(left_child: &Node, right_child: &Node, height: u32) -> Self {
-        let mut buffer = *DEFAULT_BUFFER;
-        let mut view = WriteView::new(&mut buffer);
-        *view.height_mut() = height;
-        *view.prefix_mut() = Prefix::Node;
-        *view.bytes_lo_mut() = left_child.hash();
-        *view.bytes_hi_mut() = right_child.hash();
-        Self { buffer }
+        Self {
+            height,
+            prefix: Prefix::Node,
+            bytes_lo: left_child.hash(),
+            bytes_hi: right_child.hash(),
+        }
     }
 
     pub fn create_node_on_path(path: &dyn Path, path_node: &Node, side_node: &Node) -> Self {
@@ -74,8 +82,7 @@ impl Node {
     }
 
     pub fn create_placeholder() -> Self {
-        let buffer = *DEFAULT_BUFFER;
-        Self { buffer }
+        Default::default()
     }
 
     pub fn common_path_length(&self, other: &Node) -> usize {
@@ -94,13 +101,11 @@ impl Node {
     }
 
     pub fn height(&self) -> u32 {
-        let view = ReadView::new(&self.buffer);
-        *view.height()
+        self.height
     }
 
     pub fn prefix(&self) -> Prefix {
-        let view = ReadView::new(&self.buffer);
-        *view.prefix()
+        self.prefix
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -139,46 +144,22 @@ impl Node {
         if self.is_placeholder() {
             *zero_sum()
         } else {
-            let view = ReadView::new(&self.buffer);
-            let data = view.bytes_hash();
-            sum(data)
+            let data = [
+                &self.height.to_be_bytes()[..],
+                &[self.prefix as u8],
+                &self.bytes_lo.as_ref()[..],
+                &self.bytes_hi.as_ref()[..],
+            ];
+            sum_all(data.iter())
         }
     }
 
-    pub fn buffer(&self) -> &Buffer {
-        &self.buffer
+    pub fn bytes_lo(&self) -> &Bytes32 {
+        &self.bytes_lo
     }
 
-    // PRIVATE
-
-    fn bytes_lo(&self) -> &Bytes32 {
-        let view = ReadView::new(&self.buffer);
-        let ptr = view.bytes_lo() as *const Bytes32;
-        // SAFETY: ptr is guaranteed to point to a valid range of 32 bytes owned
-        //         by self.buffer
-        unsafe { &*ptr }
-    }
-
-    fn bytes_hi(&self) -> &Bytes32 {
-        let view = ReadView::new(&self.buffer);
-        let ptr = view.bytes_hi() as *const Bytes32;
-        // SAFETY: ptr is guaranteed to point to a valid range of 32 bytes owned
-        //         by self.buffer
-        unsafe { &*ptr }
-    }
-}
-
-impl TryFrom<Buffer> for Node {
-    type Error = DeserializeError;
-
-    fn try_from(buffer: Buffer) -> Result<Self, Self::Error> {
-        // Validate the node created from the buffer
-        let view = ReadView::new(&buffer);
-        let prefix_byte = *view.prefix_byte();
-        Prefix::try_from(prefix_byte)?;
-
-        let node = Self { buffer };
-        Ok(node)
+    pub fn bytes_hi(&self) -> &Bytes32 {
+        &self.bytes_hi
     }
 }
 
@@ -524,10 +505,7 @@ mod test_node {
 mod test_storage_node {
     use crate::{
         common::{error::DeserializeError, ChildError, ParentNode, PrefixError, StorageMap},
-        sparse::{
-            buffer::BUFFER_SIZE, hash::sum, merkle_tree::NodesTable, node::StorageNodeError, Node,
-            StorageNode,
-        },
+        sparse::{hash::sum, merkle_tree::NodesTable, node::StorageNodeError, Node, StorageNode},
     };
     use fuel_storage::StorageMutate;
 

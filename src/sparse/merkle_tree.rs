@@ -1,9 +1,10 @@
 use crate::{
     common::{error::DeserializeError, AsPathIterator, Bytes32, ChildError},
-    sparse::{buffer::Buffer, zero_sum, Node, StorageNode, StorageNodeError},
+    sparse::{primitive::Primitive, zero_sum, Node, StorageNode, StorageNodeError},
 };
 use fuel_storage::{Mappable, StorageMutate};
 
+use crate::sparse::primitive::AsPrimitive;
 use alloc::{string::String, vec::Vec};
 use core::{cmp, fmt, iter};
 
@@ -49,7 +50,7 @@ impl Mappable for NodesTable {
     type Key = Bytes32;
     /// The merkle node data with information to iterate over the tree.
     // TODO: Use directly [`Node`](crate::sparse::Node) because it will not add overhead.
-    type SetValue = Buffer;
+    type SetValue = Primitive;
     type GetValue = Self::SetValue;
 }
 
@@ -95,9 +96,10 @@ where
         }
 
         let leaf_node = Node::create_leaf(key, data);
-        self.storage.insert(&leaf_node.hash(), leaf_node.buffer())?;
         self.storage
-            .insert(leaf_node.leaf_key(), leaf_node.buffer())?;
+            .insert(&leaf_node.hash(), &leaf_node.as_primitive())?;
+        self.storage
+            .insert(leaf_node.leaf_key(), &leaf_node.as_primitive())?;
 
         if self.root_node().is_placeholder() {
             self.set_root_node(leaf_node);
@@ -207,7 +209,7 @@ where
             if !actual_leaf_node.is_placeholder() {
                 current_node = Node::create_node_on_path(path, &current_node, actual_leaf_node);
                 self.storage
-                    .insert(&current_node.hash(), current_node.buffer())?;
+                    .insert(&current_node.hash(), &current_node.as_primitive())?;
             }
 
             // Merge placeholders
@@ -218,7 +220,7 @@ where
             for placeholder in placeholders {
                 current_node = Node::create_node_on_path(path, &current_node, &placeholder);
                 self.storage
-                    .insert(&current_node.hash(), current_node.buffer())?;
+                    .insert(&current_node.hash(), &current_node.as_primitive())?;
             }
         }
 
@@ -226,7 +228,7 @@ where
         for side_node in side_nodes {
             current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
-                .insert(&current_node.hash(), current_node.buffer())?;
+                .insert(&current_node.hash(), &current_node.as_primitive())?;
         }
 
         self.set_root_node(current_node);
@@ -282,7 +284,7 @@ where
                 {
                     current_node = Node::create_node_on_path(path, &current_node, side_node);
                     self.storage
-                        .insert(&current_node.hash(), current_node.buffer())?;
+                        .insert(&current_node.hash(), &current_node.as_primitive())?;
                 }
             }
         }
@@ -291,7 +293,7 @@ where
         for side_node in side_nodes_iter {
             current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
-                .insert(&current_node.hash(), current_node.buffer())?;
+                .insert(&current_node.hash(), &current_node.as_primitive())?;
         }
 
         self.set_root_node(current_node);
@@ -707,9 +709,10 @@ mod test {
         tree.update(&sum(b"\x00\x00\x00\x04"), b"DATA").unwrap();
         let root = tree.root();
 
-        // Overwrite the root key-value with an invalid buffer to create a
+        // Overwrite the root key-value with an invalid primitive to create a
         // DeserializeError.
-        storage.insert(&root, &[255; 69]).unwrap();
+        let primitive = (0x255, 0x255, [0x255; 32], [0x255; 32]);
+        storage.insert(&root, &primitive).unwrap();
 
         let err = MerkleTree::load(&mut storage, &root)
             .expect_err("Expected load() to return Error; got Ok");
