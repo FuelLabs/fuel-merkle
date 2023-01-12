@@ -345,7 +345,7 @@ mod test_node {
         buffer[0..1].clone_from_slice(Prefix::Leaf.as_ref());
         buffer[1..33].clone_from_slice(key);
         buffer[33..65].clone_from_slice(&sum(data));
-        sum(&buffer)
+        sum(buffer)
     }
 
     #[test]
@@ -356,7 +356,7 @@ mod test_node {
         assert_eq!(leaf.height(), 0);
         assert_eq!(leaf.prefix(), Prefix::Leaf);
         assert_eq!(*leaf.leaf_key(), sum(b"LEAF"));
-        assert_eq!(*leaf.leaf_data(), sum(&[1u8; 32]));
+        assert_eq!(*leaf.leaf_data(), sum([1u8; 32]));
     }
 
     #[test]
@@ -427,7 +427,7 @@ mod test_node {
     /// ```node.buffer = (0x00, k, h(serialize(d)))```
     #[test]
     fn test_leaf_buffer_returns_expected_buffer() {
-        let expected_primitive = (0_u32, Prefix::Leaf as u8, sum(b"LEAF"), sum(&[1u8; 32]));
+        let expected_primitive = (0_u32, Prefix::Leaf as u8, sum(b"LEAF"), sum([1u8; 32]));
 
         let leaf = Node::create_leaf(&sum(b"LEAF"), &[1u8; 32]);
         let primitive = leaf.as_primitive();
@@ -461,8 +461,8 @@ mod test_node {
         let mut expected_buffer = [0u8; 65];
         expected_buffer[0..1].clone_from_slice(Prefix::Leaf.as_ref());
         expected_buffer[1..33].clone_from_slice(&sum(b"LEAF"));
-        expected_buffer[33..65].clone_from_slice(&sum(&[1u8; 32]));
-        let expected_value = sum(&expected_buffer);
+        expected_buffer[33..65].clone_from_slice(&sum([1u8; 32]));
+        let expected_value = sum(expected_buffer);
 
         let node = Node::create_leaf(&sum(b"LEAF"), &[1u8; 32]);
         let value = node.hash();
@@ -478,7 +478,7 @@ mod test_node {
         expected_buffer[0..1].clone_from_slice(Prefix::Node.as_ref());
         expected_buffer[1..33].clone_from_slice(&leaf_hash(&sum(b"LEFT CHILD"), &[1u8; 32]));
         expected_buffer[33..65].clone_from_slice(&leaf_hash(&sum(b"RIGHT CHILD"), &[1u8; 32]));
-        let expected_value = sum(&expected_buffer);
+        let expected_value = sum(expected_buffer);
 
         let left_child = Node::create_leaf(&sum(b"LEFT CHILD"), &[1u8; 32]);
         let right_child = Node::create_leaf(&sum(b"RIGHT CHILD"), &[1u8; 32]);

@@ -379,7 +379,7 @@ mod test {
         let mut tree = MerkleTree::new(&mut storage);
 
         for i in 0_u32..10 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
@@ -394,7 +394,7 @@ mod test {
         let mut tree = MerkleTree::new(&mut storage);
 
         for i in 0_u32..100 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
@@ -435,17 +435,17 @@ mod test {
         let mut tree = MerkleTree::new(&mut storage);
 
         for i in 0_u32..5 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 10_u32..15 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 20_u32..25 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
@@ -528,12 +528,12 @@ mod test {
         let mut tree = MerkleTree::new(&mut storage);
 
         for i in 0_u32..10 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 5_u32..10 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.delete(&key).unwrap();
         }
 
@@ -565,32 +565,32 @@ mod test {
         let mut tree = MerkleTree::new(&mut storage);
 
         for i in 0_u32..10 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 5_u32..15 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.delete(&key).unwrap();
         }
 
         for i in 10_u32..20 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 15_u32..25 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.delete(&key).unwrap();
         }
 
         for i in 20_u32..30 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 25_u32..35 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.delete(&key).unwrap();
         }
 
@@ -605,12 +605,12 @@ mod test {
         let mut tree = MerkleTree::new(&mut storage);
 
         for i in 0_u32..10 {
-            let key = sum(&i.to_be_bytes());
+            let key = sum(i.to_be_bytes());
             tree.update(&key, b"DATA").unwrap();
         }
 
         for i in 0_u32..5 {
-            let key = sum(&(i * 2 + 1).to_be_bytes());
+            let key = sum((i * 2 + 1).to_be_bytes());
             tree.delete(&key).unwrap();
         }
 
