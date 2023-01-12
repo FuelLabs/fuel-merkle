@@ -17,12 +17,8 @@ impl From<Primitive> for Node {
     }
 }
 
-pub trait AsPrimitive {
-    fn as_primitive(&self) -> Primitive;
-}
-
-impl AsPrimitive for Node {
-    fn as_primitive(&self) -> Primitive {
+impl Node {
+    pub fn as_primitive(&self) -> Primitive {
         self.into()
     }
 }

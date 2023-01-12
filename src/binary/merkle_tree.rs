@@ -1,9 +1,5 @@
 use crate::{
-    binary::{
-        empty_sum,
-        primitive::{AsPrimitive, Primitive},
-        Node,
-    },
+    binary::{empty_sum, primitive::Primitive, Node},
     common::{Bytes32, Position, ProofSet, Subtree},
 };
 
