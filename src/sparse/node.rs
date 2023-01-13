@@ -290,12 +290,12 @@ where
         if key == zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
-        let buffer = self
+        let primitive = self
             .storage
             .get(key)
             .map_err(StorageNodeError::StorageError)?
             .ok_or(ChildError::ChildNotFound(*key))?;
-        Ok(buffer
+        Ok(primitive
             .into_owned()
             .try_into()
             .map(|node| Self::new(self.storage, node))
@@ -310,12 +310,12 @@ where
         if key == zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
-        let buffer = self
+        let primitive = self
             .storage
             .get(key)
             .map_err(StorageNodeError::StorageError)?
             .ok_or(ChildError::ChildNotFound(*key))?;
-        Ok(buffer
+        Ok(primitive
             .into_owned()
             .try_into()
             .map(|node| Self::new(self.storage, node))
@@ -400,7 +400,7 @@ mod test_node {
     }
 
     #[test]
-    fn test_create_leaf_from_buffer_returns_a_valid_leaf() {
+    fn test_create_leaf_from_primitive_returns_a_valid_leaf() {
         let primitive = (0, Prefix::Leaf as u8, [0xff; 32], [0xff; 32]);
 
         let node: Node = primitive.try_into().unwrap();
@@ -413,7 +413,7 @@ mod test_node {
     }
 
     #[test]
-    fn test_create_node_from_buffer_returns_a_valid_node() {
+    fn test_create_node_from_primitive_returns_a_valid_node() {
         let primitive = (255, Prefix::Node as u8, [0xff; 32], [0xff; 32]);
 
         let node: Node = primitive.try_into().unwrap();
@@ -426,7 +426,7 @@ mod test_node {
     }
 
     #[test]
-    fn test_create_from_buffer_returns_deserialize_error_if_invalid_prefix() {
+    fn test_create_from_primitive_returns_deserialize_error_if_invalid_prefix() {
         let primitive = (0xff, 0xff, [0xff; 32], [0xff; 32]);
 
         // Should return Error; prefix 0xff is does not represent a node or leaf
@@ -438,9 +438,9 @@ mod test_node {
     }
 
     /// For leaf node `node` of leaf data `d` with key `k`:
-    /// ```node.buffer = (0x00, k, h(serialize(d)))```
+    /// ```node = (0x00, k, h(serialize(d)))```
     #[test]
-    fn test_leaf_buffer_returns_expected_buffer() {
+    fn test_leaf_primitive_returns_expected_primitive() {
         let expected_primitive = (0_u32, Prefix::Leaf as u8, sum(b"LEAF"), sum([1u8; 32]));
 
         let leaf = Node::create_leaf(&sum(b"LEAF"), &[1u8; 32]);
@@ -450,9 +450,9 @@ mod test_node {
     }
 
     /// For internal node `node` with children `l` and `r`:
-    /// ```node.buffer = (0x01, l.v, r.v)```
+    /// ```node = (0x01, l.v, r.v)```
     #[test]
-    fn test_node_buffer_returns_expected_buffer() {
+    fn test_node_primitive_returns_expected_primitive() {
         let expected_primitive = (
             1_u32,
             Prefix::Node as u8,
@@ -652,7 +652,7 @@ mod test_storage_node {
     }
 
     #[test]
-    fn test_node_left_child_returns_deserialize_error_when_buffer_is_invalid() {
+    fn test_node_left_child_returns_deserialize_error_when_primitive_is_invalid() {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
@@ -668,13 +668,13 @@ mod test_storage_node {
         assert!(matches!(
             err,
             ChildError::Error(StorageNodeError::DeserializeError(
-                DeserializeError::PrefixError(PrefixError::InvalidPrefix(255))
+                DeserializeError::PrefixError(PrefixError::InvalidPrefix(0xff))
             ))
         ));
     }
 
     #[test]
-    fn test_node_right_child_returns_deserialize_error_when_buffer_is_invalid() {
+    fn test_node_right_child_returns_deserialize_error_when_primitive_is_invalid() {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
@@ -690,7 +690,7 @@ mod test_storage_node {
         assert!(matches!(
             err,
             ChildError::Error(StorageNodeError::DeserializeError(
-                DeserializeError::PrefixError(PrefixError::InvalidPrefix(255))
+                DeserializeError::PrefixError(PrefixError::InvalidPrefix(0xff))
             ))
         ));
     }
