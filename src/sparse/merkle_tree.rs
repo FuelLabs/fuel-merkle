@@ -98,7 +98,7 @@ where
         self.storage
             .insert(&leaf_node.hash(), &(&leaf_node).into())?;
         self.storage
-            .insert(&leaf_node.leaf_key(), &(&leaf_node).into())?;
+            .insert(leaf_node.leaf_key(), &(&leaf_node).into())?;
 
         if self.root_node().is_placeholder() {
             self.set_root_node(leaf_node);
