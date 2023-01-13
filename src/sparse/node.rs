@@ -303,12 +303,12 @@ where
         if key == zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
-        let buffer = self
+        let primitive = self
             .storage
             .get(key)
             .map_err(StorageNodeError::StorageError)?
             .ok_or(ChildError::ChildNotFound(*key))?;
-        Ok(buffer
+        Ok(primitive
             .into_owned()
             .try_into()
             .map(|node| Self::new(self.storage, node))
@@ -323,12 +323,12 @@ where
         if key == zero_sum() {
             return Ok(Self::new(self.storage, Node::create_placeholder()));
         }
-        let buffer = self
+        let primitive = self
             .storage
             .get(key)
             .map_err(StorageNodeError::StorageError)?
             .ok_or(ChildError::ChildNotFound(*key))?;
-        Ok(buffer
+        Ok(primitive
             .into_owned()
             .try_into()
             .map(|node| Self::new(self.storage, node))
@@ -414,7 +414,7 @@ mod test_node {
     }
 
     #[test]
-    fn test_create_leaf_from_buffer_returns_a_valid_leaf() {
+    fn test_create_leaf_from_primitive_returns_a_valid_leaf() {
         let primitive = (0, Prefix::Leaf as u8, [0xff; 32], [0xff; 32]);
 
         let node: Node = primitive.try_into().unwrap();
@@ -427,7 +427,7 @@ mod test_node {
     }
 
     #[test]
-    fn test_create_node_from_buffer_returns_a_valid_node() {
+    fn test_create_node_from_primitive_returns_a_valid_node() {
         let primitive = (255, Prefix::Node as u8, [0xff; 32], [0xff; 32]);
 
         let node: Node = primitive.try_into().unwrap();
@@ -440,7 +440,7 @@ mod test_node {
     }
 
     #[test]
-    fn test_create_from_buffer_returns_deserialize_error_if_invalid_prefix() {
+    fn test_create_from_primitive_returns_deserialize_error_if_invalid_prefix() {
         let primitive = (0xff, 0xff, [0xff; 32], [0xff; 32]);
 
         // Should return Error; prefix 0xff is does not represent a node or leaf
@@ -452,9 +452,9 @@ mod test_node {
     }
 
     /// For leaf node `node` of leaf data `d` with key `k`:
-    /// ```node.buffer = (0x00, k, h(serialize(d)))```
+    /// ```node = (0x00, k, h(serialize(d)))```
     #[test]
-    fn test_leaf_buffer_returns_expected_buffer() {
+    fn test_leaf_primitive_returns_expected_primitive() {
         let expected_primitive = (0_u32, Prefix::Leaf as u8, sum(b"LEAF"), sum([1u8; 32]));
 
         let leaf = Node::create_leaf(&sum(b"LEAF"), &[1u8; 32]);
@@ -464,9 +464,9 @@ mod test_node {
     }
 
     /// For internal node `node` with children `l` and `r`:
-    /// ```node.buffer = (0x01, l.v, r.v)```
+    /// ```node = (0x01, l.v, r.v)```
     #[test]
-    fn test_node_buffer_returns_expected_buffer() {
+    fn test_node_primitive_returns_expected_primitive() {
         let expected_primitive = (
             1_u32,
             Prefix::Node as u8,
@@ -519,12 +519,9 @@ mod test_node {
 
 #[cfg(test)]
 mod test_storage_node {
-    // use crate::sparse::primitive::AsPrimitive;
     use crate::{
-        common::{
-            error::DeserializeError, Bytes32, ChildError, ParentNode, PrefixError, StorageMap,
-        },
-        sparse::{hash::sum, node::StorageNodeError, Node, Primitive, StorageNode},
+        common::{error::DeserializeError, ChildError, ParentNode, PrefixError, StorageMap},
+        sparse::{hash::sum, merkle_tree::NodesTable, node::StorageNodeError, Node, StorageNode},
     };
 
     use fuel_storage::{Mappable, StorageMutate};
@@ -542,13 +539,13 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.hash(), &Primitive::from(&leaf_0));
+        let _ = s.insert(&leaf_0.hash(), &leaf_0.as_ref().into());
 
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.hash(), &Primitive::from(&leaf_1));
+        let _ = s.insert(&leaf_1.hash(), &leaf_1.as_ref().into());
 
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
-        let _ = s.insert(&node_0.hash(), &Primitive::from(&node_0));
+        let _ = s.insert(&node_0.hash(), &node_0.as_ref().into());
 
         let storage_node = StorageNode::new(&s, node_0);
         let child = storage_node.left_child().unwrap();
@@ -561,13 +558,13 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.hash(), &Primitive::from(&leaf_0));
+        let _ = s.insert(&leaf_0.hash(), &leaf_0.as_ref().into());
 
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.hash(), &Primitive::from(&leaf_1));
+        let _ = s.insert(&leaf_1.hash(), &leaf_1.as_ref().into());
 
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
-        let _ = s.insert(&node_0.hash(), &Primitive::from(&node_0));
+        let _ = s.insert(&node_0.hash(), &node_0.as_ref().into());
 
         let storage_node = StorageNode::new(&s, node_0);
         let child = storage_node.right_child().unwrap();
@@ -580,10 +577,10 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf.hash(), &Primitive::from(&leaf));
+        let _ = s.insert(&leaf.hash(), &leaf.as_ref().into());
 
         let node_0 = Node::create_node(&Node::create_placeholder(), &leaf, 1);
-        let _ = s.insert(&node_0.hash(), &Primitive::from(&node_0));
+        let _ = s.insert(&node_0.hash(), &node_0.as_ref().into());
 
         let storage_node = StorageNode::new(&s, node_0);
         let child = storage_node.left_child().unwrap();
@@ -596,10 +593,10 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf.hash(), &Primitive::from(&leaf));
+        let _ = s.insert(&leaf.hash(), &leaf.as_ref().into());
 
         let node_0 = Node::create_node(&leaf, &Node::create_placeholder(), 1);
-        let _ = s.insert(&node_0.hash(), &Primitive::from(&node_0));
+        let _ = s.insert(&node_0.hash(), &node_0.as_ref().into());
 
         let storage_node = StorageNode::new(&s, node_0);
         let child = storage_node.right_child().unwrap();
@@ -674,7 +671,7 @@ mod test_storage_node {
     }
 
     #[test]
-    fn test_node_left_child_returns_deserialize_error_when_buffer_is_invalid() {
+    fn test_node_left_child_returns_deserialize_error_when_primitive_is_invalid() {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
@@ -690,13 +687,13 @@ mod test_storage_node {
         assert!(matches!(
             err,
             ChildError::Error(StorageNodeError::DeserializeError(
-                DeserializeError::PrefixError(PrefixError::InvalidPrefix(255))
+                DeserializeError::PrefixError(PrefixError::InvalidPrefix(0xff))
             ))
         ));
     }
 
     #[test]
-    fn test_node_right_child_returns_deserialize_error_when_buffer_is_invalid() {
+    fn test_node_right_child_returns_deserialize_error_when_primitive_is_invalid() {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
@@ -712,7 +709,7 @@ mod test_storage_node {
         assert!(matches!(
             err,
             ChildError::Error(StorageNodeError::DeserializeError(
-                DeserializeError::PrefixError(PrefixError::InvalidPrefix(255))
+                DeserializeError::PrefixError(PrefixError::InvalidPrefix(0xff))
             ))
         ));
     }

@@ -57,12 +57,12 @@ where
         storage: StorageType,
         root: &Bytes32,
     ) -> Result<Self, MerkleTreeError<StorageError>> {
-        let buffer = storage
+        let primitive = storage
             .get(root)?
             .ok_or_else(|| MerkleTreeError::LoadError(hex::encode(root)))?
             .into_owned();
         let tree = Self {
-            root_node: buffer
+            root_node: primitive
                 .try_into()
                 .map_err(MerkleTreeError::DeserializeError)?,
             storage,
@@ -106,9 +106,9 @@ where
             return Ok(());
         }
 
-        if let Some(buffer) = self.storage.get(key)? {
-            let buffer = buffer.into_owned();
-            let leaf_node: Node = buffer
+        if let Some(primitive) = self.storage.get(key)? {
+            let primitive = primitive.into_owned();
+            let leaf_node: Node = primitive
                 .try_into()
                 .map_err(MerkleTreeError::DeserializeError)?;
             let (path_nodes, side_nodes): (Vec<Node>, Vec<Node>) =
