@@ -324,7 +324,7 @@ mod test {
         binary::{empty_sum, leaf_sum, node_sum, Node},
         common::StorageMap,
     };
-    use fuel_merkle_test_helpers::*;
+    use fuel_merkle_test_helpers::TEST_DATA;
     use fuel_storage::StorageInspect;
 
     use alloc::vec::Vec;
