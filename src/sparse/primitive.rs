@@ -1,6 +1,7 @@
-use crate::common::error::DeserializeError;
-use crate::common::{Bytes32, Prefix, PrefixError};
-use crate::sparse::Node;
+use crate::{
+    common::{error::DeserializeError, Bytes32, Prefix, PrefixError},
+    sparse::Node,
+};
 
 /// **Leaf buffer:**
 ///
@@ -22,14 +23,14 @@ use crate::sparse::Node;
 ///
 pub type Primitive = (u32, u8, Bytes32, Bytes32);
 
-trait SparseNode {
+trait PrimitiveView {
     fn height(&self) -> u32;
     fn prefix(&self) -> Result<Prefix, PrefixError>;
     fn bytes_lo(&self) -> &Bytes32;
     fn bytes_hi(&self) -> &Bytes32;
 }
 
-impl SparseNode for Primitive {
+impl PrimitiveView for Primitive {
     fn height(&self) -> u32 {
         self.0
     }
@@ -47,7 +48,7 @@ impl SparseNode for Primitive {
     }
 }
 
-impl<'a> From<&'a Node> for Primitive {
+impl From<&Node> for Primitive {
     fn from(node: &Node) -> Self {
         (
             node.height(),
@@ -73,11 +74,5 @@ impl TryFrom<Primitive> for Node {
             bytes_hi,
         };
         Ok(node)
-    }
-}
-
-impl Node {
-    pub fn as_primitive(&self) -> Primitive {
-        self.into()
     }
 }
