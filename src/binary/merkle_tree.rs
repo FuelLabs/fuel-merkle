@@ -1,5 +1,5 @@
 use crate::{
-    binary::{buffer::Buffer, empty_sum, Node},
+    binary::{empty_sum, Node, Primitive},
     common::{Bytes32, Position, ProofSet, Subtree},
 };
 
@@ -42,7 +42,7 @@ impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
     TableType: Mappable<Key = u64, SetValue = Buffer, GetValue = Buffer>,
     StorageType: StorageMutate<TableType, Error = StorageError>,
-    StorageError: fmt::Debug + 'static,
+    StorageError: Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
         Self {
@@ -92,12 +92,12 @@ where
         let root_node = self.root_node()?.unwrap();
         let root_position = root_node.position();
         let leaf_position = Position::from_leaf_index(proof_index);
-        let buffer = self
+        let primitive = self
             .storage
             .get(&leaf_position.in_order_index())?
             .ok_or(MerkleTreeError::LoadError(proof_index))?
             .into_owned();
-        let leaf_node = Node::from(buffer);
+        let leaf_node = Node::from(primitive);
         proof_set.push(*leaf_node.hash());
 
         let (_, mut side_positions): (Vec<_>, Vec<_>) = root_position
@@ -109,12 +109,12 @@ where
 
         for side_position in side_positions {
             let key = side_position.in_order_index();
-            let buffer = self
+            let primitive = self
                 .storage
                 .get(&key)?
                 .ok_or(MerkleTreeError::LoadError(key))?
                 .into_owned();
-            let node = Node::from(buffer);
+            let node = Node::from(primitive);
             proof_set.push(*node.hash());
         }
 
@@ -124,7 +124,7 @@ where
 
     pub fn push(&mut self, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
         let node = Node::create_leaf(self.leaves_count, data);
-        self.storage.insert(&node.key(), node.buffer())?;
+        self.storage.insert(&node.key(), &(&node).into())?;
         let next = self.head.take();
         let head = Box::new(Subtree::<Node>::new(node, next));
         self.head = Some(head);
@@ -229,7 +229,7 @@ where
         let leaf_position = Position::from_leaf_index(leaves_count - 1);
 
         // The root position of a tree will always have an in-order index equal
-        // to N' - 1, where N is the leaves count and N` is N rounded (or equal)
+        // to N' - 1, where N is the leaves count and N' is N rounded (or equal)
         // to the next power of 2.
         let root_index = leaves_count.next_power_of_two() - 1;
         let root_position = Position::from_in_order_index(root_index);
@@ -304,7 +304,7 @@ where
     ) -> Result<Box<Subtree<Node>>, StorageError> {
         let joined_node = Node::create_node(lhs.node(), rhs.node());
         self.storage
-            .insert(&joined_node.key(), joined_node.buffer())?;
+            .insert(&joined_node.key(), &(&joined_node).into())?;
         let joined_head = Subtree::new(joined_node, lhs.take_next());
         Ok(Box::new(joined_head))
     }

@@ -1,8 +1,5 @@
 use crate::{
-    binary::{
-        buffer::{Buffer, ReadView, WriteView, DEFAULT_BUFFER},
-        leaf_sum, node_sum,
-    },
+    binary::{leaf_sum, node_sum},
     common::{Bytes32, Position},
 };
 
@@ -10,29 +7,29 @@ use core::fmt::Debug;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Node {
-    buffer: Buffer,
+    position: Position,
+    hash: Bytes32,
 }
 
 impl Node {
+    pub fn new(position: Position, hash: Bytes32) -> Self {
+        Self { position, hash }
+    }
+
     pub fn create_leaf(index: u64, data: &[u8]) -> Self {
-        let mut buffer = *DEFAULT_BUFFER;
-        let mut view = WriteView::new(&mut buffer);
-        *view.position_mut() = Position::from_leaf_index(index);
-        *view.hash_mut() = leaf_sum(data);
-        Self { buffer }
+        let position = Position::from_leaf_index(index);
+        let hash = leaf_sum(data);
+        Self { position, hash }
     }
 
     pub fn create_node(left_child: &Self, right_child: &Self) -> Self {
-        let mut buffer = *DEFAULT_BUFFER;
-        let mut view = WriteView::new(&mut buffer);
-        *view.position_mut() = left_child.position().parent();
-        *view.hash_mut() = node_sum(left_child.hash(), right_child.hash());
-        Self { buffer }
+        let position = left_child.position().parent();
+        let hash = node_sum(left_child.hash(), right_child.hash());
+        Self { position, hash }
     }
 
     pub fn position(&self) -> Position {
-        let view = ReadView::new(&self.buffer);
-        view.position()
+        self.position
     }
 
     pub fn key(&self) -> u64 {
@@ -40,26 +37,12 @@ impl Node {
     }
 
     pub fn hash(&self) -> &Bytes32 {
-        let view = ReadView::new(&self.buffer);
-        let ptr = view.hash() as *const Bytes32;
-        // SAFETY: ptr is guaranteed to point to a valid range of 32 bytes owned
-        //         by self.buffer
-        unsafe { &*ptr }
-    }
-
-    pub fn buffer(&self) -> &Buffer {
-        &self.buffer
+        &self.hash
     }
 }
 
-impl From<Buffer> for Node {
-    fn from(buffer: Buffer) -> Self {
-        Self { buffer }
-    }
-}
-
-impl From<Node> for Buffer {
-    fn from(node: Node) -> Self {
-        node.buffer
+impl AsRef<Node> for Node {
+    fn as_ref(&self) -> &Node {
+        self
     }
 }
