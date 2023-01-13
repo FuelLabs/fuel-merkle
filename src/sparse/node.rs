@@ -171,6 +171,12 @@ impl Node {
     }
 }
 
+impl AsRef<Node> for Node {
+    fn as_ref(&self) -> &Node {
+        self
+    }
+}
+
 impl NodeTrait for Node {
     type Key = Bytes32;
 

@@ -96,9 +96,9 @@ where
 
         let leaf_node = Node::create_leaf(key, data);
         self.storage
-            .insert(&leaf_node.hash(), &(&leaf_node).into())?;
+            .insert(&leaf_node.hash(), &leaf_node.as_ref().into())?;
         self.storage
-            .insert(leaf_node.leaf_key(), &(&leaf_node).into())?;
+            .insert(leaf_node.leaf_key(), &leaf_node.as_ref().into())?;
 
         if self.root_node().is_placeholder() {
             self.set_root_node(leaf_node);
@@ -208,7 +208,7 @@ where
             if !actual_leaf_node.is_placeholder() {
                 current_node = Node::create_node_on_path(path, &current_node, actual_leaf_node);
                 self.storage
-                    .insert(&current_node.hash(), &(&current_node).into())?;
+                    .insert(&current_node.hash(), &current_node.as_ref().into())?;
             }
 
             // Merge placeholders
@@ -219,7 +219,7 @@ where
             for placeholder in placeholders {
                 current_node = Node::create_node_on_path(path, &current_node, &placeholder);
                 self.storage
-                    .insert(&current_node.hash(), &(&current_node).into())?;
+                    .insert(&current_node.hash(), &current_node.as_ref().into())?;
             }
         }
 
@@ -227,7 +227,7 @@ where
         for side_node in side_nodes {
             current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
-                .insert(&current_node.hash(), &(&current_node).into())?;
+                .insert(&current_node.hash(), &current_node.as_ref().into())?;
         }
 
         self.set_root_node(current_node);
@@ -283,7 +283,7 @@ where
                 {
                     current_node = Node::create_node_on_path(path, &current_node, side_node);
                     self.storage
-                        .insert(&current_node.hash(), &(&current_node).into())?;
+                        .insert(&current_node.hash(), &current_node.as_ref().into())?;
                 }
             }
         }
@@ -292,7 +292,7 @@ where
         for side_node in side_nodes_iter {
             current_node = Node::create_node_on_path(path, &current_node, side_node);
             self.storage
-                .insert(&current_node.hash(), &(&current_node).into())?;
+                .insert(&current_node.hash(), &current_node.as_ref().into())?;
         }
 
         self.set_root_node(current_node);
