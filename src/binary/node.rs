@@ -7,11 +7,15 @@ use core::fmt::Debug;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Node {
-    pub position: Position,
-    pub hash: Bytes32,
+    position: Position,
+    hash: Bytes32,
 }
 
 impl Node {
+    pub fn new(position: Position, hash: Bytes32) -> Self {
+        Self { position, hash }
+    }
+
     pub fn create_leaf(index: u64, data: &[u8]) -> Self {
         let position = Position::from_leaf_index(index);
         let hash = leaf_sum(data);
@@ -24,28 +28,21 @@ impl Node {
         Self { position, hash }
     }
 
+    pub fn position(&self) -> Position {
+        self.position
+    }
+
     pub fn key(&self) -> u64 {
         self.position().in_order_index()
+    }
+
+    pub fn hash(&self) -> &Bytes32 {
+        &self.hash
     }
 }
 
 impl AsRef<Node> for Node {
     fn as_ref(&self) -> &Node {
         self
-    }
-}
-
-pub trait BinaryNode {
-    fn position(&self) -> Position;
-    fn hash(&self) -> &Bytes32;
-}
-
-impl BinaryNode for Node {
-    fn position(&self) -> Position {
-        self.position
-    }
-
-    fn hash(&self) -> &Bytes32 {
-        &self.hash
     }
 }

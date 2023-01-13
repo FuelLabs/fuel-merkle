@@ -1,5 +1,5 @@
 use crate::{
-    binary::{empty_sum, BinaryNode, Node, Primitive},
+    binary::{empty_sum, Node, Primitive},
     common::{Bytes32, Position, ProofSet, Subtree},
 };
 
@@ -48,26 +48,9 @@ impl Mappable for NodesTable {
     type GetValue = Self::SetValue;
 }
 
-pub trait MerkleStorage<T>: StorageMutate<T>
-where
-    T: Mappable,
-    T::SetValue: BinaryNode,
-    T::GetValue: BinaryNode,
-{
-}
-
-impl<S, T> MerkleStorage<T> for S
-where
-    S: StorageMutate<T>,
-    T: Mappable,
-    T::SetValue: BinaryNode,
-    T::GetValue: BinaryNode,
-{
-}
-
 impl<StorageType, StorageError> MerkleTree<StorageType>
 where
-    StorageType: MerkleStorage<NodesTable, Error = StorageError>,
+    StorageType: StorageMutate<NodesTable, Error = StorageError>,
     StorageError: Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
@@ -338,7 +321,7 @@ where
 mod test {
     use super::{MerkleTree, MerkleTreeError, NodesTable};
     use crate::{
-        binary::{empty_sum, leaf_sum, node_sum, BinaryNode, Node},
+        binary::{empty_sum, leaf_sum, node_sum, Node},
         common::StorageMap,
     };
     use fuel_merkle_test_helpers::*;
