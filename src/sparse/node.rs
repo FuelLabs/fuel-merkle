@@ -14,10 +14,10 @@ use core::{cmp, fmt};
 
 #[derive(Clone)]
 pub(crate) struct Node {
-    pub height: u32,
-    pub prefix: Prefix,
-    pub bytes_lo: Bytes32,
-    pub bytes_hi: Bytes32,
+    height: u32,
+    prefix: Prefix,
+    bytes_lo: Bytes32,
+    bytes_hi: Bytes32,
 }
 
 impl Default for Node {
@@ -34,6 +34,15 @@ impl Default for Node {
 impl Node {
     pub fn max_height() -> usize {
         Node::key_size_in_bits()
+    }
+
+    pub fn new(height: u32, prefix: Prefix, bytes_lo: Bytes32, bytes_hi: Bytes32) -> Self {
+        Self {
+            height,
+            prefix,
+            bytes_lo,
+            bytes_hi,
+        }
     }
 
     pub fn create_leaf(key: &Bytes32, data: &[u8]) -> Self {

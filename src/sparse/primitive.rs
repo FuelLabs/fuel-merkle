@@ -67,12 +67,7 @@ impl TryFrom<Primitive> for Node {
         let prefix = primitive.prefix()?;
         let bytes_lo = *primitive.bytes_lo();
         let bytes_hi = *primitive.bytes_hi();
-        let node = Self {
-            height,
-            prefix,
-            bytes_lo,
-            bytes_hi,
-        };
+        let node = Self::new(height, prefix, bytes_lo, bytes_hi);
         Ok(node)
     }
 }
