@@ -24,28 +24,21 @@ impl Node {
         Self { position, hash }
     }
 
+    pub fn position(&self) -> Position {
+        self.position
+    }
+
     pub fn key(&self) -> u64 {
         self.position().in_order_index()
+    }
+
+    pub fn hash(&self) -> &Bytes32 {
+        &self.hash
     }
 }
 
 impl AsRef<Node> for Node {
     fn as_ref(&self) -> &Node {
         self
-    }
-}
-
-pub trait BinaryNode {
-    fn position(&self) -> Position;
-    fn hash(&self) -> &Bytes32;
-}
-
-impl BinaryNode for Node {
-    fn position(&self) -> Position {
-        self.position
-    }
-
-    fn hash(&self) -> &Bytes32 {
-        &self.hash
     }
 }

@@ -1,9 +1,16 @@
-use crate::binary::{BinaryNode, Node};
-use crate::common::{Bytes32, Position};
+use crate::{
+    binary::Node,
+    common::{Bytes32, Position},
+};
 
 pub type Primitive = (u64, Bytes32);
 
-impl BinaryNode for Primitive {
+pub trait PrimitiveView {
+    fn position(&self) -> Position;
+    fn hash(&self) -> &Bytes32;
+}
+
+impl PrimitiveView for Primitive {
     fn position(&self) -> Position {
         Position::from_in_order_index(self.0)
     }
