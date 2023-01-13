@@ -1,6 +1,6 @@
 use crate::{
     common::{Bytes32, StorageMap},
-    sparse::{self, buffer::Buffer},
+    sparse::{self, Primitive},
 };
 use fuel_storage::Mappable;
 
@@ -11,7 +11,7 @@ pub struct NodesTable;
 
 impl Mappable for NodesTable {
     type Key = Bytes32;
-    type SetValue = Buffer;
+    type SetValue = Primitive;
     type GetValue = Self::SetValue;
 }
 

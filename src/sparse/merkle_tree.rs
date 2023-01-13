@@ -41,7 +41,7 @@ pub struct MerkleTree<TableType, StorageType> {
 
 impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
-    TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
+    TableType: Mappable<Key = Bytes32, SetValue = Primitive, GetValue = Primitive>,
     StorageType: StorageMutate<TableType, Error = StorageError>,
     StorageError: fmt::Debug + Clone + 'static,
 {
@@ -294,7 +294,7 @@ where
 mod test {
     use crate::{
         common::{Bytes32, StorageMap},
-        sparse::{buffer::Buffer, hash::sum, MerkleTree, MerkleTreeError},
+        sparse::{hash::sum, MerkleTree, MerkleTreeError, Primitive},
     };
     use fuel_storage::Mappable;
     use hex;
@@ -304,7 +304,7 @@ mod test {
 
     impl Mappable for NodesTable {
         type Key = Bytes32;
-        type SetValue = Buffer;
+        type SetValue = Primitive;
         type GetValue = Self::SetValue;
     }
 

@@ -6,7 +6,7 @@ use crate::{
 use fuel_storage::{Mappable, StorageMutate};
 
 use alloc::{boxed::Box, vec::Vec};
-use core::{fmt, marker::PhantomData};
+use core::marker::PhantomData;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "std", derive(thiserror::Error))]
@@ -40,7 +40,7 @@ pub struct MerkleTree<TableType, StorageType> {
 
 impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
-    TableType: Mappable<Key = u64, SetValue = Buffer, GetValue = Buffer>,
+    TableType: Mappable<Key = u64, SetValue = Primitive, GetValue = Primitive>,
     StorageType: StorageMutate<TableType, Error = StorageError>,
     StorageError: Clone + 'static,
 {
@@ -314,7 +314,7 @@ where
 mod test {
     use super::{MerkleTree, MerkleTreeError};
     use crate::{
-        binary::{buffer::Buffer, empty_sum, leaf_sum, node_sum, Node},
+        binary::{empty_sum, leaf_sum, node_sum, Node, Primitive},
         common::StorageMap,
     };
     use fuel_merkle_test_helpers::TEST_DATA;
@@ -327,7 +327,7 @@ mod test {
 
     impl Mappable for NodesTable {
         type Key = u64;
-        type SetValue = Buffer;
+        type SetValue = Primitive;
         type GetValue = Self::SetValue;
     }
 

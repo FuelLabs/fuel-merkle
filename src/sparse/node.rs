@@ -5,7 +5,6 @@ use crate::{
         Bytes32, ChildError, ChildResult, Node as NodeTrait, ParentNode as ParentNodeTrait, Prefix,
     },
     sparse::{
-        buffer::{Buffer, ReadView, WriteView, DEFAULT_BUFFER},
         hash::{sum, sum_all},
         zero_sum,
     },
@@ -14,6 +13,7 @@ use crate::{
 use fuel_storage::Mappable;
 use fuel_storage::StorageInspect;
 
+use crate::sparse::Primitive;
 use core::marker::PhantomData;
 use core::{cmp, fmt};
 
@@ -290,7 +290,7 @@ pub enum StorageNodeError<StorageError> {
 impl<TableType, StorageType> ParentNodeTrait for StorageNode<'_, TableType, StorageType>
 where
     StorageType: StorageInspect<TableType>,
-    TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
+    TableType: Mappable<Key = Bytes32, SetValue = Primitive, GetValue = Primitive>,
     StorageType::Error: fmt::Debug,
 {
     type Error = StorageNodeError<StorageType::Error>;
@@ -339,7 +339,7 @@ where
 impl<TableType, StorageType> fmt::Debug for StorageNode<'_, TableType, StorageType>
 where
     StorageType: StorageInspect<TableType>,
-    TableType: Mappable<Key = Bytes32, SetValue = Buffer, GetValue = Buffer>,
+    TableType: Mappable<Key = Bytes32, SetValue = Primitive, GetValue = Primitive>,
     StorageType::Error: fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -524,10 +524,7 @@ mod test_storage_node {
         common::{
             error::DeserializeError, Bytes32, ChildError, ParentNode, PrefixError, StorageMap,
         },
-        sparse::{
-            hash::sum, merkle_tree::NodesTable, node::StorageNodeError, Node, Primitive,
-            StorageNode,
-        },
+        sparse::{hash::sum, node::StorageNodeError, Node, Primitive, StorageNode},
     };
 
     use fuel_storage::{Mappable, StorageMutate};
@@ -536,7 +533,7 @@ mod test_storage_node {
 
     impl Mappable for NodesTable {
         type Key = Bytes32;
-        type SetValue = Buffer;
+        type SetValue = Primitive;
         type GetValue = Self::SetValue;
     }
 
