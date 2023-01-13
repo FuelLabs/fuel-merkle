@@ -520,8 +520,10 @@ mod test_node {
 #[cfg(test)]
 mod test_storage_node {
     use crate::{
-        common::{error::DeserializeError, ChildError, ParentNode, PrefixError, StorageMap},
-        sparse::{hash::sum, merkle_tree::NodesTable, node::StorageNodeError, Node, StorageNode},
+        common::{
+            error::DeserializeError, Bytes32, ChildError, ParentNode, PrefixError, StorageMap,
+        },
+        sparse::{hash::sum, node::StorageNodeError, Node, Primitive, StorageNode},
     };
 
     use fuel_storage::{Mappable, StorageMutate};
