@@ -30,6 +30,6 @@ impl From<Primitive> for Node {
     fn from(primitive: Primitive) -> Self {
         let position = primitive.position();
         let hash = *primitive.hash();
-        Node { position, hash }
+        Node::new(position, hash)
     }
 }
