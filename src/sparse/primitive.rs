@@ -1,5 +1,5 @@
 use crate::{
-    common::{error::DeserializeError, Bytes32, Prefix, PrefixError},
+    common::{error::DeserializeError, Prefix},
     sparse::Node,
 };
 
@@ -21,52 +21,31 @@ use crate::{
 /// | `05 - 37`  | Left child key (32 bytes)  |
 /// | `37 - 69`  | Right child key (32 bytes) |
 ///
-pub type Primitive = (u32, u8, Bytes32, Bytes32);
-
-trait PrimitiveView {
-    fn height(&self) -> u32;
-    fn prefix(&self) -> Result<Prefix, PrefixError>;
-    fn bytes_lo(&self) -> &Bytes32;
-    fn bytes_hi(&self) -> &Bytes32;
-}
-
-impl PrimitiveView for Primitive {
-    fn height(&self) -> u32 {
-        self.0
-    }
-
-    fn prefix(&self) -> Result<Prefix, PrefixError> {
-        Prefix::try_from(self.1)
-    }
-
-    fn bytes_lo(&self) -> &Bytes32 {
-        &self.2
-    }
-
-    fn bytes_hi(&self) -> &Bytes32 {
-        &self.3
-    }
-}
+pub type Primitive = [u8; 69];
 
 impl From<&Node> for Primitive {
     fn from(node: &Node) -> Self {
-        (
-            node.height(),
-            node.prefix() as u8,
-            *node.bytes_lo(),
-            *node.bytes_hi(),
-        )
+        let mut primitive = [0u8; 69];
+        primitive[0..4].copy_from_slice(&node.height().to_be_bytes());
+        primitive[4] = node.prefix() as u8;
+        primitive[5..37].copy_from_slice(node.bytes_lo());
+        primitive[37..69].copy_from_slice(node.bytes_hi());
+        primitive
     }
 }
 
-impl TryFrom<Primitive> for Node {
+impl TryFrom<&Primitive> for Node {
     type Error = DeserializeError;
 
-    fn try_from(primitive: Primitive) -> Result<Self, Self::Error> {
-        let height = primitive.height();
-        let prefix = primitive.prefix()?;
-        let bytes_lo = *primitive.bytes_lo();
-        let bytes_hi = *primitive.bytes_hi();
+    fn try_from(primitive: &Primitive) -> Result<Self, Self::Error> {
+        let mut height_array = [0u8; 4];
+        height_array.copy_from_slice(&primitive[0..4]);
+        let height = u32::from_be_bytes(height_array);
+        let prefix = Prefix::try_from(primitive[4])?;
+        let mut bytes_lo = [0u8; 32];
+        bytes_lo.copy_from_slice(&primitive[5..37]);
+        let mut bytes_hi = [0u8; 32];
+        bytes_hi.copy_from_slice(&primitive[37..69]);
         let node = Self::new(height, prefix, bytes_lo, bytes_hi);
         Ok(node)
     }
