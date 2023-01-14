@@ -528,9 +528,9 @@ mod test_storage_node {
 
     use fuel_storage::{Mappable, StorageMutate};
 
-    pub struct NodesTable;
+    pub struct TestTable;
 
-    impl Mappable for NodesTable {
+    impl Mappable for TestTable {
         type Key = Bytes32;
         type SetValue = Primitive;
         type GetValue = Self::SetValue;
@@ -538,7 +538,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_left_child_returns_the_left_child() {
-        let mut s = StorageMap::<NodesTable>::new();
+        let mut s = StorageMap::<TestTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let _ = s.insert(&leaf_0.hash(), &leaf_0.as_ref().into());
@@ -557,7 +557,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_the_right_child() {
-        let mut s = StorageMap::<NodesTable>::new();
+        let mut s = StorageMap::<TestTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let _ = s.insert(&leaf_0.hash(), &leaf_0.as_ref().into());
@@ -576,7 +576,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_left_child_returns_placeholder_when_key_is_zero_sum() {
-        let mut s = StorageMap::<NodesTable>::new();
+        let mut s = StorageMap::<TestTable>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let _ = s.insert(&leaf.hash(), &leaf.as_ref().into());
@@ -592,7 +592,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_placeholder_when_key_is_zero_sum() {
-        let mut s = StorageMap::<NodesTable>::new();
+        let mut s = StorageMap::<TestTable>::new();
 
         let leaf = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let _ = s.insert(&leaf.hash(), &leaf.as_ref().into());
@@ -608,7 +608,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_left_child_returns_error_when_node_is_leaf() {
-        let s = StorageMap::<NodesTable>::new();
+        let s = StorageMap::<TestTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let storage_node = StorageNode::new(&s, leaf_0);
@@ -621,7 +621,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_error_when_node_is_leaf() {
-        let s = StorageMap::<NodesTable>::new();
+        let s = StorageMap::<TestTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let storage_node = StorageNode::new(&s, leaf_0);
@@ -634,7 +634,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_left_child_returns_error_when_key_is_not_found() {
-        let s = StorageMap::<NodesTable>::new();
+        let s = StorageMap::<TestTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[0u8; 32]);
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
@@ -654,7 +654,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_error_when_key_is_not_found() {
-        let s = StorageMap::<NodesTable>::new();
+        let s = StorageMap::<TestTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
@@ -674,7 +674,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_left_child_returns_deserialize_error_when_primitive_is_invalid() {
-        let mut s = StorageMap::<NodesTable>::new();
+        let mut s = StorageMap::<TestTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let _ = s.insert(&leaf_0.hash(), &(0xff, 0xff, [0xff; 32], [0xff; 32]));
@@ -696,7 +696,7 @@ mod test_storage_node {
 
     #[test]
     fn test_node_right_child_returns_deserialize_error_when_primitive_is_invalid() {
-        let mut s = StorageMap::<NodesTable>::new();
+        let mut s = StorageMap::<TestTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);

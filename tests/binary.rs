@@ -10,9 +10,9 @@ use fuel_merkle::{
 use fuel_merkle_test_helpers::binary::MerkleTree as ReferenceMerkleTree;
 use fuel_storage::Mappable;
 
-struct NodesTable;
+struct TestTable;
 
-impl Mappable for NodesTable {
+impl Mappable for TestTable {
     type Key = u64;
     type SetValue = Primitive;
     type GetValue = Self::SetValue;
@@ -54,7 +54,7 @@ fn test_roots() {
         };
 
         let root = {
-            let storage = StorageMap::<NodesTable>::new();
+            let storage = StorageMap::<TestTable>::new();
             let mut test_tree = MerkleTree::new(storage);
             for datum in sample_data.iter() {
                 test_tree.push(datum).unwrap();
@@ -91,7 +91,7 @@ fn test_prove() {
         };
 
         let proof = {
-            let storage = StorageMap::<NodesTable>::new();
+            let storage = StorageMap::<TestTable>::new();
             let mut test_tree = MerkleTree::new(storage);
             for datum in sample_data.iter() {
                 test_tree.push(datum).unwrap();
@@ -117,7 +117,7 @@ fn test_load() {
             .cloned()
             .choose_multiple(&mut rng, *samples);
 
-        let mut storage = StorageMap::<NodesTable>::new();
+        let mut storage = StorageMap::<TestTable>::new();
 
         let expected_root = {
             let mut reference_tree = MerkleTree::new(&mut storage);
