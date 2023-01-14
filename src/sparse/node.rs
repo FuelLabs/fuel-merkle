@@ -6,7 +6,7 @@ use crate::{
     },
     sparse::{
         hash::{sum, sum_all},
-        zero_sum,
+        zero_sum, Primitive,
     },
 };
 
