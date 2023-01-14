@@ -71,10 +71,10 @@ where
     ) -> Result<Self, MerkleTreeError<StorageError>> {
         let primitive = storage
             .get(root)?
-            .ok_or_else(|| MerkleTreeError::LoadError(hex::encode(root)))?
-            .into_owned();
+            .ok_or_else(|| MerkleTreeError::LoadError(hex::encode(root)))?;
         let tree = Self {
             root_node: primitive
+                .as_ref()
                 .try_into()
                 .map_err(MerkleTreeError::DeserializeError)?,
             storage,
@@ -118,7 +118,7 @@ where
         }
 
         if let Some(primitive) = self.storage.get(key)? {
-            let primitive = primitive.into_owned();
+            let primitive = primitive.as_ref();
             let leaf_node: Node = primitive
                 .try_into()
                 .map_err(MerkleTreeError::DeserializeError)?;
@@ -710,7 +710,7 @@ mod test {
 
         // Overwrite the root key-value with an invalid primitive to create a
         // DeserializeError.
-        let primitive = (0xff, 0xff, [0xff; 32], [0xff; 32]);
+        let primitive = [0xff; 69];
         storage.insert(&root, &primitive).unwrap();
 
         let err = MerkleTree::load(&mut storage, &root)

@@ -102,9 +102,8 @@ where
         let primitive = self
             .storage
             .get(&leaf_position.in_order_index())?
-            .ok_or(MerkleTreeError::LoadError(proof_index))?
-            .into_owned();
-        let leaf_node = Node::from(primitive);
+            .ok_or(MerkleTreeError::LoadError(proof_index))?;
+        let leaf_node = Node::from(primitive.as_ref());
         proof_set.push(*leaf_node.hash());
 
         let (_, mut side_positions): (Vec<_>, Vec<_>) = root_position
@@ -119,9 +118,8 @@ where
             let primitive = self
                 .storage
                 .get(&key)?
-                .ok_or(MerkleTreeError::LoadError(key))?
-                .into_owned();
-            let node = Node::from(primitive);
+                .ok_or(MerkleTreeError::LoadError(key))?;
+            let node = Node::from(primitive.as_ref());
             proof_set.push(*node.hash());
         }
 
@@ -254,7 +252,7 @@ where
                 .storage
                 .get(&key)?
                 .ok_or(MerkleTreeError::LoadError(key))?
-                .into_owned()
+                .as_ref()
                 .into();
             let next = Box::new(Subtree::<Node>::new(node, current_head));
             current_head = Some(next);
@@ -378,17 +376,17 @@ mod test {
         let s_node_9 = storage_map.get(&9).unwrap().unwrap();
         let s_node_3 = storage_map.get(&3).unwrap().unwrap();
 
-        assert_eq!(*Node::from(s_leaf_0.into_owned()).hash(), leaf_0);
-        assert_eq!(*Node::from(s_leaf_1.into_owned()).hash(), leaf_1);
-        assert_eq!(*Node::from(s_leaf_2.into_owned()).hash(), leaf_2);
-        assert_eq!(*Node::from(s_leaf_3.into_owned()).hash(), leaf_3);
-        assert_eq!(*Node::from(s_leaf_4.into_owned()).hash(), leaf_4);
-        assert_eq!(*Node::from(s_leaf_5.into_owned()).hash(), leaf_5);
-        assert_eq!(*Node::from(s_leaf_6.into_owned()).hash(), leaf_6);
-        assert_eq!(*Node::from(s_node_1.into_owned()).hash(), node_1);
-        assert_eq!(*Node::from(s_node_5.into_owned()).hash(), node_5);
-        assert_eq!(*Node::from(s_node_9.into_owned()).hash(), node_9);
-        assert_eq!(*Node::from(s_node_3.into_owned()).hash(), node_3);
+        assert_eq!(*Node::from(s_leaf_0.as_ref()).hash(), leaf_0);
+        assert_eq!(*Node::from(s_leaf_1.as_ref()).hash(), leaf_1);
+        assert_eq!(*Node::from(s_leaf_2.as_ref()).hash(), leaf_2);
+        assert_eq!(*Node::from(s_leaf_3.as_ref()).hash(), leaf_3);
+        assert_eq!(*Node::from(s_leaf_4.as_ref()).hash(), leaf_4);
+        assert_eq!(*Node::from(s_leaf_5.as_ref()).hash(), leaf_5);
+        assert_eq!(*Node::from(s_leaf_6.as_ref()).hash(), leaf_6);
+        assert_eq!(*Node::from(s_node_1.as_ref()).hash(), node_1);
+        assert_eq!(*Node::from(s_node_5.as_ref()).hash(), node_5);
+        assert_eq!(*Node::from(s_node_9.as_ref()).hash(), node_9);
+        assert_eq!(*Node::from(s_node_3.as_ref()).hash(), node_3);
     }
 
     #[test]

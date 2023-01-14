@@ -1,35 +1,23 @@
-use crate::{
-    binary::Node,
-    common::{Bytes32, Position},
-};
+use crate::{binary::Node, common::Position};
 
-pub type Primitive = (u64, Bytes32);
-
-pub trait PrimitiveView {
-    fn position(&self) -> Position;
-    fn hash(&self) -> &Bytes32;
-}
-
-impl PrimitiveView for Primitive {
-    fn position(&self) -> Position {
-        Position::from_in_order_index(self.0)
-    }
-
-    fn hash(&self) -> &Bytes32 {
-        &self.1
-    }
-}
+pub type Primitive = [u8; 40];
 
 impl From<&Node> for Primitive {
     fn from(node: &Node) -> Self {
-        (node.position().in_order_index(), *node.hash())
+        let mut primitive = [0u8; 40];
+        primitive[0..8].copy_from_slice(&node.position().in_order_index().to_be_bytes());
+        primitive[8..40].copy_from_slice(node.hash());
+        primitive
     }
 }
 
-impl From<Primitive> for Node {
-    fn from(primitive: Primitive) -> Self {
-        let position = primitive.position();
-        let hash = *primitive.hash();
+impl From<&Primitive> for Node {
+    fn from(primitive: &Primitive) -> Self {
+        let mut position_array = [0u8; 8];
+        position_array.copy_from_slice(&primitive[0..8]);
+        let position = Position::from_in_order_index(u64::from_be_bytes(position_array));
+        let mut hash = [0u8; 32];
+        hash.copy_from_slice(&primitive[8..40]);
         Node::new(position, hash)
     }
 }

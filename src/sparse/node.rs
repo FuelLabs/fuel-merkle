@@ -296,7 +296,7 @@ where
             .map_err(StorageNodeError::StorageError)?
             .ok_or(ChildError::ChildNotFound(*key))?;
         Ok(primitive
-            .into_owned()
+            .as_ref()
             .try_into()
             .map(|node| Self::new(self.storage, node))
             .map_err(StorageNodeError::DeserializeError)?)
@@ -316,7 +316,7 @@ where
             .map_err(StorageNodeError::StorageError)?
             .ok_or(ChildError::ChildNotFound(*key))?;
         Ok(primitive
-            .into_owned()
+            .as_ref()
             .try_into()
             .map(|node| Self::new(self.storage, node))
             .map_err(StorageNodeError::DeserializeError)?)
@@ -401,9 +401,11 @@ mod test_node {
 
     #[test]
     fn test_create_leaf_from_primitive_returns_a_valid_leaf() {
-        let primitive = (0, Prefix::Leaf as u8, [0xff; 32], [0xff; 32]);
+        let primitive: Primitive = Node::new(0, Prefix::Leaf, [0xff; 32], [0xff; 32])
+            .as_ref()
+            .into();
 
-        let node: Node = primitive.try_into().unwrap();
+        let node: Node = (&primitive).try_into().unwrap();
         assert_eq!(node.is_leaf(), true);
         assert_eq!(node.is_node(), false);
         assert_eq!(node.height(), 0);
@@ -414,9 +416,11 @@ mod test_node {
 
     #[test]
     fn test_create_node_from_primitive_returns_a_valid_node() {
-        let primitive = (255, Prefix::Node as u8, [0xff; 32], [0xff; 32]);
+        let primitive: Primitive = Node::new(255, Prefix::Node, [0xff; 32], [0xff; 32])
+            .as_ref()
+            .into();
 
-        let node: Node = primitive.try_into().unwrap();
+        let node: Node = (&primitive).try_into().unwrap();
         assert_eq!(node.is_leaf(), false);
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 255);
@@ -427,10 +431,10 @@ mod test_node {
 
     #[test]
     fn test_create_from_primitive_returns_deserialize_error_if_invalid_prefix() {
-        let primitive = (0xff, 0xff, [0xff; 32], [0xff; 32]);
+        let primitive = [0xff; 69];
 
         // Should return Error; prefix 0xff is does not represent a node or leaf
-        let err = Node::try_from(primitive).expect_err("Expected try_from() to be Error; got OK");
+        let err = Node::try_from(&primitive).expect_err("Expected try_from() to be Error; got OK");
         assert!(matches!(
             err,
             DeserializeError::PrefixError(PrefixError::InvalidPrefix(0xff))
@@ -441,7 +445,10 @@ mod test_node {
     /// ```node = (0x00, k, h(serialize(d)))```
     #[test]
     fn test_leaf_primitive_returns_expected_primitive() {
-        let expected_primitive = (0_u32, Prefix::Leaf as u8, sum(b"LEAF"), sum([1u8; 32]));
+        let expected_primitive: Primitive =
+            Node::new(0, Prefix::Leaf, sum(b"LEAF"), sum([1u8; 32]))
+                .as_ref()
+                .into();
 
         let leaf = Node::create_leaf(&sum(b"LEAF"), &[1u8; 32]);
         let primitive = Primitive::from(&leaf);
@@ -453,12 +460,14 @@ mod test_node {
     /// ```node = (0x01, l.v, r.v)```
     #[test]
     fn test_node_primitive_returns_expected_primitive() {
-        let expected_primitive = (
-            1_u32,
-            Prefix::Node as u8,
+        let expected_primitive: Primitive = Node::new(
+            1,
+            Prefix::Node,
             leaf_hash(&sum(b"LEFT CHILD"), &[1u8; 32]),
             leaf_hash(&sum(b"RIGHT CHILD"), &[1u8; 32]),
-        );
+        )
+        .as_ref()
+        .into();
 
         let left_child = Node::create_leaf(&sum(b"LEFT CHILD"), &[1u8; 32]);
         let right_child = Node::create_leaf(&sum(b"RIGHT CHILD"), &[1u8; 32]);
@@ -652,7 +661,7 @@ mod test_storage_node {
         let mut s = StorageMap::<NodesTable>::new();
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_0.hash(), &(0xff, 0xff, [0xff; 32], [0xff; 32]));
+        let _ = s.insert(&leaf_0.hash(), &[0xff; 69]);
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
 
@@ -675,7 +684,7 @@ mod test_storage_node {
 
         let leaf_0 = Node::create_leaf(&sum(b"Hello World"), &[1u8; 32]);
         let leaf_1 = Node::create_leaf(&sum(b"Goodbye World"), &[1u8; 32]);
-        let _ = s.insert(&leaf_1.hash(), &(0xff, 0xff, [0xff; 32], [0xff; 32]));
+        let _ = s.insert(&leaf_1.hash(), &[0xff; 69]);
         let node_0 = Node::create_node(&leaf_0, &leaf_1, 1);
 
         let storage_node = StorageNode::new(&s, node_0);
