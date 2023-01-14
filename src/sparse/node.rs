@@ -13,7 +13,6 @@ use crate::{
 use fuel_storage::Mappable;
 use fuel_storage::StorageInspect;
 
-use crate::sparse::Primitive;
 use core::marker::PhantomData;
 use core::{cmp, fmt};
 
@@ -422,8 +421,8 @@ mod test_node {
         assert_eq!(node.is_node(), false);
         assert_eq!(node.height(), 0);
         assert_eq!(node.prefix(), Prefix::Leaf);
-        assert_eq!(*node.leaf_key(), [0xff; 32]);
-        assert_eq!(*node.leaf_data(), [0xff; 32]);
+        assert_eq!(*node.leaf_key(), [255u8; 32]);
+        assert_eq!(*node.leaf_data(), [255u8; 32]);
     }
 
     #[test]
@@ -435,8 +434,8 @@ mod test_node {
         assert_eq!(node.is_node(), true);
         assert_eq!(node.height(), 255);
         assert_eq!(node.prefix(), Prefix::Node);
-        assert_eq!(*node.left_child_key(), [0xff; 32]);
-        assert_eq!(*node.right_child_key(), [0xff; 32]);
+        assert_eq!(*node.left_child_key(), [255u8; 32]);
+        assert_eq!(*node.right_child_key(), [255u8; 32]);
     }
 
     #[test]
