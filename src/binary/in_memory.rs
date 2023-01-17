@@ -9,10 +9,19 @@ use fuel_storage::Mappable;
 /// value is the [`Node`](crate::binary::Node).
 struct NodesTable;
 
+#[derive(Clone)]
+struct DefaultGetValue(Primitive);
+
+impl AsRef<Primitive> for DefaultGetValue {
+    fn as_ref(&self) -> &Primitive {
+        &self.0
+    }
+}
+
 impl Mappable for NodesTable {
     type Key = u64;
     type SetValue = Primitive;
-    type GetValue = Self::SetValue;
+    type GetValue = DefaultGetValue;
 }
 
 type Storage = StorageMap<NodesTable>;

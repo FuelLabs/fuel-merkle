@@ -26,10 +26,10 @@ impl From<&Node> for Primitive {
     }
 }
 
-impl From<Primitive> for Node {
-    fn from(primitive: Primitive) -> Self {
-        let position = primitive.position();
-        let hash = *primitive.hash();
+impl<T: AsRef<Primitive>> From<T> for Node {
+    fn from(primitive: T) -> Self {
+        let position = primitive.as_ref().position();
+        let hash = *primitive.as_ref().hash();
         Node::new(position, hash)
     }
 }

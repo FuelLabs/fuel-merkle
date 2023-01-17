@@ -38,9 +38,10 @@ pub struct MerkleTree<TableType, StorageType> {
     phantom_table: PhantomData<TableType>,
 }
 
-impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
+impl<TableType, StorageType, StorageError, GV> MerkleTree<TableType, StorageType>
 where
-    TableType: Mappable<Key = u64, SetValue = Primitive, GetValue = Primitive>,
+    TableType: Mappable<Key = u64, SetValue = Primitive, GetValue = GV>,
+    TableType::GetValue: AsRef<Primitive> + Clone,
     StorageType: StorageMutate<TableType, Error = StorageError>,
     StorageError: Clone + 'static,
 {
@@ -96,7 +97,7 @@ where
             .storage
             .get(&leaf_position.in_order_index())?
             .ok_or(MerkleTreeError::LoadError(proof_index))?
-            .into_owned();
+            .as_ref();
         let leaf_node = Node::from(primitive);
         proof_set.push(*leaf_node.hash());
 
@@ -113,7 +114,7 @@ where
                 .storage
                 .get(&key)?
                 .ok_or(MerkleTreeError::LoadError(key))?
-                .into_owned();
+                .as_ref();
             let node = Node::from(primitive);
             proof_set.push(*node.hash());
         }
