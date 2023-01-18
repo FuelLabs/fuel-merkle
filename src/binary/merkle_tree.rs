@@ -21,13 +21,7 @@ pub enum MerkleTreeError<StorageError> {
     LoadError(u64),
 
     #[cfg_attr(feature = "std", error(transparent))]
-    StorageError(StorageError),
-}
-
-impl<StorageError> From<StorageError> for MerkleTreeError<StorageError> {
-    fn from(err: StorageError) -> MerkleTreeError<StorageError> {
-        MerkleTreeError::StorageError(err)
-    }
+    StorageError(#[from] StorageError),
 }
 
 #[derive(Debug)]
@@ -72,7 +66,7 @@ where
         self.leaves_count
     }
 
-    pub fn root(&mut self) -> Result<Bytes32, MerkleTreeError<StorageError>> {
+    pub fn root(&mut self) -> Result<Bytes32, StorageError> {
         let root_node = self.root_node()?;
         let root = match root_node {
             None => *empty_sum(),
