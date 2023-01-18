@@ -68,6 +68,10 @@ where
         Ok(tree)
     }
 
+    pub fn leaves_count(&self) -> u64 {
+        self.leaves_count
+    }
+
     pub fn root(&mut self) -> Result<Bytes32, MerkleTreeError<StorageError>> {
         let root_node = self.root_node()?;
         let root = match root_node {
