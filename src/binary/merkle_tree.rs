@@ -42,7 +42,6 @@ impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
     TableType: Mappable<Key = u64, SetValue = Primitive, GetValue = Primitive>,
     StorageType: StorageMutate<TableType, Error = StorageError>,
-    StorageError: Clone + 'static,
 {
     pub fn new(storage: StorageType) -> Self {
         Self {
