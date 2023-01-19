@@ -277,9 +277,9 @@ where
     /// When calling `root_node`, callees must pass a mutable reference to a
     /// temporary storage space that will be used to hold any intermediate nodes
     /// that are created during root node calculation. At the end of the method
-    /// call, this temporary storage space will be contain all intermediate
-    /// nodes not held in persistent storage, and these nodes will be available
-    /// to the callee.
+    /// call, this temporary storage space will contain all intermediate nodes
+    /// not held in persistent storage, and these nodes will be available to the
+    /// callee.
     ///
     fn root_node(&self, scratch_storage: &mut StorageMap<NodesTable>) -> Option<Node> {
         let root_node = self
