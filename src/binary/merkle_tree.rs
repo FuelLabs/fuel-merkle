@@ -262,9 +262,7 @@ where
         // to N' - 1, where N is the leaves count and N' is N rounded (or equal)
         // to the next power of 2.
         let root_index = leaves_count.next_power_of_two() - 1;
-        let root_position = Position::from_in_order_index(root_index);
-
-        root_position
+        Position::from_in_order_index(root_index)
     }
 
     fn root_node(&self, scratch_storage: &mut StorageMap<NodesTable>) -> Option<Node> {
@@ -329,8 +327,7 @@ where
 
 fn join_subtrees(lhs: &mut Subtree<Node>, rhs: &mut Subtree<Node>) -> Subtree<Node> {
     let joined_node = Node::create_node(lhs.node(), rhs.node());
-    let joined_head = Subtree::new(joined_node, lhs.take_next());
-    joined_head
+    Subtree::new(joined_node, lhs.take_next())
 }
 
 fn build_root_node<Table, Storage>(subtree: &Subtree<Node>, storage: &mut Storage) -> Node
