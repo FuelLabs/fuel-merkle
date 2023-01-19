@@ -41,8 +41,7 @@ pub struct MerkleTree<TableType, StorageType> {
 impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
 where
     TableType: Mappable<Key = u64, SetValue = Primitive, GetValue = Primitive>,
-    StorageType: StorageMutate<TableType, Error = StorageError>,
-    StorageError: Clone + 'static,
+    StorageType: StorageInspect<TableType, Error = StorageError>,
 {
     pub fn new(storage: StorageType) -> Self {
         Self {
@@ -130,19 +129,6 @@ where
 
         let root = *root_node.hash();
         Ok((root, proof_set))
-    }
-
-    pub fn push(&mut self, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
-        let node = Node::create_leaf(self.leaves_count, data);
-        self.storage.insert(&node.key(), &node.as_ref().into())?;
-        let next = self.head.take();
-        let head = Box::new(Subtree::<Node>::new(node, next));
-        self.head = Some(head);
-        self.join_all_subtrees()?;
-
-        self.leaves_count += 1;
-
-        Ok(())
     }
 
     //
@@ -283,12 +269,35 @@ where
         let root_node = self
             .head
             .as_ref()
-            .map(|head| Self::build_root_node(head, scratch_storage))
+            .map(|head| build_root_node(head, scratch_storage))
             .transpose()
             .unwrap(); // Safety: scratch_storage is infallible
 
         Ok(root_node)
     }
+}
+
+impl<TableType, StorageType, StorageError> MerkleTree<TableType, StorageType>
+where
+    TableType: Mappable<Key = u64, SetValue = Primitive, GetValue = Primitive>,
+    StorageType: StorageMutate<TableType, Error = StorageError>,
+{
+    pub fn push(&mut self, data: &[u8]) -> Result<(), MerkleTreeError<StorageError>> {
+        let node = Node::create_leaf(self.leaves_count, data);
+        self.storage.insert(&node.key(), &node.as_ref().into())?;
+        let next = self.head.take();
+        let head = Box::new(Subtree::<Node>::new(node, next));
+        self.head = Some(head);
+        self.join_all_subtrees()?;
+
+        self.leaves_count += 1;
+
+        Ok(())
+    }
+
+    //
+    // PRIVATE
+    //
 
     fn join_all_subtrees(&mut self) -> Result<(), StorageError> {
         loop {
@@ -304,45 +313,45 @@ where
             let joined_head = {
                 let mut head = self.head.take().unwrap();
                 let mut head_next = head.take_next().unwrap();
-                Self::join_subtrees(&mut head_next, &mut head, &mut self.storage)?
+                join_subtrees(&mut head_next, &mut head, &mut self.storage)?
             };
             self.head = Some(Box::new(joined_head));
         }
 
         Ok(())
     }
+}
 
-    fn build_root_node<Table, Storage, Error>(
-        subtree: &Subtree<Node>,
-        storage: &mut Storage,
-    ) -> Result<Node, Error>
-    where
-        Table: Mappable<Key = u64, GetValue = Primitive, SetValue = Primitive>,
-        Storage: StorageMutate<Table, Error = Error>,
-    {
-        let mut current = subtree.clone();
-        while current.next().is_some() {
-            let mut head = current;
-            let mut head_next = head.take_next().unwrap();
-            current = Self::join_subtrees(&mut head_next, &mut head, storage)?;
-        }
-        Ok(current.node().clone())
-    }
+fn join_subtrees<Table, Storage, Error>(
+    lhs: &mut Subtree<Node>,
+    rhs: &mut Subtree<Node>,
+    storage: &mut Storage,
+) -> Result<Subtree<Node>, Error>
+where
+    Table: Mappable<Key = u64, GetValue = Primitive, SetValue = Primitive>,
+    Storage: StorageMutate<Table, Error = Error>,
+{
+    let joined_node = Node::create_node(lhs.node(), rhs.node());
+    storage.insert(&joined_node.key(), &joined_node.as_ref().into())?;
+    let joined_head = Subtree::new(joined_node, lhs.take_next());
+    Ok(joined_head)
+}
 
-    fn join_subtrees<Table, Storage, Error>(
-        lhs: &mut Subtree<Node>,
-        rhs: &mut Subtree<Node>,
-        storage: &mut Storage,
-    ) -> Result<Subtree<Node>, Error>
-    where
-        Table: Mappable<Key = u64, GetValue = Primitive, SetValue = Primitive>,
-        Storage: StorageMutate<Table, Error = Error>,
-    {
-        let joined_node = Node::create_node(lhs.node(), rhs.node());
-        storage.insert(&joined_node.key(), &joined_node.as_ref().into())?;
-        let joined_head = Subtree::new(joined_node, lhs.take_next());
-        Ok(joined_head)
+fn build_root_node<Table, Storage, Error>(
+    subtree: &Subtree<Node>,
+    storage: &mut Storage,
+) -> Result<Node, Error>
+where
+    Table: Mappable<Key = u64, GetValue = Primitive, SetValue = Primitive>,
+    Storage: StorageMutate<Table, Error = Error>,
+{
+    let mut current = subtree.clone();
+    while current.next().is_some() {
+        let mut head = current;
+        let mut head_next = head.take_next().unwrap();
+        current = join_subtrees(&mut head_next, &mut head, storage)?;
     }
+    Ok(current.node().clone())
 }
 
 #[cfg(test)]
