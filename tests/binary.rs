@@ -129,7 +129,7 @@ fn test_load() {
 
         let root = {
             let leaves_count = sample_data.len() as u64;
-            let mut test_tree = MerkleTree::load(&mut storage, leaves_count).unwrap();
+            let test_tree = MerkleTree::load(&mut storage, leaves_count).unwrap();
             test_tree.root().unwrap()
         };
 

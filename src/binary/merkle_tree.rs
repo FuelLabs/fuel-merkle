@@ -1,9 +1,9 @@
 use crate::{
-    binary::{empty_sum, Node, Primitive},
-    common::{Bytes32, Position, ProofSet, Subtree},
+    binary::{empty_sum, in_memory::NodesTable, Node, Primitive},
+    common::{Bytes32, Position, ProofSet, StorageMap, Subtree},
 };
 
-use fuel_storage::{Mappable, StorageMutate};
+use fuel_storage::{Mappable, StorageInspect, StorageMutate};
 
 use alloc::{boxed::Box, vec::Vec};
 use core::marker::PhantomData;
@@ -69,8 +69,9 @@ where
         Ok(tree)
     }
 
-    pub fn root(&mut self) -> Result<Bytes32, MerkleTreeError<StorageError>> {
-        let root_node = self.root_node()?;
+    pub fn root(&self) -> Result<Bytes32, StorageError> {
+        let mut scratch_storage = StorageMap::<NodesTable>::new();
+        let root_node = self.root_node(&mut scratch_storage)?;
         let root = match root_node {
             None => *empty_sum(),
             Some(ref node) => *node.hash(),
@@ -80,7 +81,7 @@ where
     }
 
     pub fn prove(
-        &mut self,
+        &self,
         proof_index: u64,
     ) -> Result<(Bytes32, ProofSet), MerkleTreeError<StorageError>> {
         if proof_index + 1 > self.leaves_count {
@@ -89,8 +90,7 @@ where
 
         let mut proof_set = ProofSet::new();
 
-        let root_node = self.root_node()?.unwrap();
-        let root_position = root_node.position();
+        let root_position = self.root_position();
         let leaf_position = Position::from_leaf_index(proof_index);
         let primitive = self
             .storage
@@ -107,11 +107,21 @@ where
         side_positions.reverse(); // Reorder side positions from leaf to root.
         side_positions.pop(); // The last side position is the root; remove it.
 
+        // Allocate scratch storage to store temporary nodes when building the
+        // root.
+        let mut scratch_storage = StorageMap::<NodesTable>::new();
+        let root_node = self.root_node(&mut scratch_storage)?.unwrap();
+
+        // Get side nodes. First, we check the scratch storage. If the side node
+        // is not found in scratch storage, we then check main storage. Finally,
+        // if the side node is not found in main storage, we exit with a load
+        // error.
         for side_position in side_positions {
             let key = side_position.in_order_index();
-            let primitive = self
-                .storage
-                .get(&key)?
+            let primitive = scratch_storage
+                .get(&key)
+                .unwrap()
+                .or(self.storage.get(&key)?)
                 .ok_or(MerkleTreeError::LoadError(key))?
                 .into_owned();
             let node = Node::from(primitive);
@@ -220,6 +230,26 @@ where
     /// side positions `03`, `09`, and `12`, matching our set of MMR peaks.
     ///
     fn build(&mut self) -> Result<(), MerkleTreeError<StorageError>> {
+        let mut current_head = None;
+        let peaks = &self.peak_positions()[1..]; // Omit the root.
+        for peak in peaks.iter() {
+            let key = peak.in_order_index();
+            let node = self
+                .storage
+                .get(&key)?
+                .ok_or(MerkleTreeError::LoadError(key))?
+                .into_owned()
+                .into();
+            let next = Box::new(Subtree::<Node>::new(node, current_head));
+            current_head = Some(next);
+        }
+
+        self.head = current_head;
+
+        Ok(())
+    }
+
+    fn peak_positions(&self) -> Vec<Position> {
         // Define a new tree with a leaf count 1 greater than the current leaf
         // count.
         let leaves_count = self.leaves_count + 1;
@@ -239,38 +269,23 @@ where
             .iter()
             .unzip();
 
-        let mut current_head = None;
-        let peaks = &peaks.as_slice()[1..]; // Omit the root.
-        for peak in peaks.iter() {
-            let key = peak.in_order_index();
-            let node = self
-                .storage
-                .get(&key)?
-                .ok_or(MerkleTreeError::LoadError(key))?
-                .into_owned()
-                .into();
-            let next = Box::new(Subtree::<Node>::new(node, current_head));
-            current_head = Some(next);
-        }
-
-        self.head = current_head;
-
-        Ok(())
+        peaks
     }
 
-    fn root_node(&mut self) -> Result<Option<Node>, StorageError> {
-        let root_node = match self.head {
-            None => None,
-            Some(ref initial) => {
-                let mut current = initial.clone();
-                while current.next().is_some() {
-                    let mut head = current;
-                    let mut head_next = head.take_next().unwrap();
-                    current = self.join_subtrees(&mut head_next, &mut head)?
-                }
-                Some(current.node().clone())
-            }
-        };
+    fn root_position(&self) -> Position {
+        self.peak_positions()[0]
+    }
+
+    fn root_node(
+        &self,
+        scratch_storage: &mut StorageMap<NodesTable>,
+    ) -> Result<Option<Node>, StorageError> {
+        let root_node = self
+            .head
+            .as_ref()
+            .map(|head| Self::build_root_node(head, scratch_storage))
+            .transpose()
+            .unwrap(); // Safety: scratch_storage is infallible
 
         Ok(root_node)
     }
@@ -289,24 +304,44 @@ where
             let joined_head = {
                 let mut head = self.head.take().unwrap();
                 let mut head_next = head.take_next().unwrap();
-                self.join_subtrees(&mut head_next, &mut head)?
+                Self::join_subtrees(&mut head_next, &mut head, &mut self.storage)?
             };
-            self.head = Some(joined_head);
+            self.head = Some(Box::new(joined_head));
         }
 
         Ok(())
     }
 
-    fn join_subtrees(
-        &mut self,
+    fn build_root_node<Table, Storage, Error>(
+        subtree: &Subtree<Node>,
+        storage: &mut Storage,
+    ) -> Result<Node, Error>
+    where
+        Table: Mappable<Key = u64, GetValue = Primitive, SetValue = Primitive>,
+        Storage: StorageMutate<Table, Error = Error>,
+    {
+        let mut current = subtree.clone();
+        while current.next().is_some() {
+            let mut head = current;
+            let mut head_next = head.take_next().unwrap();
+            current = Self::join_subtrees(&mut head_next, &mut head, storage)?;
+        }
+        Ok(current.node().clone())
+    }
+
+    fn join_subtrees<Table, Storage, Error>(
         lhs: &mut Subtree<Node>,
         rhs: &mut Subtree<Node>,
-    ) -> Result<Box<Subtree<Node>>, StorageError> {
+        storage: &mut Storage,
+    ) -> Result<Subtree<Node>, Error>
+    where
+        Table: Mappable<Key = u64, GetValue = Primitive, SetValue = Primitive>,
+        Storage: StorageMutate<Table, Error = Error>,
+    {
         let joined_node = Node::create_node(lhs.node(), rhs.node());
-        self.storage
-            .insert(&joined_node.key(), &joined_node.as_ref().into())?;
+        storage.insert(&joined_node.key(), &joined_node.as_ref().into())?;
         let joined_head = Subtree::new(joined_node, lhs.take_next());
-        Ok(Box::new(joined_head))
+        Ok(joined_head)
     }
 }
 
@@ -411,7 +446,7 @@ mod test {
         };
 
         let root = {
-            let mut tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
+            let tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
             tree.root().unwrap()
         };
 
@@ -426,7 +461,7 @@ mod test {
 
         let root = {
             let mut storage_map = StorageMap::<TestTable>::new();
-            let mut tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
+            let tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
             tree.root().unwrap()
         };
 
@@ -455,7 +490,7 @@ mod test {
     #[test]
     fn root_returns_the_empty_root_for_0_leaves() {
         let mut storage_map = StorageMap::<TestTable>::new();
-        let mut tree = MerkleTree::new(&mut storage_map);
+        let tree = MerkleTree::new(&mut storage_map);
 
         let root = tree.root().unwrap();
         assert_eq!(root, empty_sum().clone());
@@ -524,7 +559,7 @@ mod test {
     #[test]
     fn prove_returns_invalid_proof_index_error_for_0_leaves() {
         let mut storage_map = StorageMap::<TestTable>::new();
-        let mut tree = MerkleTree::new(&mut storage_map);
+        let tree = MerkleTree::new(&mut storage_map);
 
         let err = tree
             .prove(0)
