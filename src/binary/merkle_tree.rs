@@ -270,7 +270,7 @@ where
     /// several balanced subtrees, in which case the tree is imbalanced. Only
     /// nodes at the head of a balanced tree are persisted in storage; any node,
     /// including the root node, whose child is an imbalanced child subtree will
-    /// not be saved in persistent  storage. This is because node data for such
+    /// not be saved in persistent storage. This is because node data for such
     /// nodes is liable to change as more leaves are pushed to the tree.
     /// Instead, intermediate nodes must be held in a temporary storage space.
     ///
