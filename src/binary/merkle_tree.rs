@@ -1,9 +1,10 @@
 use crate::{
     binary::{empty_sum, in_memory::NodesTable, Node, Primitive},
     common::{Bytes32, Position, ProofSet, StorageMap, Subtree},
+    storage::{
+        Mappable, StorageInspect, StorageInspectInfallible, StorageMutate, StorageMutateInfallible,
+    },
 };
-
-use fuel_storage::{Mappable, StorageInspect, StorageMutate};
 
 use alloc::{boxed::Box, vec::Vec};
 use core::marker::PhantomData;
@@ -70,7 +71,7 @@ where
 
     pub fn root(&self) -> Result<Bytes32, StorageError> {
         let mut scratch_storage = StorageMap::<NodesTable>::new();
-        let root_node = self.root_node(&mut scratch_storage)?;
+        let root_node = self.root_node(&mut scratch_storage);
         let root = match root_node {
             None => *empty_sum(),
             Some(ref node) => *node.hash(),
@@ -109,7 +110,9 @@ where
         // Allocate scratch storage to store temporary nodes when building the
         // root.
         let mut scratch_storage = StorageMap::<NodesTable>::new();
-        let root_node = self.root_node(&mut scratch_storage)?.unwrap();
+        let root_node = self
+            .root_node(&mut scratch_storage)
+            .expect("Root node must be present");
 
         // Get side nodes. First, we check the scratch storage. If the side node
         // is not found in scratch storage, we then check main storage. Finally,
@@ -117,9 +120,7 @@ where
         // error.
         for side_position in side_positions {
             let key = side_position.in_order_index();
-            let primitive = scratch_storage
-                .get(&key)
-                .unwrap()
+            let primitive = StorageInspectInfallible::get(&scratch_storage, &key)
                 .or(self.storage.get(&key)?)
                 .ok_or(MerkleTreeError::LoadError(key))?
                 .into_owned();
@@ -217,7 +218,7 @@ where
     ///
     fn build(&mut self) -> Result<(), MerkleTreeError<StorageError>> {
         let mut current_head = None;
-        let peaks = &self.peak_positions()[1..]; // Omit the root.
+        let peaks = &self.peak_positions();
         for peak in peaks.iter() {
             let key = peak.in_order_index();
             let node = self
@@ -243,6 +244,19 @@ where
         // The rightmost leaf position of a tree will always have a leaf index
         // N - 1, where N is the number of leaves.
         let leaf_position = Position::from_leaf_index(leaves_count - 1);
+        let root_position = self.root_position();
+        let mut peaks_itr = root_position.path(&leaf_position, leaves_count).iter();
+        peaks_itr.next(); // Omit the root
+
+        let (_, peaks): (Vec<_>, Vec<_>) = peaks_itr.unzip();
+
+        peaks
+    }
+
+    fn root_position(&self) -> Position {
+        // Define a new tree with a leaf count 1 greater than the current leaf
+        // count.
+        let leaves_count = self.leaves_count + 1;
 
         // The root position of a tree will always have an in-order index equal
         // to N' - 1, where N is the leaves count and N' is N rounded (or equal)
@@ -250,30 +264,16 @@ where
         let root_index = leaves_count.next_power_of_two() - 1;
         let root_position = Position::from_in_order_index(root_index);
 
-        let (_, peaks): (Vec<_>, Vec<_>) = root_position
-            .path(&leaf_position, leaves_count)
-            .iter()
-            .unzip();
-
-        peaks
+        root_position
     }
 
-    fn root_position(&self) -> Position {
-        self.peak_positions()[0]
-    }
-
-    fn root_node(
-        &self,
-        scratch_storage: &mut StorageMap<NodesTable>,
-    ) -> Result<Option<Node>, StorageError> {
+    fn root_node(&self, scratch_storage: &mut StorageMap<NodesTable>) -> Option<Node> {
         let root_node = self
             .head
             .as_ref()
-            .map(|head| build_root_node(head, scratch_storage))
-            .transpose()
-            .unwrap(); // Safety: scratch_storage is infallible
+            .map(|head| build_root_node(head, scratch_storage));
 
-        Ok(root_node)
+        root_node
     }
 }
 
@@ -313,7 +313,12 @@ where
             let joined_head = {
                 let mut head = self.head.take().unwrap();
                 let mut head_next = head.take_next().unwrap();
-                join_subtrees(&mut head_next, &mut head, &mut self.storage)?
+                let joined_head = join_subtrees(&mut head_next, &mut head);
+                self.storage.insert(
+                    &joined_head.node().key(),
+                    &joined_head.node().as_ref().into(),
+                )?;
+                joined_head
             };
             self.head = Some(Box::new(joined_head));
         }
@@ -322,36 +327,25 @@ where
     }
 }
 
-fn join_subtrees<Table, Storage, Error>(
-    lhs: &mut Subtree<Node>,
-    rhs: &mut Subtree<Node>,
-    storage: &mut Storage,
-) -> Result<Subtree<Node>, Error>
-where
-    Table: Mappable<Key = u64, GetValue = Primitive, SetValue = Primitive>,
-    Storage: StorageMutate<Table, Error = Error>,
-{
+fn join_subtrees(lhs: &mut Subtree<Node>, rhs: &mut Subtree<Node>) -> Subtree<Node> {
     let joined_node = Node::create_node(lhs.node(), rhs.node());
-    storage.insert(&joined_node.key(), &joined_node.as_ref().into())?;
     let joined_head = Subtree::new(joined_node, lhs.take_next());
-    Ok(joined_head)
+    joined_head
 }
 
-fn build_root_node<Table, Storage, Error>(
-    subtree: &Subtree<Node>,
-    storage: &mut Storage,
-) -> Result<Node, Error>
+fn build_root_node<Table, Storage>(subtree: &Subtree<Node>, storage: &mut Storage) -> Node
 where
     Table: Mappable<Key = u64, GetValue = Primitive, SetValue = Primitive>,
-    Storage: StorageMutate<Table, Error = Error>,
+    Storage: StorageMutateInfallible<Table>,
 {
     let mut current = subtree.clone();
     while current.next().is_some() {
         let mut head = current;
         let mut head_next = head.take_next().unwrap();
-        current = join_subtrees(&mut head_next, &mut head, storage)?;
+        current = join_subtrees(&mut head_next, &mut head);
+        storage.insert(&current.node().key(), &current.node().as_ref().into());
     }
-    Ok(current.node().clone())
+    current.node().clone()
 }
 
 #[cfg(test)]
