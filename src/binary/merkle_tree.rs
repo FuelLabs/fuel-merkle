@@ -72,11 +72,10 @@ where
     pub fn root(&self) -> Bytes32 {
         let mut scratch_storage = StorageMap::<NodesTable>::new();
         let root_node = self.root_node(&mut scratch_storage);
-        let root = match root_node {
+        match root_node {
             None => *empty_sum(),
             Some(ref node) => *node.hash(),
-        };
-        root
+        }
     }
 
     pub fn prove(
@@ -282,12 +281,9 @@ where
     /// callee.
     ///
     fn root_node(&self, scratch_storage: &mut StorageMap<NodesTable>) -> Option<Node> {
-        let root_node = self
-            .head
+        self.head
             .as_ref()
-            .map(|head| build_root_node(head, scratch_storage));
-
-        root_node
+            .map(|head| build_root_node(head, scratch_storage))
     }
 }
 
