@@ -121,7 +121,7 @@ where
         for side_position in side_positions {
             let key = side_position.in_order_index();
             let primitive = StorageInspectInfallible::get(&scratch_storage, &key)
-                .or(self.storage.get(&key)?)
+                .or(StorageInspect::get(&self.storage, &key)?)
                 .ok_or(MerkleTreeError::LoadError(key))?
                 .into_owned();
             let node = Node::from(primitive);
