@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use std::convert::Infallible;
+use core::convert::Infallible;
 
 // Re-export fuel-storage traits
 pub use fuel_storage::{Mappable, StorageInspect, StorageMutate};
