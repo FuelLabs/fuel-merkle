@@ -69,15 +69,14 @@ where
         Ok(tree)
     }
 
-    pub fn root(&self) -> Result<Bytes32, StorageError> {
+    pub fn root(&self) -> Bytes32 {
         let mut scratch_storage = StorageMap::<NodesTable>::new();
         let root_node = self.root_node(&mut scratch_storage);
         let root = match root_node {
             None => *empty_sum(),
             Some(ref node) => *node.hash(),
         };
-
-        Ok(root)
+        root
     }
 
     pub fn prove(
@@ -442,12 +441,12 @@ mod test {
             for datum in data.iter() {
                 let _ = tree.push(datum);
             }
-            tree.root().unwrap()
+            tree.root()
         };
 
         let root = {
             let tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
-            tree.root().unwrap()
+            tree.root()
         };
 
         assert_eq!(expected_root, root);
@@ -462,7 +461,7 @@ mod test {
         let root = {
             let mut storage_map = StorageMap::<TestTable>::new();
             let tree = MerkleTree::load(&mut storage_map, LEAVES_COUNT).unwrap();
-            tree.root().unwrap()
+            tree.root()
         };
 
         assert_eq!(expected_root, root);
@@ -492,7 +491,7 @@ mod test {
         let mut storage_map = StorageMap::<TestTable>::new();
         let tree = MerkleTree::new(&mut storage_map);
 
-        let root = tree.root().unwrap();
+        let root = tree.root();
         assert_eq!(root, empty_sum().clone());
     }
 
@@ -508,7 +507,7 @@ mod test {
 
         let leaf_0 = leaf_sum(data[0]);
 
-        let root = tree.root().unwrap();
+        let root = tree.root();
         assert_eq!(root, leaf_0);
     }
 
@@ -552,7 +551,7 @@ mod test {
         let node_11 = node_sum(&node_9, &leaf_6);
         let node_7 = node_sum(&node_3, &node_11);
 
-        let root = tree.root().unwrap();
+        let root = tree.root();
         assert_eq!(root, node_7);
     }
 

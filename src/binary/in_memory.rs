@@ -34,7 +34,7 @@ impl MerkleTree {
     }
 
     pub fn root(&mut self) -> Bytes32 {
-        self.tree.root().unwrap()
+        self.tree.root()
     }
 
     pub fn prove(&mut self, proof_index: u64) -> Option<(Bytes32, ProofSet)> {
